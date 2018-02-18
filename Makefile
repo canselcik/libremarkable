@@ -20,3 +20,4 @@ clean:
 	find . -name \*.so -delete
 	find . -name \*.o -delete
 	find . -name \*.a -delete
+	rm -rvf poc || true

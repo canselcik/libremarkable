@@ -1,9 +1,13 @@
 #pragma once
+#include <linux/fb.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+
+#define REMARKABLE_DARKEST                      0x00
+#define REMARKABLE_BRIGHTEST                    0xFF 
 
 #define REMARKABLE_PREFIX                       0x40480000
 #define MXCFB_SEND_UPDATE                       0x0000462e
@@ -50,4 +54,21 @@ typedef struct {
   void* alt_buffer_data; // must not used when flags is 0
 } mxcfb_update_data;
 
+char* serialize_mxcfb_update_data(mxcfb_update_data* x);
 void print_mxcfb_update_data(mxcfb_update_data* x);
+
+// =======================
+
+typedef struct {
+  int fd;
+  const char* fd_path;
+  struct fb_var_screeninfo info;
+  uint16_t* mapped_buffer;
+  unsigned len;
+} remarkable_framebuffer;
+
+remarkable_framebuffer* remarkable_framebuffer_init(const char* device_path);
+void remarkable_framebuffer_destroy(remarkable_framebuffer* fb);
+int remarkable_framebuffer_refresh(remarkable_framebuffer* fb);
+void remarkable_framebuffer_fill(remarkable_framebuffer* fb, uint16_t color);
+int remarkable_framebuffer_partial_refresh(remarkable_framebuffer* fb, unsigned y, unsigned x, unsigned height, unsigned width);
