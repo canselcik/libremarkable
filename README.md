@@ -3,12 +3,12 @@
 This repository contains a collection of scripts, code and general information on what makes Remarkable Paper Tablet tick.
 
 
-## RemarkableFramebufferSpy
+## FrameBuffer Spy
 A shared library that intercepts and displays undocumented framebuffer refresh ioctl calls for the Remarkable Paper Tablet.
 Usage:
 ```sh
 $ systemctl stop xochitl
-$ LD_PRELOAD=./remarkableFramebufferSpy.so xochitl
+$ LD_PRELOAD=./spy.so xochitl
 ...
 12:06.842 DebugHelperClass    	 void DocumentWorker::loadCachedPage(int) 191 ms (~DebugHelperClass() ../git/src/debug.h:16)
 ioctl(3, 0x4048462e, 0x7ea2d290{
@@ -88,7 +88,7 @@ ioctl(3, 0x4048462e, 0x7ea2d290{
 }) == 0
 ```
 
-## PartialUpdatePoC
+## Partial Redraw Proof of Concept (poc)
 Contains the proof of concept for directly interacting with the eink display driver to perform partial updates.
 The key finding here is the following magic values and their usage in conjunction with the dumped `mxcfb_update_data` structure. Simply update the framebuffer and then call `ioctl` on the `/dev/fb0` FD with `REMARKABLE_PREFIX | MXCFB_SEND_UPDATE` and the redraw region set `data.update_region`.
 

@@ -1,3 +1,6 @@
+# Build artifacts
+poc
+
 # Prerequisites
 *.d
 
@@ -6,6 +9,9 @@
 *.ko
 *.obj
 *.elf
+
+# Shared objects
+*.so
 
 # Linker output
 *.ilk
