@@ -90,7 +90,7 @@ ioctl(3, 0x4048462e, 0x7ea2d290{
 
 ## PartialUpdatePoC
 Contains the proof of concept for directly interacting with the eink display driver to perform partial updates.
-The key finding here is the following magic values:
+The key finding here is the following magic values and their usage in conjunction with the dumped `mxcfb_update_data` structure. Simply update the framebuffer and then call `ioctl` on the `/dev/fb0` FD with `REMARKABLE_PREFIX | MXCFB_SEND_UPDATE` and the redraw region set `data.update_region`.
 
 ```c
 #define REMARKABLE_PREFIX                       0x40480000
@@ -117,4 +117,17 @@ The key finding here is the following magic values:
 #define MXCFB_GET_PWRDOWN_DELAY	                0x00004631
 #define MXCFB_SET_UPDATE_SCHEME                 0x00004632
 #define MXCFB_SET_MERGE_ON_WAVEFORM_MISMATCH    0x00004637
+
+mxcfb_update_data data;
+data.update_region.top = 0;
+data.update_region.left = 0;
+data.update_region.width = vinfo.xres;
+data.update_region.height = vinfo.yres;
+data.waveform_mode = 0x0002;
+data.temp = 0x1001;
+data.update_mode = 0x0000;
+data.update_marker = 0x002a;
+data.flags = 0;
+data.alt_buffer_data = NULL;
+ioctl(fb, REMARKABLE_PREFIX | MXCFB_SEND_UPDATE, &data);
 ```
