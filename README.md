@@ -51,6 +51,8 @@ Remarkable Paper Tablet has an undocumented API for partial refreshes on its eIn
 
 The `xochitl` program opens `/dev/fb0`, which always ends up being the `FD=3`. It then writes to this FD when it wants to update the screen and uses primarily the following `ioctl` call in order to perform its partial updates when the user draws on the device (`0x4048462e` is the `PARTIAL_UPDATE_MAGIC`, and the next argument is a pointer to `mxcfb_update_data`):
 
+What is particularly interesting here is that `0x4048462e` also happens to be Kindle's `MXCFB_SEND_UPDATE` magic. Something to keep in mind.
+
 ```c
 typedef struct {
   uint32_t top;    // 0x0000
@@ -85,4 +87,3 @@ ioctl(3, 0x4048462e, 0x7ea2d290{
    alt_buffer_data: 0x300f30
 }) == 0
 ```
-
