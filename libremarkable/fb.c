@@ -113,7 +113,9 @@ void remarkable_framebuffer_fill(remarkable_framebuffer* fb, remarkable_color co
   memset(fb->mapped_buffer, color, fb->len);
 }
 
-int gen = 0;
+// 0 is an invalid update_marker value
+int gen = 1;
+
 // rect=NULL for full-screen refresh
 int remarkable_framebuffer_refresh(remarkable_framebuffer* fb, mxcfb_rect* rect,
                                    update_mode refresh_mode, waveform_mode waveform,
@@ -141,5 +143,18 @@ int remarkable_framebuffer_refresh(remarkable_framebuffer* fb, mxcfb_rect* rect,
   
   data.flags = 0;
   
-  return ioctl(fb->fd, REMARKABLE_PREFIX(MXCFB_SEND_UPDATE), &data);
+  if (ioctl(fb->fd, REMARKABLE_PREFIX(MXCFB_SEND_UPDATE), &data) != 0)
+    return -1;
+  
+  // Return the marker so that the caller can wait for it to finish drawing if needed
+  return data.update_marker;
+}
+
+int remarkable_framebuffer_wait_refresh_marker(remarkable_framebuffer* fb, uint32_t marker) {
+  if (fb == NULL)
+    return -1;
+
+  // TODO: Collusion test (2nd value) is an output param here. It's value might be useful.
+	mxcfb_update_marker_data mdata = { marker, 0 };
+  return ioctl(fb->fd, REMARKABLE_PREFIX(MXCFB_SEND_UPDATE), &mdata);
 }

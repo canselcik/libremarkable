@@ -90,6 +90,11 @@ typedef struct {
 } mxcfb_rect;
 
 typedef struct {
+	uint32_t update_marker;
+	uint32_t collision_test;
+} mxcfb_update_marker_data;
+
+typedef struct {
 	uint32_t phys_addr;
 	uint32_t width;                   /* width of entire buffer */
 	uint32_t height;	                /* height of entire buffer */
@@ -210,3 +215,5 @@ void remarkable_framebuffer_fill(remarkable_framebuffer* fb, remarkable_color co
 int  remarkable_framebuffer_refresh(remarkable_framebuffer* fb, mxcfb_rect* rect,
                                     update_mode refresh_mode, waveform_mode waveform,
                                     display_temp temp);
+
+int  remarkable_framebuffer_wait_refresh_marker(remarkable_framebuffer* fb, uint32_t marker);
