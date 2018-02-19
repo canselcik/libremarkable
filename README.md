@@ -2,6 +2,9 @@
 
 This repository contains a collection of scripts, code and general information on what makes Remarkable Paper Tablet tick.
 
+[![PoC](https://thumbs.gfycat.com/GlitteringShortIchneumonfly-size_restricted.gif)](https://gfycat.com/gifs/detail/GlitteringShortIchneumonfly)
+
+(GIF Preview has limited FPS -- click to watch at full framerate)
 
 ## FrameBuffer Spy
 A shared library that intercepts and displays undocumented framebuffer refresh ioctl calls for the Remarkable Paper Tablet.
