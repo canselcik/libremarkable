@@ -6,8 +6,10 @@
 #include <unistd.h>
 #include <string.h>
 
+typedef uint8_t remarkable_color;
+
 #define REMARKABLE_DARKEST                      0x00
-#define REMARKABLE_BRIGHTEST                    0xFF 
+#define REMARKABLE_BRIGHTEST                    0xFF
 
 #define REMARKABLE_PREFIX                       0x40480000
 #define MXCFB_SEND_UPDATE                       0x0000462e
@@ -59,16 +61,64 @@ void print_mxcfb_update_data(mxcfb_update_data* x);
 
 // =======================
 
+/* vinfo = { xres = 1404,
+             yres = 1872,
+             xres_virtual = 1408,
+             yres_virtual = 3840,
+             xoffset = 0,
+             yoffset = 0,
+             bits_per_pixel = 16,
+             grayscale = 0,
+             red =    { offset = 11, length = 5, msb_right = 0 },
+             green =  { offset = 5,  length = 6, msb_right = 0 },
+             blue =   { offset = 0,  length = 5, msb_right = 0 },
+             transp = { offset = 0,  length = 0, msb_right = 0 },
+             nonstd = 0,
+             activate = 128,
+             height = 4294967295,
+             width = 4294967295,
+             accel_flags = 0,
+             pixclock = 6250,
+             left_margin = 32,
+             right_margin = 326,
+             upper_margin = 4,
+             lower_margin = 12,
+             hsync_len = 44,
+             vsync_len = 1,
+             sync = 0,
+             vmode = 0,
+             rotate = 1,
+             colorspace = 0,
+             reserved = { 0, 0, 0, 0 } }
+
+   finfo = { id = "mxc_epdc_fb\000\000\000\000", 
+             smem_start = 2282749952,
+             smem_len = 10813440,
+             type = 0,
+             type_aux = 0,
+             visual = 2,
+             xpanstep = 1,
+             ypanstep = 1,
+             ywrapstep = 0,
+             line_length = 2816,
+             mmio_start = 0,
+             mmio_len = 0,
+             accel = 0,
+             capabilities = 0,
+             reserved = {0, 0} }
+*/
+
 typedef struct {
   int fd;
   const char* fd_path;
-  struct fb_var_screeninfo info;
-  uint16_t* mapped_buffer;
+  struct fb_var_screeninfo vinfo;
+  struct fb_fix_screeninfo finfo;
+  remarkable_color* mapped_buffer;
   unsigned len;
 } remarkable_framebuffer;
 
 remarkable_framebuffer* remarkable_framebuffer_init(const char* device_path);
 void remarkable_framebuffer_destroy(remarkable_framebuffer* fb);
 int remarkable_framebuffer_refresh(remarkable_framebuffer* fb);
-void remarkable_framebuffer_fill(remarkable_framebuffer* fb, uint16_t color);
-int remarkable_framebuffer_partial_refresh(remarkable_framebuffer* fb, unsigned y, unsigned x, unsigned height, unsigned width);
+void remarkable_framebuffer_fill(remarkable_framebuffer* fb, remarkable_color color);
+int remarkable_framebuffer_partial_refresh(remarkable_framebuffer* fb, mxcfb_rect update_region);

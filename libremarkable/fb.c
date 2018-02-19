@@ -5,11 +5,11 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 
-#define BUFSIZE 512
+#define LOGBUFSIZE 512
 
 char* serialize_mxcfb_update_data(mxcfb_update_data* x) {
-  char* buff = (char*)malloc(BUFSIZE);  
-  snprintf(buff, BUFSIZE, 
+  char* buff = (char*)malloc(LOGBUFSIZE);  
+  snprintf(buff, LOGBUFSIZE, 
     "{\n"
          "   updateRegion: x: %u\n"
          "                 y: %u\n"
@@ -50,14 +50,20 @@ remarkable_framebuffer* remarkable_framebuffer_init(const char* device_path) {
     free(buff);
     return NULL;
   }
-  if (ioctl(buff->fd, FBIOGET_VSCREENINFO, &buff->info)) {
-    printf("Could not get screen info for %s\n", device_path);
+  if (ioctl(buff->fd, FBIOGET_VSCREENINFO, &buff->vinfo)) {
+    printf("Could not get screen vinfo for %s\n", device_path);
+    close(buff->fd);
+    free(buff);
+    return NULL;
+  }
+  if (ioctl(buff->fd, FBIOGET_FSCREENINFO, &buff->finfo)) {
+    printf("Could not get screen finfo for %s\n", device_path);
     close(buff->fd);
     free(buff);
     return NULL;
   }
 
-  buff->len = buff->info.xres * buff->info.yres * buff->info.bits_per_pixel / 8;
+  buff->len = buff->vinfo.xres * buff->vinfo.yres * buff->vinfo.bits_per_pixel / 8;
   buff->mapped_buffer = mmap(NULL, buff->len, PROT_READ | PROT_WRITE, MAP_SHARED, buff->fd, 0);
   if (buff->mapped_buffer == NULL) {
     printf("Failed to mmap the framebuffer\n");
@@ -68,9 +74,9 @@ remarkable_framebuffer* remarkable_framebuffer_init(const char* device_path) {
   printf("Framebuffer(%d - %s) with [x=%u, y=%u, depth=%u]\n",
     buff->fd,
     buff->fd_path,
-    buff->info.xres,
-    buff->info.yres,
-    buff->info.bits_per_pixel);
+    buff->vinfo.xres,
+    buff->vinfo.yres,
+    buff->vinfo.bits_per_pixel);
   return buff;
 }
 
@@ -84,17 +90,14 @@ void remarkable_framebuffer_destroy(remarkable_framebuffer* fb) {
   free(fb);
 }
 
-int remarkable_framebuffer_partial_refresh(remarkable_framebuffer* fb, unsigned y, unsigned x, unsigned height, unsigned width) {
+int remarkable_framebuffer_partial_refresh(remarkable_framebuffer* fb, mxcfb_rect update_region) {
   if (fb == NULL)
     return -1;
   mxcfb_update_data data;
-  data.update_region.top = y;
-  data.update_region.left = x;
-  data.update_region.width = width;
-  data.update_region.height = height;
-  data.waveform_mode = 0x0003; // or 2 
-  data.temp = 0x0FFF;
-  data.update_mode = 0x0000; // how thorough it is?
+  data.update_region = update_region;
+  data.waveform_mode = 0x0002;
+  data.temp = 0xFFF;
+  data.update_mode = 0x0000;   // how thorough it is?
   data.update_marker = 0x0000; // kinda like a sequence num
   data.flags = 0;
   data.alt_buffer_data = NULL;
@@ -104,10 +107,15 @@ int remarkable_framebuffer_partial_refresh(remarkable_framebuffer* fb, unsigned 
 int remarkable_framebuffer_refresh(remarkable_framebuffer* fb) {
   if (fb == NULL)
     return -1;
-  return remarkable_framebuffer_partial_refresh(fb, 0, 0, fb->info.yres, fb->info.xres);
+  mxcfb_rect rect;
+  rect.top = 0;
+  rect.left = 0;
+  rect.height = fb->vinfo.yres;
+  rect.width = fb->vinfo.xres;
+  return remarkable_framebuffer_partial_refresh(fb, rect);
 }
 
-void remarkable_framebuffer_fill(remarkable_framebuffer* fb, uint16_t color) {
+void remarkable_framebuffer_fill(remarkable_framebuffer* fb, remarkable_color color) {
   if (fb == NULL)
     return;
   memset(fb->mapped_buffer, color, fb->len);

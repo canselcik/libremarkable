@@ -1,29 +1,33 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <time.h> 
 #include <stdlib.h>
 #include <linux/fb.h>
 #include <sys/ioctl.h>
 #include "libremarkable/lib.h"
 
-void draw_hlines(remarkable_framebuffer* fb, int start_dark, int line_height) {
-  if (fb == NULL)
-    return;
-
-  uint16_t val = start_dark == 0 ? REMARKABLE_DARKEST : REMARKABLE_BRIGHTEST;
-  for (unsigned row = 0; row < fb->info.xres; ++row) {
-    if (row % line_height == 0) {
-      val = (val == REMARKABLE_BRIGHTEST) ? REMARKABLE_DARKEST 
-                                          : REMARKABLE_BRIGHTEST;
-    }
-    memset(fb->mapped_buffer + (fb->info.yres * row), val, fb->info.yres);
-  }
+int get_random(int min, int max) {
+   return min + rand() / (RAND_MAX / (max - min + 1) + 1);
 }
 
-void draw_rect(remarkable_framebuffer* fb, mxcfb_rect rect) {
+void draw_rect(remarkable_framebuffer* fb, mxcfb_rect rect, remarkable_color color) {
   if (fb == NULL)
     return;
-  // TODO: Not implemented
+
+  int offset = 0;
+  for (unsigned y = rect.top; y < rect.height + rect.top; ++y) {
+    if (y >= fb->vinfo.yres_virtual)
+      break;
+    for (unsigned x = rect.left; x < rect.width + rect.left; ++x) {
+      if (x >= fb->vinfo.xres_virtual)
+        break;
+      offset = y * fb->finfo.line_length + x;
+      if (offset >= fb->finfo.smem_len)
+        break;
+      *(fb->mapped_buffer + offset) = color;
+    }
+  }
 }
 
 int main(void) {
@@ -33,14 +37,26 @@ int main(void) {
     exit(1);
   }
 
-  for (unsigned i = 0; i < 10; i++) {
-    draw_hlines(fb, i % 2, 10);
-    remarkable_framebuffer_refresh(fb);
-    sleep(1.5);
-  }
-
+  // Clear the screen and refresh
   remarkable_framebuffer_fill(fb, REMARKABLE_BRIGHTEST);
   remarkable_framebuffer_refresh(fb);
+
+  srand(time(NULL));
+
+  // Draw a rectangle and only update that region
+  mxcfb_rect rect;
+
+  for (unsigned i = 0; i < 10; i++) {
+    rect.top = get_random(0, 500);
+    rect.left = get_random(0, 500);
+    rect.height = 100;
+    rect.width = 100;
+    draw_rect(fb, rect, REMARKABLE_DARKEST);
+    remarkable_framebuffer_partial_refresh(fb, rect);
+
+    sleep(1);
+  }
+
 
   remarkable_framebuffer_destroy(fb);
   return 0;

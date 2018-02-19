@@ -7,6 +7,10 @@
 #include <sys/stat.h>
 #include "libremarkable/lib.h"
 
+void breakhere(struct fb_var_screeninfo* vinfo) {
+  return;
+}
+
 int ioctl(int fd, int request, ...) {
   static int (*func)(int fd, int request, ...);
   if (!func) {
@@ -21,11 +25,23 @@ int ioctl(int fd, int request, ...) {
 
   if (fd == 3) {
     printf("ioctl(%d, 0x%x, %p", fd, request, p);
+
+    struct fb_var_screeninfo* vinfo;
     switch (request) {
       case REMARKABLE_PREFIX | MXCFB_SEND_UPDATE:
         print_mxcfb_update_data((mxcfb_update_data*)p);
         break;
+      case FBIOPUT_VSCREENINFO:
+        vinfo = (struct fb_var_screeninfo*)p;  
+        breakhere(vinfo);
+        printf(" (SETTING) fb_var_screeninfo {\n"
+          "  xres: %d\n"
+          "  yres: %d\n"
+          "  xres_virtual: %d\n"
+          "  yres_virtual: %d ,... }", vinfo->xres, vinfo->yres, vinfo->xres_virtual, vinfo->yres_virtual);
+        break;
       default:
+        printf(" (UNCLASSIFIED)");
         break;
     }
   }
