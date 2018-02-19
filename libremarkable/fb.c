@@ -101,6 +101,7 @@ int remarkable_framebuffer_set_pixel(remarkable_framebuffer* fb, unsigned y, uns
   if (c2_offset >= fb->len)
     return 0;
 
+  // We take twice as much on the horizontal direction
   *(fb->mapped_buffer + c1_offset) = c;
   *(fb->mapped_buffer + c2_offset) = c;
   return 1;
@@ -112,6 +113,7 @@ void remarkable_framebuffer_fill(remarkable_framebuffer* fb, remarkable_color co
   memset(fb->mapped_buffer, color, fb->len);
 }
 
+int gen = 0;
 // rect=NULL for full-screen refresh
 int remarkable_framebuffer_refresh(remarkable_framebuffer* fb, mxcfb_rect* rect,
                                    update_mode refresh_mode, waveform_mode waveform,
@@ -135,7 +137,7 @@ int remarkable_framebuffer_refresh(remarkable_framebuffer* fb, mxcfb_rect* rect,
   data.temp = temp;
 
   data.update_mode = refresh_mode;
-  data.update_marker = 0x0000;
+  data.update_marker = gen++;
   
   data.flags = 0;
   data.alt_buffer_data = NULL;

@@ -35,8 +35,8 @@ int main(void) {
   remarkable_framebuffer_refresh(fb, 
                                  NULL, 
                                  UPDATE_MODE_FULL,
-                                 WAVEFORM_MODE_GC16,
-                                 TEMP_USE_MAX);
+                                 WAVEFORM_MODE_INIT,
+                                 TEMP_USE_PAPYRUS;
 
   sleep(1);
 
@@ -45,21 +45,21 @@ int main(void) {
   // Draw a rectangle and only update that region
   mxcfb_rect rect;
   for (unsigned i = 0; i < 100; i++) {
-    // Gives 2816px horizontally
-    // And   3840px vertically
+    // Gives 2816px horizontally (res * 2)
+    // And   3840px vertically (virtual res accounted for)
     rect.top = get_random(0, fb->vinfo.yres_virtual);
     rect.left = get_random(0, fb->vinfo.xres_virtual * 2);
     rect.height = 50;
     rect.width = 100;
     draw_rect(fb, rect, REMARKABLE_DARKEST);
 
-    sleep(0.5);
+    usleep(200000);
 
     // Partial/Quick refresh on the entire screen
     remarkable_framebuffer_refresh(fb, 
                                    NULL,
                                    UPDATE_MODE_PARTIAL,
-                                   WAVEFORM_MODE_GC16,
+                                   WAVEFORM_MODE_A2,
                                    TEMP_USE_MAX);
   }
 
