@@ -90,33 +90,55 @@ void remarkable_framebuffer_destroy(remarkable_framebuffer* fb) {
   free(fb);
 }
 
-int remarkable_framebuffer_partial_refresh(remarkable_framebuffer* fb, mxcfb_rect update_region) {
-  if (fb == NULL)
-    return -1;
-  mxcfb_update_data data;
-  data.update_region = update_region;
-  data.waveform_mode = 0x0002;
-  data.temp = 0xFFF;
-  data.update_mode = 0x0000;   // how thorough it is?
-  data.update_marker = 0x0000; // kinda like a sequence num
-  data.flags = 0;
-  data.alt_buffer_data = NULL;
-  return ioctl(fb->fd, REMARKABLE_PREFIX | MXCFB_SEND_UPDATE, &data);
-}
 
-int remarkable_framebuffer_refresh(remarkable_framebuffer* fb) {
+
+int remarkable_framebuffer_set_pixel(remarkable_framebuffer* fb, unsigned y, unsigned x, remarkable_color c) {
   if (fb == NULL)
-    return -1;
-  mxcfb_rect rect;
-  rect.top = 0;
-  rect.left = 0;
-  rect.height = fb->vinfo.yres;
-  rect.width = fb->vinfo.xres;
-  return remarkable_framebuffer_partial_refresh(fb, rect);
+    return 0;
+  
+  int c1_offset = y * fb->finfo.line_length + x;
+  int c2_offset = c1_offset + fb->finfo.line_length;
+  if (c2_offset >= fb->len)
+    return 0;
+
+  *(fb->mapped_buffer + c1_offset) = c;
+  *(fb->mapped_buffer + c2_offset) = c;
+  return 1;
 }
 
 void remarkable_framebuffer_fill(remarkable_framebuffer* fb, remarkable_color color) {
   if (fb == NULL)
     return;
   memset(fb->mapped_buffer, color, fb->len);
+}
+
+// rect=NULL for full-screen refresh
+int remarkable_framebuffer_refresh(remarkable_framebuffer* fb, mxcfb_rect* rect,
+                                   update_mode refresh_mode, waveform_mode waveform,
+                                   display_temp temp) {
+  if (fb == NULL)
+    return -1;
+
+  mxcfb_update_data data;
+  if (rect == NULL) {
+    data.update_region.top = 0;
+    data.update_region.left = 0;
+    // TODO: Determine if we are using the virtual size here or not
+    data.update_region.height = fb->vinfo.yres;
+    data.update_region.width = fb->vinfo.xres;
+  }
+  else {
+    data.update_region = *rect;
+  }
+
+  data.waveform_mode = waveform;
+  data.temp = temp;
+
+  data.update_mode = refresh_mode;
+  data.update_marker = 0x0000;
+  
+  data.flags = 0;
+  data.alt_buffer_data = NULL;
+  
+  return ioctl(fb->fd, REMARKABLE_PREFIX | MXCFB_SEND_UPDATE, &data);
 }

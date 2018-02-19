@@ -17,15 +17,8 @@ void draw_rect(remarkable_framebuffer* fb, mxcfb_rect rect, remarkable_color col
 
   int offset = 0;
   for (unsigned y = rect.top; y < rect.height + rect.top; ++y) {
-    if (y >= fb->vinfo.yres_virtual)
-      break;
     for (unsigned x = rect.left; x < rect.width + rect.left; ++x) {
-      if (x >= fb->vinfo.xres_virtual)
-        break;
-      offset = y * fb->finfo.line_length + x;
-      if (offset >= fb->finfo.smem_len)
-        break;
-      *(fb->mapped_buffer + offset) = color;
+      remarkable_framebuffer_set_pixel(fb, y, x, color);
     }
   }
 }
@@ -37,24 +30,37 @@ int main(void) {
     exit(1);
   }
 
-  // Clear the screen and refresh
+  // Clear the screen and do a full refresh
   remarkable_framebuffer_fill(fb, REMARKABLE_BRIGHTEST);
-  remarkable_framebuffer_refresh(fb);
+  remarkable_framebuffer_refresh(fb, 
+                                 NULL, 
+                                 UPDATE_MODE_FULL,
+                                 WAVEFORM_MODE_GC16,
+                                 TEMP_USE_MAX);
+
+  sleep(1);
 
   srand(time(NULL));
 
   // Draw a rectangle and only update that region
   mxcfb_rect rect;
-
-  for (unsigned i = 0; i < 10; i++) {
-    rect.top = get_random(0, 500);
-    rect.left = get_random(0, 500);
-    rect.height = 100;
+  for (unsigned i = 0; i < 100; i++) {
+    // Gives 2816px horizontally
+    // And   3840px vertically
+    rect.top = get_random(0, fb->vinfo.yres_virtual);
+    rect.left = get_random(0, fb->vinfo.xres_virtual * 2);
+    rect.height = 50;
     rect.width = 100;
     draw_rect(fb, rect, REMARKABLE_DARKEST);
-    remarkable_framebuffer_partial_refresh(fb, rect);
 
-    sleep(1);
+    sleep(0.5);
+
+    // Partial/Quick refresh on the entire screen
+    remarkable_framebuffer_refresh(fb, 
+                                   NULL,
+                                   UPDATE_MODE_PARTIAL,
+                                   WAVEFORM_MODE_GC16,
+                                   TEMP_USE_MAX);
   }
 
 

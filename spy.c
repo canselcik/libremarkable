@@ -7,8 +7,37 @@
 #include <sys/stat.h>
 #include "libremarkable/lib.h"
 
-void breakhere(struct fb_var_screeninfo* vinfo) {
-  return;
+#define printcolor(color)	\
+  printf (#color"\t: offset = %u,\tlength =%u,\tmsb_right = %u\n", \
+    v->color.offset, v->color.length, v->color.msb_right)
+
+void print_vinfo(struct fb_var_screeninfo* v) {
+  if (v == NULL) {
+    printf("vinfo is NULL");
+    return;
+  }
+  printf("xres\t\t= %u\tyres\t\t= %u\n", v->xres, v->yres);
+  printf("xres_virtual\t= %u\tyres_virtual\t= %u\n", v->xres_virtual, v->yres_virtual);
+  printf("xoffset\t\t= %u\tyoffset\t\t= %u\n", v->xoffset, v->yoffset);
+  printf("bits_per_pixel\t= %u\tgrayscale\t= %u\n", v->bits_per_pixel, v->grayscale);
+  printcolor(red);
+  printcolor(green);
+  printcolor(blue);
+  printcolor(transp);
+  printf("nonstd\t\t= %u\n", v->nonstd);
+  printf("activate\t= %u\n", v->activate);
+  printf("height\t\t= 0x%x\nwidth\t\t= 0x%x\n", v->height, v->width);
+  printf("accel_flags(OBSOLETE) = %u\n", v->accel_flags);
+  printf("pixclock	= %u\n", v->pixclock);
+  printf("left_margin	= %u\n", v->left_margin);
+  printf("right_margin	= %u\n", v->right_margin);
+  printf("upper_margin	= %u\n", v->upper_margin);
+  printf("lower_margin	= %u\n", v->lower_margin);
+  printf("hsync_len	= %u\nvsync_len       = %u\n", v->hsync_len, v->vsync_len);
+  printf("sync		= %u\n", v->sync);
+  printf("vmode		= %u\n", v->vmode);
+  printf("rotate		= %u\n", v->rotate);
+  printf("colorspace 	= %u\n", v->colorspace);
 }
 
 int ioctl(int fd, int request, ...) {
@@ -32,13 +61,10 @@ int ioctl(int fd, int request, ...) {
         print_mxcfb_update_data((mxcfb_update_data*)p);
         break;
       case FBIOPUT_VSCREENINFO:
-        vinfo = (struct fb_var_screeninfo*)p;  
-        breakhere(vinfo);
-        printf(" (SETTING) fb_var_screeninfo {\n"
-          "  xres: %d\n"
-          "  yres: %d\n"
-          "  xres_virtual: %d\n"
-          "  yres_virtual: %d ,... }", vinfo->xres, vinfo->yres, vinfo->xres_virtual, vinfo->yres_virtual);
+        printf("===== SETTING VSCREEN INFO =====\n");
+        print_vinfo((struct fb_var_screeninfo*)p);
+        break;
+      case FBIOGET_VSCREENINFO:
         break;
       default:
         printf(" (UNCLASSIFIED)");
@@ -49,6 +75,11 @@ int ioctl(int fd, int request, ...) {
   int rc = func(fd, request, p);
   if (fd == 3) {
     printf(") == %d\n", rc);
+  }
+
+  if (request == FBIOGET_VSCREENINFO) {
+    printf("===== GETTING VSCREEN INFO =====\n");
+    print_vinfo((struct fb_var_screeninfo*)p);
   }
   return rc;
 }
