@@ -58,11 +58,11 @@ typedef enum _update_mode
 } update_mode;
 
 typedef enum _waveform_mode {
+  WAVEFORM_MODE_INIT         = 0x0,	                 /* Screen goes to white (clears) */
   WAVEFORM_MODE_GLR16			   = 4,                    /* Official */
   WAVEFORM_MODE_GLD16			   = 5,                    /* Official */
 
   // Unsupported?
-  WAVEFORM_MODE_INIT         = 0x0,	                 /* Screen goes to white (clears) */
   WAVEFORM_MODE_DU           = 0x1,	                 /* Grey->white/grey->black */
   WAVEFORM_MODE_GC16         = 0x2,	                 /* High fidelity (flashing) */
   WAVEFORM_MODE_GC4          = WAVEFORM_MODE_GC16,   /* For compatibility */

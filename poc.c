@@ -43,7 +43,7 @@ int main(void) {
 
   // Draw a rectangle and only update that region
   mxcfb_rect rect;
-  for (unsigned i = 0; i < 100000; i++) {
+  for (unsigned i = 0; i < 10000; i++) {
     // Gives 2816px horizontally (res * 2)
     // And   3840px vertically (virtual res accounted for)
     rect.top = get_random(0, fb->vinfo.yres_virtual);
@@ -60,6 +60,13 @@ int main(void) {
                                                     TEMP_USE_MAX);
     remarkable_framebuffer_wait_refresh_marker(fb, refresh_marker);
   }
+
+  refresh_marker = remarkable_framebuffer_refresh(fb, 
+                                                  NULL, 
+                                                  UPDATE_MODE_FULL,
+                                                  WAVEFORM_MODE_GLR16,
+                                                  TEMP_USE_PAPYRUS);
+  remarkable_framebuffer_wait_refresh_marker(fb, refresh_marker);
 
 
   remarkable_framebuffer_destroy(fb);
