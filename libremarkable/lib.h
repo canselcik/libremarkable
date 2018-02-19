@@ -90,16 +90,26 @@ typedef struct {
 } mxcfb_rect;
 
 typedef struct {
-  mxcfb_rect update_region;
+	uint32_t phys_addr;
+	uint32_t width;                   /* width of entire buffer */
+	uint32_t height;	                /* height of entire buffer */
+	mxcfb_rect alt_update_region;	    /* region within buffer to update */
+} mxcfb_alt_buffer_data;
+
+typedef struct {
+	mxcfb_rect update_region;
 
   uint32_t waveform_mode;  // 0x0002 = WAVEFORM_MODE_GC16
   uint32_t update_mode;    // 0x0000 = UPDATE_MODE_PARTIAL
   uint32_t update_marker;  // 0x002a
 
-  int temp;   // 0x1001 = TEMP_USE_PAPYRUS
-  uint flags; // 0x0000
+  int temp;                // 0x1001 = TEMP_USE_PAPYRUS
+  int flags;               // 0x0000
 
-  void* alt_buffer_data; // must not used when flags is 0
+  int dither_mode;
+	int quant_bit;
+
+  mxcfb_alt_buffer_data alt_buffer_data;  // not used when flags is 0x0000
 } mxcfb_update_data;
 
 char* serialize_mxcfb_update_data(mxcfb_update_data* x);

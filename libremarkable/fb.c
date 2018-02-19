@@ -121,7 +121,7 @@ int remarkable_framebuffer_refresh(remarkable_framebuffer* fb, mxcfb_rect* rect,
   if (fb == NULL)
     return -1;
 
-  mxcfb_update_data data;
+  mxcfb_update_data data = {0};
   if (rect == NULL) {
     data.update_region.top = 0;
     data.update_region.left = 0;
@@ -140,7 +140,6 @@ int remarkable_framebuffer_refresh(remarkable_framebuffer* fb, mxcfb_rect* rect,
   data.update_marker = gen++;
   
   data.flags = 0;
-  data.alt_buffer_data = NULL;
   
   return ioctl(fb->fd, REMARKABLE_PREFIX(MXCFB_SEND_UPDATE), &data);
 }
