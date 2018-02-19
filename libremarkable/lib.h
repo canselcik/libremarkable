@@ -11,8 +11,23 @@ typedef uint8_t remarkable_color;
 #define REMARKABLE_DARKEST                      0x00
 #define REMARKABLE_BRIGHTEST                    0xFF
 
-#define REMARKABLE_PREFIX                       0x40480000
-#define MXCFB_SEND_UPDATE                       0x0000462e
+// 0x4048 is the Remarkable Prefix
+// 'F' (0x46) is the namespace
+#define REMARKABLE_PREFIX(x) (0x40484600 | x)
+typedef enum _eink_ioctl_command {
+  MXCFB_SET_WAVEFORM_MODES	           = 0x2B, // takes struct mxcfb_waveform_modes
+  MXCFB_SET_TEMPERATURE		             = 0x2C, // takes int32_t
+  MXCFB_SET_AUTO_UPDATE_MODE           = 0x2D, // takes __u32
+  MXCFB_SEND_UPDATE                    = 0x2E, // takes struct mxcfb_update_data
+  MXCFB_WAIT_FOR_UPDATE_COMPLETE       = 0x2F, // takes struct mxcfb_update_marker_data
+  MXCFB_SET_PWRDOWN_DELAY              = 0x30, // takes int32_t
+  MXCFB_GET_PWRDOWN_DELAY              = 0x31, // takes int32_t
+  MXCFB_SET_UPDATE_SCHEME              = 0x32, // takes __u32
+  MXCFB_GET_WORK_BUFFER                = 0x34, // takes unsigned long
+  MXCFB_SET_TEMP_AUTO_UPDATE_PERIOD    = 0x36, // takes int32_t
+  MXCFB_DISABLE_EPDC_ACCESS            = 0x35,
+  MXCFB_ENABLE_EPDC_ACCESS             = 0x36
+} eink_ioctl_command;
 
 // Untested
 #define MXCFB_WAIT_FOR_VSYNC                    0x00004620
@@ -43,20 +58,22 @@ typedef enum _update_mode
 } update_mode;
 
 typedef enum _waveform_mode {
+  WAVEFORM_MODE_GLR16			   = 4,                    /* Official */
+  WAVEFORM_MODE_GLD16			   = 5,                    /* Official */
+
+  // Unsupported?
   WAVEFORM_MODE_INIT         = 0x0,	                 /* Screen goes to white (clears) */
   WAVEFORM_MODE_DU           = 0x1,	                 /* Grey->white/grey->black */
   WAVEFORM_MODE_GC16         = 0x2,	                 /* High fidelity (flashing) */
   WAVEFORM_MODE_GC4          = WAVEFORM_MODE_GC16,   /* For compatibility */
   WAVEFORM_MODE_GC16_FAST    = 0x3,                  /* Medium fidelity */
-  WAVEFORM_MODE_A2           = 0x4,                  /* Faster but even lower fidelity */
-  WAVEFORM_MODE_GL16         = 0x5,                  /* High fidelity from white transition */
   WAVEFORM_MODE_GL16_FAST    = 0x6,                  /* Medium fidelity from white transition */
   WAVEFORM_MODE_DU4          = 0x7,	                 /* Medium fidelity 4 level of gray direct update */
   WAVEFORM_MODE_REAGL	       = 0x8,	                 /* Ghost compensation waveform */
   WAVEFORM_MODE_REAGLD       = 0x9,	                 /* Ghost compensation waveform with dithering */
   WAVEFORM_MODE_GL4		       = 0xA,	                 /* 2-bit from white transition */
   WAVEFORM_MODE_GL16_INV		 = 0xB,	                 /* High fidelity for black transition */
-  WAVEFORM_MODE_AUTO			   = 257
+  WAVEFORM_MODE_AUTO			   = 257                   /* Official */
 } waveform_mode;
 
 typedef enum _display_temp {

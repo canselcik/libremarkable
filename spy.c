@@ -57,7 +57,7 @@ int ioctl(int fd, int request, ...) {
 
     struct fb_var_screeninfo* vinfo;
     switch (request) {
-      case REMARKABLE_PREFIX | MXCFB_SEND_UPDATE:
+      case REMARKABLE_PREFIX(MXCFB_SEND_UPDATE):
         print_mxcfb_update_data((mxcfb_update_data*)p);
         break;
       case FBIOPUT_VSCREENINFO:

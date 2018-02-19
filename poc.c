@@ -36,7 +36,7 @@ int main(void) {
                                  NULL, 
                                  UPDATE_MODE_FULL,
                                  WAVEFORM_MODE_INIT,
-                                 TEMP_USE_PAPYRUS;
+                                 TEMP_USE_PAPYRUS);
 
   sleep(1);
 
@@ -59,7 +59,7 @@ int main(void) {
     remarkable_framebuffer_refresh(fb, 
                                    NULL,
                                    UPDATE_MODE_PARTIAL,
-                                   WAVEFORM_MODE_A2,
+                                   WAVEFORM_MODE_GLR16,
                                    TEMP_USE_MAX);
   }
 
