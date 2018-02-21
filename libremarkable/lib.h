@@ -10,6 +10,13 @@ typedef uint8_t remarkable_color;
 #define REMARKABLE_DARKEST                      0x00
 #define REMARKABLE_BRIGHTEST                    0xFF
 
+// TODO: Figure out why
+#define to_remarkable_width(y) (y * 2)
+#define from_remarkable_width(y) (y / 2)
+
+#define to_remarkable_height(x) (x)
+#define from_remarkable_height(x) (x)
+
 // 0x4048 is the Remarkable Prefix
 // 'F' (0x46) is the namespace
 #define REMARKABLE_PREFIX(x) (0x40484600 | x)

@@ -62,7 +62,6 @@ int remarkable_framebuffer_set_pixel(remarkable_framebuffer* fb, const unsigned 
   if (c1_offset >= fb->len)
     return 0;
 
-  // We take twice as much on the horizontal direction
   *(fb->mapped_buffer + c1_offset) = c;
   return 1;
 }

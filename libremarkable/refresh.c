@@ -19,6 +19,10 @@ uint32_t remarkable_framebuffer_refresh(remarkable_framebuffer* fb,
   if (fb == NULL)
     return -1;
 
+  // TODO: Figure out the reason why this does it
+  x = x / 2;
+  width = to_remarkable_width(width);
+
   mxcfb_update_data data = {0};
   data.update_region.top = max(min(y, fb->vinfo.yres - 1), 0);
   data.update_region.left = max(min(x, fb->vinfo.xres - 1), 0);

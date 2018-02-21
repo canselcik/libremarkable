@@ -16,6 +16,9 @@ void draw_rect(remarkable_framebuffer* fb, mxcfb_rect rect, remarkable_color col
   if (fb == NULL)
     return;
 
+  // TODO: Figure out the reason why this does it
+  rect.width = to_remarkable_width(rect.width);
+
   int offset = 0;
   for (unsigned y = rect.top; y < rect.height + rect.top; ++y) {
     for (unsigned x = rect.left; x < rect.width + rect.left; ++x) {
@@ -56,12 +59,13 @@ void random_rects(remarkable_framebuffer* fb, unsigned iter) {
   mxcfb_rect rect;
   uint32_t refresh_marker = 0;
   for (unsigned i = 0; i < iter; i++) {
+    // TODO: Figure out the reason why this does it
     // Gives 2816px horizontally (res * 2)
     // And   3840px vertically (virtual res accounted for)
+    rect.left = get_random(0, to_remarkable_width(fb->vinfo.xres));
     rect.top = get_random(0, fb->vinfo.yres);
-    rect.left = get_random(0, fb->vinfo.xres * 2);
     rect.height = 50;
-    rect.width = 100;
+    rect.width = 50;
     draw_rect(fb, rect, REMARKABLE_DARKEST);
 
     usleep(50000);
@@ -71,9 +75,9 @@ void random_rects(remarkable_framebuffer* fb, unsigned iter) {
                                                     WAVEFORM_MODE_GLR16,
                                                     TEMP_USE_MAX,
                                                     rect.top,
-                                                    rect.left / 2,
+                                                    rect.left,
                                                     rect.height,
-                                                    rect.width * 2);
+                                                    rect.width);
     remarkable_framebuffer_wait_refresh_marker(fb, refresh_marker);
   }
     
@@ -128,6 +132,8 @@ int main(void) {
   // scanning_line(fb, 50000);
   // display_bmp(fb, "/tmp/conan.bmp");
   random_rects(fb, 100);
+
+  usleep(10000);
 
   remarkable_framebuffer_refresh(fb, 
                                  UPDATE_MODE_FULL,
