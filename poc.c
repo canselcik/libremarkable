@@ -70,7 +70,7 @@ void random_rects(remarkable_framebuffer* fb, unsigned iter) {
     rect.width = 50;
     draw_rect(fb, rect, REMARKABLE_DARKEST);
 
-    // Partial/Quick refresh on the entire screen
+    // Partial refresh on the portion of the screen that contains the new rectangle
     refresh_marker = remarkable_framebuffer_refresh(fb, 
                                                     UPDATE_MODE_PARTIAL,
                                                     WAVEFORM_MODE_GC16_FAST,
