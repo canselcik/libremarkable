@@ -134,3 +134,13 @@ data.flags = 0;
 data.alt_buffer_data = NULL;
 ioctl(fb, REMARKABLE_PREFIX | MXCFB_SEND_UPDATE, &data);
 ```
+
+## Next Steps
+Further exploration is needed on the following fields in the `mxcfb_update_data` struct:
+```
+   dither_mode:      0x300f30
+   quant_bit:        0x7ea73360
+   alt_buffer_data:  0x1
+```
+`spy.so`'s output on `xochitl` is very promising and straightforward for such an investigation.
+More updates coming soon.
