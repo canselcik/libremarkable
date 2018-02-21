@@ -44,12 +44,12 @@ void scanning_line(remarkable_framebuffer* fb, unsigned iter) {
     
     refresh_marker = remarkable_framebuffer_refresh(fb,
                                                     UPDATE_MODE_PARTIAL,
-                                                    WAVEFORM_MODE_REAGLD,
-                                                    TEMP_USE_PAPYRUS, tb.top-20, tb.left,
+                                                    WAVEFORM_MODE_DU,
+                                                    TEMP_USE_REMARKABLE_DRAW, tb.top-20, tb.left,
                                                     tb.height+40, tb.width);
     remarkable_framebuffer_wait_refresh_marker(fb, refresh_marker);
 
-    usleep(100000);
+    usleep(350000);
   }
 }
 
@@ -73,7 +73,7 @@ void random_rects(remarkable_framebuffer* fb, unsigned iter) {
     // Partial/Quick refresh on the entire screen
     refresh_marker = remarkable_framebuffer_refresh(fb, 
                                                     UPDATE_MODE_PARTIAL,
-                                                    WAVEFORM_MODE_GLR16,
+                                                    WAVEFORM_MODE_GC16_FAST,
                                                     TEMP_USE_PAPYRUS,
                                                     rect.top,
                                                     rect.left,
@@ -129,8 +129,10 @@ int main(void) {
   }
 
   clear_display(fb); 
+  usleep(10000);
 
-  // scanning_line(fb, 50000);
+
+  scanning_line(fb, 50000);
   // display_bmp(fb, "/tmp/sample.bmp");
   random_rects(fb, 5000);
 

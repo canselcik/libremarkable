@@ -111,7 +111,7 @@ int ioctl(int fd, int request, ...) {
     switch (request) {
       case REMARKABLE_PREFIX(MXCFB_SEND_UPDATE):
         print_mxcfb_update_data((mxcfb_update_data*)p);
-        hexDump("mxcfb_update_data", p, sizeof(mxcfb_update_data));
+        // hexDump("mxcfb_update_data", p, sizeof(mxcfb_update_data));
         break;
       case FBIOPUT_VSCREENINFO:
         printf("(FBIOPUT_VSCREENINFO)\n");

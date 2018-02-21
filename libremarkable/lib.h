@@ -49,10 +49,10 @@ typedef enum _waveform_mode {
   WAVEFORM_MODE_GLD16			   = 0x5,                  /* Official */
 
   // Unsupported?
-  WAVEFORM_MODE_DU           = 0x1,	                 /* Grey->white/grey->black */
+  WAVEFORM_MODE_DU           = 0x1,	                 /* Grey->white/grey->black  -- remarkable uses this for drawing */
   WAVEFORM_MODE_GC16         = 0x2,	                 /* High fidelity (flashing) */
   WAVEFORM_MODE_GC4          = WAVEFORM_MODE_GC16,   /* For compatibility */
-  WAVEFORM_MODE_GC16_FAST    = 0x3,                  /* Medium fidelity */
+  WAVEFORM_MODE_GC16_FAST    = 0x3,                  /* Medium fidelity  -- remarkable uses this for UI */
   WAVEFORM_MODE_GL16_FAST    = 0x6,                  /* Medium fidelity from white transition */
   WAVEFORM_MODE_DU4          = 0x7,	                 /* Medium fidelity 4 level of gray direct update */
   WAVEFORM_MODE_REAGL	       = 0x8,	                 /* Ghost compensation waveform */
@@ -65,6 +65,7 @@ typedef enum _waveform_mode {
 typedef enum _display_temp {
   TEMP_USE_AMBIENT           = 0x1000,
   TEMP_USE_PAPYRUS           = 0X1001,
+  TEMP_USE_REMARKABLE_DRAW   = 0x0018,
   TEMP_USE_MAX               = 0xFFFF
 } display_temp;
 
