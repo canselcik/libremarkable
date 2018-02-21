@@ -1,6 +1,6 @@
 CC = arm-linux-gnueabihf-gcc
 AR = arm-linux-gnueabihf-ar
-SOURCES = fb.c 
+SOURCES = fb.c refresh.c serde.c bitmap.c
 OBJECTS = $(SOURCES:.c=.o)
 CCFLAGS = -fPIC -g
 LDFLAGS =

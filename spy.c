@@ -7,6 +7,58 @@
 #include <sys/stat.h>
 #include "libremarkable/lib.h"
 
+void hexDump (char *desc, void *addr, int len) {
+    int i;
+    unsigned char buff[17];
+    unsigned char *pc = (unsigned char*)addr;
+
+    // Output description if given.
+    if (desc != NULL)
+        printf ("%s:\n", desc);
+
+    if (len == 0) {
+        printf("  ZERO LENGTH\n");
+        return;
+    }
+    if (len < 0) {
+        printf("  NEGATIVE LENGTH: %i\n",len);
+        return;
+    }
+
+    // Process every byte in the data.
+    for (i = 0; i < len; i++) {
+        // Multiple of 16 means new line (with line offset).
+
+        if ((i % 16) == 0) {
+            // Just don't print ASCII for the zeroth line.
+            if (i != 0)
+                printf ("  %s\n", buff);
+
+            // Output the offset.
+            printf ("  %04x ", i);
+        }
+
+        // Now the hex code for the specific character.
+        printf (" %02x", pc[i]);
+
+        // And store a printable ASCII character for later.
+        if ((pc[i] < 0x20) || (pc[i] > 0x7e))
+            buff[i % 16] = '.';
+        else
+            buff[i % 16] = pc[i];
+        buff[(i % 16) + 1] = '\0';
+    }
+
+    // Pad out last line if not exactly 16 characters.
+    while ((i % 16) != 0) {
+        printf ("   ");
+        i++;
+    }
+
+    // And print the final ASCII bit.
+    printf ("  %s\n", buff);
+}
+
 #define printcolor(color)	\
   printf (#color"\t: offset = %u,\tlength =%u,\tmsb_right = %u\n", \
     v->color.offset, v->color.length, v->color.msb_right)
@@ -53,12 +105,13 @@ int ioctl(int fd, int request, ...) {
   va_end(args);
 
   if (fd == 3) {
-    printf("ioctl(%d, 0x%x, %p", fd, request, p);
+    printf("ioctl(%d, 0x%x (addr: %p), %p (addr: %p)", fd, request, &request, p, &p);
 
     struct fb_var_screeninfo* vinfo;
     switch (request) {
       case REMARKABLE_PREFIX(MXCFB_SEND_UPDATE):
         print_mxcfb_update_data((mxcfb_update_data*)p);
+        hexDump("mxcfb_update_data", p, sizeof(mxcfb_update_data));
         break;
       case FBIOPUT_VSCREENINFO:
         printf("===== SETTING VSCREEN INFO =====\n");

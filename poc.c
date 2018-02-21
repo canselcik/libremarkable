@@ -6,6 +6,7 @@
 #include <linux/fb.h>
 #include <sys/ioctl.h>
 #include "libremarkable/lib.h"
+#include "libremarkable/bitmap.h"
 
 int get_random(int min, int max) {
    return min + rand() / (RAND_MAX / (max - min + 1) + 1);
@@ -23,8 +24,98 @@ void draw_rect(remarkable_framebuffer* fb, mxcfb_rect rect, remarkable_color col
   }
 }
 
+void scanning_line(remarkable_framebuffer* fb, unsigned iter) {
+  if (fb == NULL)
+    return;
+  mxcfb_rect tb = {20,120,1404,10};
+  draw_rect(fb, tb, REMARKABLE_DARKEST);
+  int dir = 1;
+  uint32_t refresh_marker = 0;
+  for(unsigned i = 0; i < iter; i++) {
+    draw_rect(fb, tb, REMARKABLE_BRIGHTEST);
+    if (tb.top > fb->vinfo.yres || tb.top < 0)
+      dir *= -1;
+    tb.top += 10 * dir;
+    draw_rect(fb, tb, REMARKABLE_DARKEST);
+    
+    // TODO: Try regional updates
+    refresh_marker = remarkable_framebuffer_refresh(fb, 
+                                                    UPDATE_MODE_PARTIAL,
+                                                    WAVEFORM_MODE_GLR16,
+                                                    TEMP_USE_MAX, 0, 0,
+                                                    fb->vinfo.yres, fb->vinfo.xres);
+    remarkable_framebuffer_wait_refresh_marker(fb, refresh_marker);
+  }
+}
+
+void random_rects(remarkable_framebuffer* fb, unsigned iter) {
+  if (fb == NULL)
+    return;
+
+  // Draw a rectangle and only update that region
+  mxcfb_rect rect;
+  uint32_t refresh_marker = 0;
+  for (unsigned i = 0; i < iter; i++) {
+    // Gives 2816px horizontally (res * 2)
+    // And   3840px vertically (virtual res accounted for)
+    rect.top = get_random(0, fb->vinfo.yres);
+    rect.left = get_random(0, fb->vinfo.xres * 2);
+    rect.height = 50;
+    rect.width = 100;
+    draw_rect(fb, rect, REMARKABLE_DARKEST);
+
+    usleep(50000);
+    // Partial/Quick refresh on the entire screen
+    refresh_marker = remarkable_framebuffer_refresh(fb, 
+                                                    UPDATE_MODE_PARTIAL,
+                                                    WAVEFORM_MODE_GLR16,
+                                                    TEMP_USE_MAX,
+                                                    rect.top,
+                                                    rect.left / 2,
+                                                    rect.height,
+                                                    rect.width * 2);
+    remarkable_framebuffer_wait_refresh_marker(fb, refresh_marker);
+  }
+    
+}
+
+void display_bmp(remarkable_framebuffer* fb, char* path) {
+  bmp_img bitmap = { 0 };
+  bmp_img_read(&bitmap, path);
+
+  printf("Bitmap loaded [size=%u, width=%u, height=%u]\n", bitmap.img_header.bfSize, bitmap.img_header.biWidth, bitmap.img_header.biHeight);
+  unsigned left = 2000;
+  unsigned top = 200;
+  for (unsigned y = 0; y < bitmap.img_header.biHeight; y++) {
+    for (unsigned x = 0; x < bitmap.img_header.biWidth; x++) {
+        // TODO: Color interp
+        unsigned char r = bitmap.img_pixels[y][x].red;
+        unsigned char g = bitmap.img_pixels[y][x].green;
+        unsigned char b = bitmap.img_pixels[y][x].blue;
+        remarkable_framebuffer_set_pixel(fb, top + y, left + x, r > 200 ? REMARKABLE_DARKEST : REMARKABLE_BRIGHTEST);
+    }
+  }
+  remarkable_framebuffer_refresh(fb, 
+                                 UPDATE_MODE_FULL,
+                                 WAVEFORM_MODE_INIT,
+                                 TEMP_USE_MAX, 0, 0,
+                                 fb->vinfo.yres, fb->vinfo.xres);
+}
+
+void clear_display(remarkable_framebuffer* fb) {
+  if (fb == NULL)
+    return;
+  remarkable_framebuffer_fill(fb, REMARKABLE_BRIGHTEST);
+  remarkable_framebuffer_refresh(fb, 
+                                 UPDATE_MODE_FULL,
+                                 WAVEFORM_MODE_INIT,
+                                 TEMP_USE_MAX, 0, 0,
+                                 fb->vinfo.yres, fb->vinfo.xres);
+}
+
 int main(void) {
   srand(time(NULL));
+
 
   remarkable_framebuffer* fb = remarkable_framebuffer_init("/dev/fb0");
   if (fb == NULL) {
@@ -32,42 +123,17 @@ int main(void) {
     exit(1);
   }
 
-  // Clear the screen and do a full refresh
-  remarkable_framebuffer_fill(fb, REMARKABLE_BRIGHTEST);
-  uint32_t refresh_marker = remarkable_framebuffer_refresh(fb, 
-                                                           NULL, 
-                                                           UPDATE_MODE_FULL,
-                                                           WAVEFORM_MODE_INIT,
-                                                           TEMP_USE_PAPYRUS);
-  remarkable_framebuffer_wait_refresh_marker(fb, refresh_marker);
+  clear_display(fb); 
 
-  // Draw a rectangle and only update that region
-  mxcfb_rect rect;
-  for (unsigned i = 0; i < 10000; i++) {
-    // Gives 2816px horizontally (res * 2)
-    // And   3840px vertically (virtual res accounted for)
-    rect.top = get_random(0, fb->vinfo.yres_virtual);
-    rect.left = get_random(0, fb->vinfo.xres_virtual * 2);
-    rect.height = 50;
-    rect.width = 100;
-    draw_rect(fb, rect, REMARKABLE_DARKEST);
+  // scanning_line(fb, 50000);
+  // display_bmp(fb, "/tmp/conan.bmp");
+  random_rects(fb, 100);
 
-    // Partial/Quick refresh on the entire screen
-    refresh_marker = remarkable_framebuffer_refresh(fb, 
-                                                    NULL,
-                                                    UPDATE_MODE_PARTIAL,
-                                                    WAVEFORM_MODE_GLR16,
-                                                    TEMP_USE_MAX);
-    remarkable_framebuffer_wait_refresh_marker(fb, refresh_marker);
-  }
-
-  refresh_marker = remarkable_framebuffer_refresh(fb, 
-                                                  NULL, 
-                                                  UPDATE_MODE_FULL,
-                                                  WAVEFORM_MODE_GLR16,
-                                                  TEMP_USE_PAPYRUS);
-  remarkable_framebuffer_wait_refresh_marker(fb, refresh_marker);
-
+  remarkable_framebuffer_refresh(fb, 
+                                 UPDATE_MODE_FULL,
+                                 WAVEFORM_MODE_GLR16,
+                                 TEMP_USE_MAX, 0, 0,
+                                 fb->vinfo.yres, fb->vinfo.xres);
 
   remarkable_framebuffer_destroy(fb);
   return 0;
