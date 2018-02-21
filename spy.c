@@ -118,8 +118,7 @@ int ioctl(int fd, int request, ...) {
         print_vinfo((struct fb_var_screeninfo*)p);
         break;
       case FBIOGET_VSCREENINFO:
-        printf("(FBIOGET_VSCREENINFO)\n");
-        print_vinfo((struct fb_var_screeninfo*)p);
+        // NOP because struct fb_var_screenfinfo is used as an output param
         break;
       case REMARKABLE_PREFIX(MXCFB_WAIT_FOR_UPDATE_COMPLETE):
         hexDump("MXCFB_WAIT_FOR_UPDATE_COMPLETE(mxcfb_update_marker_data)", p, sizeof(mxcfb_update_marker_data));
@@ -135,7 +134,7 @@ int ioctl(int fd, int request, ...) {
   }
 
   if (request == FBIOGET_VSCREENINFO) {
-    printf("===== GETTING VSCREEN INFO =====\n");
+    printf("(FBIOGET_VSCREENINFO)\n");
     print_vinfo((struct fb_var_screeninfo*)p);
   }
   return rc;
