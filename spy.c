@@ -114,13 +114,17 @@ int ioctl(int fd, int request, ...) {
         hexDump("mxcfb_update_data", p, sizeof(mxcfb_update_data));
         break;
       case FBIOPUT_VSCREENINFO:
-        printf("===== SETTING VSCREEN INFO =====\n");
+        printf("(FBIOPUT_VSCREENINFO)\n");
         print_vinfo((struct fb_var_screeninfo*)p);
         break;
       case FBIOGET_VSCREENINFO:
+        printf("(FBIOGET_VSCREENINFO)\n");
+        print_vinfo((struct fb_var_screeninfo*)p);
         break;
+      case REMARKABLE_PREFIX(MXCFB_WAIT_FOR_UPDATE_COMPLETE):
+        hexDump("MXCFB_WAIT_FOR_UPDATE_COMPLETE(mxcfb_update_marker_data)", p, sizeof(mxcfb_update_marker_data));
       default:
-        printf(" (UNCLASSIFIED)");
+        printf(" (unknown)");
         break;
     }
   }

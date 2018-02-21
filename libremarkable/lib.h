@@ -6,11 +6,13 @@
 #include <unistd.h>
 #include <string.h>
 
+// TODO: Figure out RGB->remarkable_grayscale mappings
 typedef uint8_t remarkable_color;
 #define REMARKABLE_DARKEST                      0x00
 #define REMARKABLE_BRIGHTEST                    0xFF
 
-// TODO: Figure out why
+// TODO: Figure out why this is used only when drawing (not for refresh) and only 
+// when referring to width (not height, and not x-axis offset).
 #define to_remarkable_width(y) (y * 2)
 #define from_remarkable_width(y) (y / 2)
 

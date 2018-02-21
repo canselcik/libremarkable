@@ -30,24 +30,26 @@ void draw_rect(remarkable_framebuffer* fb, mxcfb_rect rect, remarkable_color col
 void scanning_line(remarkable_framebuffer* fb, unsigned iter) {
   if (fb == NULL)
     return;
-  mxcfb_rect tb = {20,120,1404,10};
+  mxcfb_rect tb = {20,120,1300,10};
   draw_rect(fb, tb, REMARKABLE_DARKEST);
   int dir = 1;
   uint32_t refresh_marker = 0;
   for(unsigned i = 0; i < iter; i++) {
     draw_rect(fb, tb, REMARKABLE_BRIGHTEST);
+
     if (tb.top > fb->vinfo.yres || tb.top < 0)
       dir *= -1;
     tb.top += 10 * dir;
     draw_rect(fb, tb, REMARKABLE_DARKEST);
     
-    // TODO: Try regional updates
-    refresh_marker = remarkable_framebuffer_refresh(fb, 
+    refresh_marker = remarkable_framebuffer_refresh(fb,
                                                     UPDATE_MODE_PARTIAL,
-                                                    WAVEFORM_MODE_GLR16,
-                                                    TEMP_USE_MAX, 0, 0,
-                                                    fb->vinfo.yres, fb->vinfo.xres);
+                                                    WAVEFORM_MODE_REAGLD,
+                                                    TEMP_USE_PAPYRUS, tb.top-20, tb.left,
+                                                    tb.height+40, tb.width);
     remarkable_framebuffer_wait_refresh_marker(fb, refresh_marker);
+
+    usleep(100000);
   }
 }
 
@@ -59,26 +61,26 @@ void random_rects(remarkable_framebuffer* fb, unsigned iter) {
   mxcfb_rect rect;
   uint32_t refresh_marker = 0;
   for (unsigned i = 0; i < iter; i++) {
-    // TODO: Figure out the reason why this does it
     // Gives 2816px horizontally (res * 2)
     // And   3840px vertically (virtual res accounted for)
+    // TODO: Figure out the reason why this does it
     rect.left = get_random(0, to_remarkable_width(fb->vinfo.xres));
     rect.top = get_random(0, fb->vinfo.yres);
     rect.height = 50;
     rect.width = 50;
     draw_rect(fb, rect, REMARKABLE_DARKEST);
 
-    usleep(50000);
     // Partial/Quick refresh on the entire screen
     refresh_marker = remarkable_framebuffer_refresh(fb, 
                                                     UPDATE_MODE_PARTIAL,
                                                     WAVEFORM_MODE_GLR16,
-                                                    TEMP_USE_MAX,
+                                                    TEMP_USE_PAPYRUS,
                                                     rect.top,
                                                     rect.left,
                                                     rect.height,
                                                     rect.width);
     remarkable_framebuffer_wait_refresh_marker(fb, refresh_marker);
+    usleep(90 * 1000);
   }
     
 }
@@ -120,7 +122,6 @@ void clear_display(remarkable_framebuffer* fb) {
 int main(void) {
   srand(time(NULL));
 
-
   remarkable_framebuffer* fb = remarkable_framebuffer_init("/dev/fb0");
   if (fb == NULL) {
     printf("remarkable_framebuffer_init('/dev/fb0') returned NULL. Exiting.\n");
@@ -130,8 +131,8 @@ int main(void) {
   clear_display(fb); 
 
   // scanning_line(fb, 50000);
-  // display_bmp(fb, "/tmp/conan.bmp");
-  random_rects(fb, 100);
+  // display_bmp(fb, "/tmp/sample.bmp");
+  random_rects(fb, 5000);
 
   usleep(10000);
 
