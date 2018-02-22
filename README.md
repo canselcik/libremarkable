@@ -98,8 +98,6 @@ The key finding here is the following magic values and their usage in conjunctio
 ```c
 #define REMARKABLE_PREFIX                       0x40480000
 #define MXCFB_SEND_UPDATE                       0x0000462e
-
-// Untested
 #define MXCFB_WAIT_FOR_VSYNC                    0x00004620
 #define MXCFB_SET_GBL_ALPHA                     0x00004621
 #define MXCFB_SET_CLR_KEY                       0x00004622
