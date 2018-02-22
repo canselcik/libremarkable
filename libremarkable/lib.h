@@ -217,6 +217,10 @@ typedef struct {
 remarkable_framebuffer* remarkable_framebuffer_init(const char* device_path);
 void remarkable_framebuffer_destroy(remarkable_framebuffer* fb);
 int  remarkable_framebuffer_set_pixel(remarkable_framebuffer* fb, const unsigned y, const unsigned x, const remarkable_color c);
+void remarkable_framebuffer_draw_shape(remarkable_framebuffer* fb, remarkable_color* shape, unsigned rows,   unsigned cols,
+                                                                                            unsigned y,      unsigned x,
+                                                                                            unsigned height, unsigned width);
+void remarkable_framebuffer_draw_rect(remarkable_framebuffer* fb, mxcfb_rect rect, remarkable_color color);
 void remarkable_framebuffer_fill(remarkable_framebuffer* fb, remarkable_color color);
 
 /* refresh.c */

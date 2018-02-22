@@ -66,6 +66,44 @@ int remarkable_framebuffer_set_pixel(remarkable_framebuffer* fb, const unsigned 
   return 1;
 }
 
+void remarkable_framebuffer_draw_shape(remarkable_framebuffer* fb, remarkable_color* shape, unsigned rows,   unsigned cols,
+                                                                                            unsigned y,      unsigned x,
+                                                                                            unsigned height, unsigned width) {
+  if (fb == NULL)
+    return;
+  float boxWidth = width / (float)cols;
+  float boxHeight = height / (float)rows;
+  for (unsigned iY = 0; iY < rows; iY++) {
+    for (unsigned iX = 0; iX < cols; iX++) {
+      remarkable_color color = shape[cols * iY + iX];
+
+      // top, left, width, height
+      mxcfb_rect tb = {0};
+      tb.top = y + iY * boxHeight;
+      tb.left = x + iX * boxWidth;
+      tb.width = boxWidth;
+      tb.height = boxHeight;
+      remarkable_framebuffer_draw_rect(fb, tb, color);
+    }
+  }
+}
+
+void remarkable_framebuffer_draw_rect(remarkable_framebuffer* fb, mxcfb_rect rect, remarkable_color color) {
+  if (fb == NULL)
+    return;
+
+  // TODO: Figure out the reason why this does it
+  rect.width = to_remarkable_width(rect.width);
+
+  int offset = 0;
+  for (unsigned y = rect.top; y < rect.height + rect.top; ++y) {
+    for (unsigned x = rect.left; x < rect.width + rect.left; ++x) {
+      remarkable_framebuffer_set_pixel(fb, y, x, color);
+    }
+  }
+}
+
+
 void remarkable_framebuffer_fill(remarkable_framebuffer* fb, remarkable_color color) {
   if (fb == NULL)
     return;

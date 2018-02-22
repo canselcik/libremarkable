@@ -10,41 +10,27 @@
 extern "C" {
   #include "libremarkable/lib.h"
   #include "libremarkable/bitmap.h"
+  #include "libremarkable/chars.h"
 }
 
 int get_random(int min, int max) {
    return min + rand() / (RAND_MAX / (max - min + 1) + 1);
 }
 
-void draw_rect(remarkable_framebuffer* fb, mxcfb_rect rect, remarkable_color color) {
-  if (fb == NULL)
-    return;
-
-  // TODO: Figure out the reason why this does it
-  rect.width = to_remarkable_width(rect.width);
-
-  int offset = 0;
-  for (unsigned y = rect.top; y < rect.height + rect.top; ++y) {
-    for (unsigned x = rect.left; x < rect.width + rect.left; ++x) {
-      remarkable_framebuffer_set_pixel(fb, y, x, color);
-    }
-  }
-}
-
 void scanning_line(remarkable_framebuffer* fb, unsigned iter) {
   if (fb == NULL)
     return;
   mxcfb_rect tb = {20,120,1300,10};
-  draw_rect(fb, tb, REMARKABLE_DARKEST);
+  remarkable_framebuffer_draw_rect(fb, tb, REMARKABLE_DARKEST);
   int dir = 1;
   uint32_t refresh_marker = 0;
   for(unsigned i = 0; i < iter; i++) {
-    draw_rect(fb, tb, REMARKABLE_BRIGHTEST);
+    remarkable_framebuffer_draw_rect(fb, tb, REMARKABLE_BRIGHTEST);
 
     if (tb.top > fb->vinfo.yres || tb.top < 0)
       dir *= -1;
     tb.top += 5 * dir;
-    draw_rect(fb, tb, REMARKABLE_DARKEST);
+    remarkable_framebuffer_draw_rect(fb, tb, REMARKABLE_DARKEST);
     
     refresh_marker = remarkable_framebuffer_refresh(fb, 
                                                     UPDATE_MODE_PARTIAL,
@@ -78,11 +64,11 @@ void random_rects(remarkable_framebuffer* fb, unsigned iter) {
     rect.top = get_random(0, fb->vinfo.yres);
     rect.height = 50;
     rect.width = 50;
-    draw_rect(fb, rect, REMARKABLE_DARKEST);
+    remarkable_framebuffer_draw_rect(fb, rect, REMARKABLE_DARKEST);
     q.push(rect);
 
     while (q.size() > 50) {
-      draw_rect(fb, q.front(), REMARKABLE_BRIGHTEST);
+      remarkable_framebuffer_draw_rect(fb, q.front(), REMARKABLE_BRIGHTEST);
       q.pop();
     }
 
@@ -117,7 +103,7 @@ void display_bmp(remarkable_framebuffer* fb, const char* path) {
         remarkable_framebuffer_set_pixel(fb, top + y, left + x, TO_REMARKABLE_COLOR(r, g, b));
     }
   }
-  remarkable_framebuffer_refresh(fb, 
+  remarkable_framebuffer_refresh(fb,
                                  UPDATE_MODE_FULL,
                                  WAVEFORM_MODE_GC16_FAST,
                                  TEMP_USE_MAX,
@@ -146,39 +132,6 @@ void clear_display(remarkable_framebuffer* fb) {
                                  fb->vinfo.yres, fb->vinfo.xres);
 }
 
-void draw_shape(remarkable_framebuffer* fb, remarkable_color* shape, unsigned numrows, unsigned rowlen,
-                                                                     unsigned y, unsigned x,
-                                                                     unsigned height, unsigned width) {
-  if (fb == NULL)
-    return;
-
-  float boxWidth = width / (float)rowlen;
-  float boxHeight = height / (float)numrows;
-  for (unsigned iY = 0; iY < numrows; iY++) {
-    for (unsigned iX = 0; iX < rowlen; iX++) {
-      remarkable_color color = shape[rowlen * iY + iX];
-
-      // top, left, width, height
-      mxcfb_rect tb = {0};
-      tb.top = y + iY * boxHeight;
-      tb.left = x + iX * boxWidth;
-      tb.width = boxWidth;
-      tb.height = boxHeight;
-      draw_rect(fb, tb, color);
-    }
-  }
-  remarkable_framebuffer_refresh(fb, 
-                                UPDATE_MODE_FULL,
-                                WAVEFORM_MODE_GC16_FAST,
-                                TEMP_USE_MAX,
-                                EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                                0,    // flags
-                                0,    // quant_bit
-                                NULL, /* alt_buffer_data (not very useful -- not even here as the phys_addr
-                                                                            needs to be within finfo->smem) */
-                                0, 0,  // y, x
-                                fb->vinfo.yres, fb->vinfo.xres);
-}
 
 int main(void) {
   srand(time(NULL));
@@ -192,28 +145,27 @@ int main(void) {
   // scanning_line(fb, 500);
 
   clear_display(fb);
-  usleep(10000);
+  sleep(1);
 
   // display_bmp(fb, "/tmp/test.bmp");
   // random_rects(fb, 5000);
 
-  #define B REMARKABLE_DARKEST
-  #define W REMARKABLE_BRIGHTEST
 
-  // The letter A
-  remarkable_color map[] = {
-    W, W, B, B, B, B, W, W,
-    W, B, B, B, B, B, B, W,
-    W, B, B, W, W, B, B, W,
-    W, B, B, W, W, B, B, W,
-    W, B, B, B, B, B, B, W,
-    W, B, B, W, W, B, B, W,
-    W, B, B, W, W, B, B, W,
-    W, B, B, W, W, B, B, W,
-  };
-  draw_shape(fb, map, 8, 8, 50, 50, 64, 64);
-
-  sleep(1);
+  remarkable_framebuffer_draw_shape(fb, rmChar_A, 8, 8, 50, 50, 64, 64);
+  remarkable_framebuffer_draw_shape(fb, rmChar_B, 8, 8, 50, 50+64, 64, 64);
+  remarkable_framebuffer_draw_shape(fb, rmChar_C, 8, 8, 50, 50+128, 64, 64);
+  remarkable_framebuffer_refresh(fb, 
+                                 UPDATE_MODE_PARTIAL,
+                                 WAVEFORM_MODE_GC16_FAST,
+                                 TEMP_USE_MAX,
+                                 EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                                 0,    // flags
+                                 0,    // quant_bit
+                                 NULL, /* alt_buffer_data (not very useful -- not even here as the phys_addr
+                                                                             needs to be within finfo->smem) */
+                                 50, 50,  // y, x
+                                 64, 64 * 3); // h: 64, w: 3 * 64 (3 letters)
+  sleep(10);
 
   // Full refresh before exit just to get the whole fb content drawn
   remarkable_framebuffer_refresh(fb, 
