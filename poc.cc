@@ -93,7 +93,7 @@ void random_rects(remarkable_framebuffer* fb, unsigned iter) {
                                                     TEMP_USE_PAPYRUS,
                                                     EPDC_FLAG_USE_DITHERING_ATKINSON,
                                                     EPDC_FLAG_USE_DITHERING_Y4 | EPDC_FLAG_USE_REGAL | EPDC_FLAG_GROUP_UPDATE, // flags
-                                                    0xDEADBEEF,    // quant_bit
+                                                    0,    // quant_bit
                                                     NULL, // alt_buffer_data
                                                     rect.top, rect.left,
                                                     rect.height, rect.width);
@@ -111,7 +111,6 @@ void display_bmp(remarkable_framebuffer* fb, const char* path) {
   unsigned top = 200;
   for (unsigned y = 0; y < bitmap.img_header.biHeight; y++) {
     for (unsigned x = 0; x < bitmap.img_header.biWidth; x++) {
-        // TODO: Color interp
         unsigned char r = bitmap.img_pixels[y][x].red;
         unsigned char g = bitmap.img_pixels[y][x].green;
         unsigned char b = bitmap.img_pixels[y][x].blue;
@@ -147,6 +146,40 @@ void clear_display(remarkable_framebuffer* fb) {
                                  fb->vinfo.yres, fb->vinfo.xres);
 }
 
+void draw_shape(remarkable_framebuffer* fb, remarkable_color* shape, unsigned numrows, unsigned rowlen,
+                                                                     unsigned y, unsigned x,
+                                                                     unsigned height, unsigned width) {
+  if (fb == NULL)
+    return;
+
+  float boxWidth = width / (float)rowlen;
+  float boxHeight = height / (float)numrows;
+  for (unsigned iY = 0; iY < numrows; iY++) {
+    for (unsigned iX = 0; iX < rowlen; iX++) {
+      remarkable_color color = shape[rowlen * iY + iX];
+
+      // top, left, width, height
+      mxcfb_rect tb = {0};
+      tb.top = y + iY * boxHeight;
+      tb.left = x + iX * boxWidth;
+      tb.width = boxWidth;
+      tb.height = boxHeight;
+      draw_rect(fb, tb, color);
+    }
+  }
+  remarkable_framebuffer_refresh(fb, 
+                                UPDATE_MODE_FULL,
+                                WAVEFORM_MODE_GC16_FAST,
+                                TEMP_USE_MAX,
+                                EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                                0,    // flags
+                                0,    // quant_bit
+                                NULL, /* alt_buffer_data (not very useful -- not even here as the phys_addr
+                                                                            needs to be within finfo->smem) */
+                                0, 0,  // y, x
+                                fb->vinfo.yres, fb->vinfo.xres);
+}
+
 int main(void) {
   srand(time(NULL));
 
@@ -156,23 +189,36 @@ int main(void) {
     exit(1);
   }
 
-  clear_display(fb); 
-  usleep(10000);
-
   // scanning_line(fb, 500);
 
-  // clear_display(fb); 
-  // usleep(10000);
+  clear_display(fb);
+  usleep(10000);
 
   // display_bmp(fb, "/tmp/test.bmp");
-  random_rects(fb, 5000);
+  // random_rects(fb, 5000);
 
+  #define B REMARKABLE_DARKEST
+  #define W REMARKABLE_BRIGHTEST
 
-  // clear_display(fb); 
-  usleep(100000);
+  // The letter A
+  remarkable_color map[] = {
+    W, W, B, B, B, B, W, W,
+    W, B, B, B, B, B, B, W,
+    W, B, B, W, W, B, B, W,
+    W, B, B, W, W, B, B, W,
+    W, B, B, B, B, B, B, W,
+    W, B, B, W, W, B, B, W,
+    W, B, B, W, W, B, B, W,
+    W, B, B, W, W, B, B, W,
+  };
+  draw_shape(fb, map, 8, 8, 50, 50, 64, 64);
+
+  sleep(1);
+
+  // Full refresh before exit just to get the whole fb content drawn
   remarkable_framebuffer_refresh(fb, 
                                  UPDATE_MODE_FULL,
-                                 WAVEFORM_MODE_GLR16,
+                                 WAVEFORM_MODE_GC16_FAST,
                                  TEMP_USE_MAX,
                                  EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
                                  0,    // flags
