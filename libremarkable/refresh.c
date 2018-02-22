@@ -14,7 +14,8 @@ int gen = 1;
 // rect=NULL for full-screen refresh
 uint32_t remarkable_framebuffer_refresh(remarkable_framebuffer* fb,
                                         update_mode refresh_mode, waveform_mode waveform,
-                                        display_temp temp, unsigned y, unsigned x,
+                                        display_temp temp, mxcfb_dithering_mode dither_mode, 
+                                        unsigned int quant_bit, int flags, unsigned y, unsigned x,
                                         unsigned height, unsigned width) {
   if (fb == NULL)
     return -1;
@@ -43,8 +44,9 @@ uint32_t remarkable_framebuffer_refresh(remarkable_framebuffer* fb,
 
   data.update_mode = refresh_mode;
   data.update_marker = gen++;
-  
-  data.flags = 0;
+  data.dither_mode = dither_mode;
+  data.quant_bit = quant_bit;
+  data.flags = flags;
   
   int res = ioctl(fb->fd, REMARKABLE_PREFIX(MXCFB_SEND_UPDATE), &data);
   if (res != 0) {

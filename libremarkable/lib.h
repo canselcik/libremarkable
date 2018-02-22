@@ -46,7 +46,7 @@ typedef enum _update_mode
 typedef enum _waveform_mode {
   WAVEFORM_MODE_INIT         = 0x0,	                 /* Screen goes to white (clears) */
   WAVEFORM_MODE_GLR16			   = 0x4,                  /* Official */
-  WAVEFORM_MODE_GLD16			   = 0x5,                  /* Official */
+  WAVEFORM_MODE_GLD16			   = 0x5,                  /* Official -- and enables Regal D Processing */
 
   // Unsupported?
   WAVEFORM_MODE_DU           = 0x1,	                 /* Grey->white/grey->black  -- remarkable uses this for drawing */
@@ -102,10 +102,53 @@ typedef struct {
   unsigned int flags;               // 0x0000
 
   int dither_mode;
-	int quant_bit;
+	int quant_bit; // used only when dither_mode is > PASSTHROUGH and < MAX
 
   mxcfb_alt_buffer_data alt_buffer_data;  // not used when flags is 0x0000
-}  mxcfb_update_data;
+} mxcfb_update_data;
+
+typedef enum _mxcfb_dithering_mode {
+	EPDC_FLAG_USE_DITHERING_PASSTHROUGH = 0x0,
+	EPDC_FLAG_USE_DITHERING_FLOYD_STEINBERG,
+	EPDC_FLAG_USE_DITHERING_ATKINSON,
+	EPDC_FLAG_USE_DITHERING_ORDERED,
+	EPDC_FLAG_USE_DITHERING_QUANT_ONLY,
+	EPDC_FLAG_USE_DITHERING_MAX,
+} mxcfb_dithering_mode;
+
+
+////// fb_data->epdc_fb_var.grayscale
+#define GRAYSCALE_8BIT                          0x1
+#define GRAYSCALE_8BIT_INVERTED                 0x2
+#define GRAYSCALE_4BIT                          0x3
+#define GRAYSCALE_4BIT_INVERTED                 0x4
+
+////// FLAGS
+/*
+* If no processing required, skip update processing
+* No processing means:
+*   - FB unrotated
+*   - FB pixel format = 8-bit grayscale
+*   - No look-up transformations (inversion, posterization, etc.)
+*/
+// Enables PXP_LUT_INVERT transform on the buffer
+#define EPDC_FLAG_ENABLE_INVERSION              0x0001
+// Enables PXP_LUT_BLACK_WHITE transform on the buffer
+#define EPDC_FLAG_FORCE_MONOCHROME              0x0002
+// Enables PXP_USE_CMAP transform on the buffer
+#define EPDC_FLAG_USE_CMAP                      0x0004
+
+// This is basically double buffering. We give it the bitmap we want to
+// update, it swaps them.
+#define EPDC_FLAG_USE_ALT_BUFFER                0x0100
+
+// An update won't be merged upon a conflict in case of a collusion if
+// either update has this flag set, unless they are identical regions (same y,x,h,w)
+#define EPDC_FLAG_TEST_COLLISION                0x0200
+#define EPDC_FLAG_GROUP_UPDATE                  0x0400
+#define EPDC_FLAG_USE_DITHERING_Y1              0x2000
+#define EPDC_FLAG_USE_DITHERING_Y4              0x4000
+#define EPDC_FLAG_USE_REGAL                     0x8000
 
 /*
   vinfo:
@@ -170,7 +213,8 @@ void remarkable_framebuffer_fill(remarkable_framebuffer* fb, remarkable_color co
 /* refresh.c */
 uint32_t remarkable_framebuffer_refresh(remarkable_framebuffer* fb,
                                         update_mode refresh_mode, waveform_mode waveform,
-                                        display_temp temp, unsigned y, unsigned x,
+                                        display_temp temp, mxcfb_dithering_mode dither_mode, 
+                                        unsigned int quant_bit, int flags, unsigned y, unsigned x,
                                         unsigned height, unsigned width);
 int  remarkable_framebuffer_wait_refresh_marker(remarkable_framebuffer* fb, uint32_t marker);
 

@@ -44,12 +44,16 @@ void scanning_line(remarkable_framebuffer* fb, unsigned iter) {
     
     refresh_marker = remarkable_framebuffer_refresh(fb,
                                                     UPDATE_MODE_PARTIAL,
-                                                    WAVEFORM_MODE_DU,
-                                                    TEMP_USE_REMARKABLE_DRAW, tb.top-20, tb.left,
+                                                    WAVEFORM_MODE_GC16_FAST,
+                                                    TEMP_USE_REMARKABLE_DRAW,
+                                                    0,
+                                                    0, 
+                                                    EPDC_FLAG_ENABLE_INVERSION,
+                                                    tb.top-20, tb.left,
                                                     tb.height+40, tb.width);
     remarkable_framebuffer_wait_refresh_marker(fb, refresh_marker);
 
-    usleep(350000);
+    usleep(35000);
   }
 }
 
@@ -75,12 +79,13 @@ void random_rects(remarkable_framebuffer* fb, unsigned iter) {
                                                     UPDATE_MODE_PARTIAL,
                                                     WAVEFORM_MODE_GC16_FAST,
                                                     TEMP_USE_PAPYRUS,
+                                                    0, 0, 0,
                                                     rect.top,
                                                     rect.left,
                                                     rect.height,
                                                     rect.width);
     remarkable_framebuffer_wait_refresh_marker(fb, refresh_marker);
-    usleep(90 * 1000);
+    usleep(55 * 1000);
   }
     
 }
@@ -104,7 +109,7 @@ void display_bmp(remarkable_framebuffer* fb, char* path) {
   remarkable_framebuffer_refresh(fb, 
                                  UPDATE_MODE_FULL,
                                  WAVEFORM_MODE_INIT,
-                                 TEMP_USE_MAX, 0, 0,
+                                 TEMP_USE_MAX, 0, 0, 0, 0, 0,
                                  fb->vinfo.yres, fb->vinfo.xres);
 }
 
@@ -115,7 +120,7 @@ void clear_display(remarkable_framebuffer* fb) {
   remarkable_framebuffer_refresh(fb, 
                                  UPDATE_MODE_FULL,
                                  WAVEFORM_MODE_INIT,
-                                 TEMP_USE_MAX, 0, 0,
+                                 TEMP_USE_MAX, 0, 0, 0, 0, 0,
                                  fb->vinfo.yres, fb->vinfo.xres);
 }
 
@@ -131,19 +136,23 @@ int main(void) {
   clear_display(fb); 
   usleep(10000);
 
+  scanning_line(fb, 500);
 
-  scanning_line(fb, 50000);
+  clear_display(fb); 
+  usleep(10000);
+
   // display_bmp(fb, "/tmp/sample.bmp");
   random_rects(fb, 5000);
 
+
+  clear_display(fb); 
   usleep(10000);
 
   remarkable_framebuffer_refresh(fb, 
                                  UPDATE_MODE_FULL,
                                  WAVEFORM_MODE_GLR16,
-                                 TEMP_USE_MAX, 0, 0,
+                                 TEMP_USE_MAX, 0, 0, 0, 0, 0,
                                  fb->vinfo.yres, fb->vinfo.xres);
-
   remarkable_framebuffer_destroy(fb);
   return 0;
 }
