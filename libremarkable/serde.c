@@ -31,7 +31,7 @@ char* serialize_mxcfb_update_data(mxcfb_update_data* x) {
          x->flags,
          x->dither_mode,
          x->quant_bit,
-         x->alt_buffer_data);
+         &x->alt_buffer_data);
   return buff;
 }
 

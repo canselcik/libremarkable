@@ -5,8 +5,12 @@
 #include <stdlib.h>
 #include <linux/fb.h>
 #include <sys/ioctl.h>
-#include "libremarkable/lib.h"
-#include "libremarkable/bitmap.h"
+#include <queue>
+
+extern "C" {
+  #include "libremarkable/lib.h"
+  #include "libremarkable/bitmap.h"
+}
 
 int get_random(int min, int max) {
    return min + rand() / (RAND_MAX / (max - min + 1) + 1);
@@ -39,18 +43,19 @@ void scanning_line(remarkable_framebuffer* fb, unsigned iter) {
 
     if (tb.top > fb->vinfo.yres || tb.top < 0)
       dir *= -1;
-    tb.top += 10 * dir;
+    tb.top += 5 * dir;
     draw_rect(fb, tb, REMARKABLE_DARKEST);
     
-    refresh_marker = remarkable_framebuffer_refresh(fb,
+    refresh_marker = remarkable_framebuffer_refresh(fb, 
                                                     UPDATE_MODE_PARTIAL,
                                                     WAVEFORM_MODE_GC16_FAST,
-                                                    TEMP_USE_REMARKABLE_DRAW,
-                                                    0,
-                                                    0, 
-                                                    EPDC_FLAG_ENABLE_INVERSION,
-                                                    tb.top-20, tb.left,
-                                                    tb.height+40, tb.width);
+                                                    TEMP_USE_PAPYRUS,
+                                                    EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                                                    0,    // flags
+                                                    0,    // quant_bit
+                                                    NULL, // alt_buffer_data
+                                                    tb.top - 10, tb.left,
+                                                    tb.height + 20, tb.width);
     remarkable_framebuffer_wait_refresh_marker(fb, refresh_marker);
 
     usleep(35000);
@@ -61,10 +66,11 @@ void random_rects(remarkable_framebuffer* fb, unsigned iter) {
   if (fb == NULL)
     return;
 
-  // Draw a rectangle and only update that region
+  std::queue<mxcfb_rect> q;
   mxcfb_rect rect;
   uint32_t refresh_marker = 0;
-  for (unsigned i = 0; i < iter; i++) {
+  // for (unsigned i = 0; i < iter; i++) {
+  while(true) {
     // Gives 2816px horizontally (res * 2)
     // And   3840px vertically (virtual res accounted for)
     // TODO: Figure out the reason why this does it
@@ -73,24 +79,30 @@ void random_rects(remarkable_framebuffer* fb, unsigned iter) {
     rect.height = 50;
     rect.width = 50;
     draw_rect(fb, rect, REMARKABLE_DARKEST);
+    q.push(rect);
+
+    while (q.size() > 50) {
+      draw_rect(fb, q.front(), REMARKABLE_BRIGHTEST);
+      q.pop();
+    }
 
     // Partial refresh on the portion of the screen that contains the new rectangle
     refresh_marker = remarkable_framebuffer_refresh(fb, 
                                                     UPDATE_MODE_PARTIAL,
-                                                    WAVEFORM_MODE_GC16_FAST,
+                                                    WAVEFORM_MODE_DU,
                                                     TEMP_USE_PAPYRUS,
-                                                    0, 0, 0,
-                                                    rect.top,
-                                                    rect.left,
-                                                    rect.height,
-                                                    rect.width);
+                                                    EPDC_FLAG_USE_DITHERING_ATKINSON,
+                                                    EPDC_FLAG_USE_DITHERING_Y4 | EPDC_FLAG_USE_REGAL | EPDC_FLAG_GROUP_UPDATE, // flags
+                                                    0xDEADBEEF,    // quant_bit
+                                                    NULL, // alt_buffer_data
+                                                    rect.top, rect.left,
+                                                    rect.height, rect.width);
     remarkable_framebuffer_wait_refresh_marker(fb, refresh_marker);
-    usleep(55 * 1000);
   }
     
 }
 
-void display_bmp(remarkable_framebuffer* fb, char* path) {
+void display_bmp(remarkable_framebuffer* fb, const char* path) {
   bmp_img bitmap = { 0 };
   bmp_img_read(&bitmap, path);
 
@@ -103,13 +115,19 @@ void display_bmp(remarkable_framebuffer* fb, char* path) {
         unsigned char r = bitmap.img_pixels[y][x].red;
         unsigned char g = bitmap.img_pixels[y][x].green;
         unsigned char b = bitmap.img_pixels[y][x].blue;
-        remarkable_framebuffer_set_pixel(fb, top + y, left + x, r > 200 ? REMARKABLE_DARKEST : REMARKABLE_BRIGHTEST);
+        remarkable_framebuffer_set_pixel(fb, top + y, left + x, TO_REMARKABLE_COLOR(r, g, b));
     }
   }
   remarkable_framebuffer_refresh(fb, 
                                  UPDATE_MODE_FULL,
-                                 WAVEFORM_MODE_INIT,
-                                 TEMP_USE_MAX, 0, 0, 0, 0, 0,
+                                 WAVEFORM_MODE_GC16_FAST,
+                                 TEMP_USE_MAX,
+                                 EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                                 0,    // flags
+                                 0,    // quant_bit
+                                 NULL, /* alt_buffer_data (not very useful -- not even here as the phys_addr
+                                                                              needs to be within finfo->smem) */
+                                 0, 0,  // y, x
                                  fb->vinfo.yres, fb->vinfo.xres);
 }
 
@@ -120,7 +138,12 @@ void clear_display(remarkable_framebuffer* fb) {
   remarkable_framebuffer_refresh(fb, 
                                  UPDATE_MODE_FULL,
                                  WAVEFORM_MODE_INIT,
-                                 TEMP_USE_MAX, 0, 0, 0, 0, 0,
+                                 TEMP_USE_MAX,
+                                 EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                                 0,    // flags
+                                 0,    // quant_bit
+                                 NULL, // alt_buffer_data
+                                 0, 0,  // y, x
                                  fb->vinfo.yres, fb->vinfo.xres);
 }
 
@@ -136,22 +159,26 @@ int main(void) {
   clear_display(fb); 
   usleep(10000);
 
-  scanning_line(fb, 500);
+  // scanning_line(fb, 500);
 
-  clear_display(fb); 
-  usleep(10000);
+  // clear_display(fb); 
+  // usleep(10000);
 
-  // display_bmp(fb, "/tmp/sample.bmp");
+  // display_bmp(fb, "/tmp/test.bmp");
   random_rects(fb, 5000);
 
 
-  clear_display(fb); 
-  usleep(10000);
-
+  // clear_display(fb); 
+  usleep(100000);
   remarkable_framebuffer_refresh(fb, 
                                  UPDATE_MODE_FULL,
                                  WAVEFORM_MODE_GLR16,
-                                 TEMP_USE_MAX, 0, 0, 0, 0, 0,
+                                 TEMP_USE_MAX,
+                                 EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                                 0,    // flags
+                                 0,    // quant_bit
+                                 NULL, // alt_buffer_data
+                                 0, 0,  // y, x
                                  fb->vinfo.yres, fb->vinfo.xres);
   remarkable_framebuffer_destroy(fb);
   return 0;

@@ -6,13 +6,22 @@
 #include <unistd.h>
 #include <string.h>
 
-// TODO: Figure out RGB->remarkable_grayscale mappings
+// red     : offset = 11,  length =5,      msb_right = 0
+// green   : offset = 5,   length =6,      msb_right = 0
+// blue    : offset = 0,   length =5,      msb_right = 0
 typedef uint8_t remarkable_color;
 #define REMARKABLE_DARKEST                      0x00
 #define REMARKABLE_BRIGHTEST                    0xFF
+#define TO_REMARKABLE_COLOR(r, g, b)               ((r << 11) | (g << 5) | b)
 
 // TODO: Figure out why this is used only when drawing (not for refresh) and only 
 // when referring to width (not height, and not x-axis offset).
+/*
+  * GPU alignment restrictions dictate framebuffer parameters:
+  * - 32-byte alignment for buffer width
+  * - 128-byte alignment for buffer height
+  * => 4K buffer alignment for buffer start
+  */
 #define to_remarkable_width(y) (y * 2)
 #define from_remarkable_width(y) (y / 2)
 
@@ -147,7 +156,7 @@ typedef enum _mxcfb_dithering_mode {
 #define EPDC_FLAG_TEST_COLLISION                0x0200
 #define EPDC_FLAG_GROUP_UPDATE                  0x0400
 #define EPDC_FLAG_USE_DITHERING_Y1              0x2000
-#define EPDC_FLAG_USE_DITHERING_Y4              0x4000
+#define EPDC_FLAG_USE_DITHERING_Y4              0x4000  // <-- very good 
 #define EPDC_FLAG_USE_REGAL                     0x8000
 
 /*
@@ -212,9 +221,14 @@ void remarkable_framebuffer_fill(remarkable_framebuffer* fb, remarkable_color co
 
 /* refresh.c */
 uint32_t remarkable_framebuffer_refresh(remarkable_framebuffer* fb,
-                                        update_mode refresh_mode, waveform_mode waveform,
-                                        display_temp temp, mxcfb_dithering_mode dither_mode, 
-                                        unsigned int quant_bit, int flags, unsigned y, unsigned x,
+                                        update_mode refresh_mode,
+                                        waveform_mode waveform,
+                                        display_temp temp,
+                                        mxcfb_dithering_mode dither_mode,
+                                        int flags,
+                                        unsigned int quant_bit,
+                                        mxcfb_alt_buffer_data* alt_buffer_data,
+                                        unsigned y, unsigned x,
                                         unsigned height, unsigned width);
 int  remarkable_framebuffer_wait_refresh_marker(remarkable_framebuffer* fb, uint32_t marker);
 

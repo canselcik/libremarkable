@@ -1,4 +1,5 @@
 CC = arm-linux-gnueabihf-gcc
+CXX = arm-linux-gnueabihf-g++
 AR = arm-linux-gnueabihf-ar
 
 CCFLAGS = -fPIC -g
@@ -9,8 +10,8 @@ libremarkable/%:
 	make -C libremarkable
 
 poc: libremarkable/libremarkable.a
-	$(CC) -c poc.c -o poc.o
-	$(CC) poc.o libremarkable/libremarkable.a -o poc
+	$(CXX) -c poc.cc -o poc.o
+	$(CXX) poc.o libremarkable/libremarkable.a -o poc
 
 spy.so: libremarkable/libremarkable.a
 	$(CC) -c spy.c -o spy.o

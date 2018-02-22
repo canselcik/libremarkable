@@ -9,13 +9,18 @@
 #define max(a,b) (((a)>(b))?(a):(b))
 
 // 0 is an invalid update_marker value
-int gen = 1;
+unsigned gen = 1;
 
 // rect=NULL for full-screen refresh
 uint32_t remarkable_framebuffer_refresh(remarkable_framebuffer* fb,
-                                        update_mode refresh_mode, waveform_mode waveform,
-                                        display_temp temp, mxcfb_dithering_mode dither_mode, 
-                                        unsigned int quant_bit, int flags, unsigned y, unsigned x,
+                                        update_mode refresh_mode,
+                                        waveform_mode waveform,
+                                        display_temp temp,
+                                        mxcfb_dithering_mode dither_mode,
+                                        int flags,
+                                        unsigned int quant_bit,
+                                        mxcfb_alt_buffer_data* alt_buffer_data,
+                                        unsigned y, unsigned x,
                                         unsigned height, unsigned width) {
   if (fb == NULL)
     return -1;
@@ -38,7 +43,6 @@ uint32_t remarkable_framebuffer_refresh(remarkable_framebuffer* fb,
   else 
     data.update_region.height = height;
 
-
   data.waveform_mode = waveform;
   data.temp = temp;
 
@@ -47,7 +51,10 @@ uint32_t remarkable_framebuffer_refresh(remarkable_framebuffer* fb,
   data.dither_mode = dither_mode;
   data.quant_bit = quant_bit;
   data.flags = flags;
-  
+
+  if (alt_buffer_data != NULL)
+    data.alt_buffer_data = *alt_buffer_data;
+
   int res = ioctl(fb->fd, REMARKABLE_PREFIX(MXCFB_SEND_UPDATE), &data);
   if (res != 0) {
     printf("ioctl(.., MXCFB_SEND_UPDATE) = %d\n", res);
