@@ -27,7 +27,7 @@ libfreetype/
 
 # Libraries
 *.lib
-*.a
+libremarkable/libremarkable.a
 *.la
 *.lo
 
