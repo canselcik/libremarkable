@@ -1,99 +1,29 @@
 # Remarkable Framebuffer Analysis Project
 
-This repository contains a collection of scripts, code and general information on what makes Remarkable Paper Tablet tick.
+This repository contains a collection of scripts, code and general information on what makes Remarkable Paper Tablet tick, focusing on gaining access to the low latency refresh capabilities of the device which are normally not exposed.
 
 [![PoC](https://thumbs.gfycat.com/GlitteringShortIchneumonfly-size_restricted.gif)](https://gfycat.com/gifs/detail/GlitteringShortIchneumonfly)
 
 (GIF Preview has limited FPS -- click to watch at full framerate)
 
-## FrameBuffer Spy
-A shared library that intercepts and displays undocumented framebuffer refresh ioctl calls for the Remarkable Paper Tablet.
-Usage:
-```sh
-$ systemctl stop xochitl
-$ LD_PRELOAD=./spy.so xochitl
-...
-12:06.842 DebugHelperClass    	 void DocumentWorker::loadCachedPage(int) 191 ms (~DebugHelperClass() ../git/src/debug.h:16)
-ioctl(3, 0x4048462e, 0x7ea2d290{
-   updateRegion: x: 0
-                 y: 0
-                 width: 1404
-                 height: 1872
-   waveformMode: 3,
-   updateMode:   0
-   updateMarker: 45
-   temp: 4096
-   flags: 0000
-   alt_buffer_data: 0x300f30
-}) == 0
-12:07.207 DebugHelperClass    	 void DocumentWorker::loadCachedPage(int) 364 ms (~DebugHelperClass() ../git/src/debug.h:16)
-12:07.384 DebugHelperClass    	 void DocumentWorker::loadCachedPage(int) 175 ms (~DebugHelperClass() ../git/src/debug.h:16)
-12:07.548 DebugHelperClass    	 void DocumentWorker::loadCachedPage(int) 162 ms (~DebugHelperClass() ../git/src/debug.h:16)
-12:07.705 DebugHelperClass    	 void DocumentWorker::loadCachedPage(int) 155 ms (~DebugHelperClass() ../git/src/debug.h:16)
-ioctl(3, 0x4048462e, 0x7ea2d290{
-   updateRegion: x: 0
-                 y: 0
-                 width: 1404
-                 height: 1872
-   waveformMode: 3,
-   updateMode:   0
-   updateMarker: 46
-   temp: 4096
-   flags: 0000
-   alt_buffer_data: 0x300f30
-}) == 0
+## Build Instructions
+First run `make freetype` to generate the `libfreetype` static build with the expected flags.
+Execute `make all` to generate the `poc` executable along with `spy.so`, `libremarkable.so` and `libremarkable.a`.
+The makefiles assume the following are available in your `$PATH`, you may need to override or change them if they are installed elsewhere on your system:
 ```
-
-## Additional Findings
-Current framebuffer can be dumped with:
-```bash
-ssh root@10.11.99.1 "cat /dev/fb0" | convert -depth 16 -size 1408x1872+0 gray:- png:/tmp/frame;
+CC = arm-linux-gnueabihf-gcc
+CXX = arm-linux-gnueabihf-g++
+AR = arm-linux-gnueabihf-ar
 ```
-
-Remarkable Paper Tablet has an undocumented API for partial refreshes on its eInk display, which is what's behind its magic that disappears when custom Qt applications are used to draw on the screen, even using the toolchain provided by Remarkable.
-
-The `xochitl` program opens `/dev/fb0`, which always ends up being the `FD=3`. It then writes to this FD when it wants to update the screen and uses primarily the following `ioctl` call in order to perform its partial updates when the user draws on the device (`0x4048462e` is the `PARTIAL_UPDATE_MAGIC`, and the next argument is a pointer to `mxcfb_update_data`):
-
-What is particularly interesting here is that `0x4048462e` also happens to be Kindle's `MXCFB_SEND_UPDATE` magic. Something to keep in mind.
-
-```c
-typedef struct {
-  uint32_t top;    // 0x0000
-  uint32_t left;   // 0x0000 
-  uint32_t width;  // 0x0258 = 600
-  uint32_t height; // 0x0320 = 800
-} mxcfb_rect;
-
-typedef struct {
-  mxcfb_rect update_region;
-
-  uint32_t waveform_mode;  // 0x0002 = WAVEFORM_MODE_GC16 
-  uint32_t update_mode;    // 0x0000 = UPDATE_MODE_PARTIAL 
-  uint32_t update_marker;  // 0x002a 
-  
-  int temp;   // 0x1001 = TEMP_USE_PAPYRUS
-  uint flags; // 0x0000 
-  
-  void* alt_buffer_data; // must not used when flags is 0
-} mxcfb_update_data;
-
-ioctl(3, 0x4048462e, 0x7ea2d290{
-   updateRegion: x: 0
-                 y: 0
-                 width: 1404
-                 height: 1872
-   waveformMode: 3,
-   updateMode:   0
-   updateMarker: 46
-   temp: 4096
-   flags: 0000
-   alt_buffer_data: 0x300f30
-}) == 0
+The toolchain that would be acquired from either of these sources would be able to cross-compile for the Remarkable Tablet:
+```
+AUR:         https://aur.archlinux.org/packages/arm-linux-gnueabihf-gcc/
+Remarkable:  https://remarkable.engineering/deploy/sdk/poky-glibc-x86_64-meta-toolchain-qt5-cortexa9hf-neon-toolchain-2.1.3.sh
 ```
 
 ## Partial Redraw Proof of Concept (poc)
-Contains the proof of concept for directly interacting with the eink display driver to perform partial updates.
-The key finding here is the following magic values and their usage in conjunction with the dumped `mxcfb_update_data` structure. Simply update the framebuffer and then call `ioctl` on the `/dev/fb0` FD with `REMARKABLE_PREFIX | MXCFB_SEND_UPDATE` and the redraw region set `data.update_region`.
+Contains the proof of concept for directly interacting with the eInk display driver to perform partial updates.
+The key finding here is the magic values and their usage in conjunction with the dumped `mxcfb_*` data structures. Simply update the framebuffer and then call `ioctl` on the `/dev/fb0` FD with `REMARKABLE_PREFIX | MXCFB_SEND_UPDATE` in order to quickly the redraw region defined by `data.update_region` and that region only.
 
 ```c
 #define REMARKABLE_PREFIX                       0x40480000
@@ -133,12 +63,91 @@ data.alt_buffer_data = NULL;
 ioctl(fb, REMARKABLE_PREFIX | MXCFB_SEND_UPDATE, &data);
 ```
 
-## Next Steps
-Further exploration is needed on the following fields in the `mxcfb_update_data` struct:
+## Initial Findings (not up to date, check the code, comments and the latest commits for the latest findings)
+Current framebuffer can be dumped with:
+```bash
+ssh root@10.11.99.1 "cat /dev/fb0" | convert -depth 16 -size 1408x1872+0 gray:- png:/tmp/frame;
 ```
-   dither_mode:      0x300f30
-   quant_bit:        0x7ea73360
-   alt_buffer_data:  0x1
+
+Remarkable Paper Tablet has an undocumented API for partial refreshes on its eInk display, which is what's behind its magic that disappears when custom Qt applications are used to draw on the screen, even using the toolchain provided by Remarkable.
+
+The `xochitl` program opens `/dev/fb0`, which always ends up being the `FD=3`. It then writes to this FD when it wants to update the screen and uses primarily the following `ioctl` call in order to perform its partial updates when the user draws on the device (`0x4048462e` is the `PARTIAL_UPDATE_MAGIC`, and the next argument is a pointer to `mxcfb_update_data`):
+
+What is particularly interesting here is that `0x4048462e` also happens to be Kindle's `MXCFB_SEND_UPDATE` magic. Something to keep in mind.
+
+```c
+typedef struct {
+  uint32_t top;    // 0x0000
+  uint32_t left;   // 0x0000 
+  uint32_t width;  // 0x0258 = 600
+  uint32_t height; // 0x0320 = 800
+} mxcfb_rect;
+
+typedef struct {
+  mxcfb_rect update_region;
+
+  uint32_t waveform_mode;  // 0x0002 = WAVEFORM_MODE_GC16 
+  uint32_t update_mode;    // 0x0000 = UPDATE_MODE_PARTIAL 
+  uint32_t update_marker;  // 0x002a 
+  
+  int temp;   // 0x1001 = TEMP_USE_PAPYRUS
+  uint flags; // 0x0000 
+  
+  void* alt_buffer_data; // must not used when flags is 0
+  ...
+} mxcfb_update_data;
+
+ioctl(3, 0x4048462e, 0x7ea2d290{
+   updateRegion: x: 0
+                 y: 0
+                 width: 1404
+                 height: 1872
+   waveformMode: 3,
+   updateMode:   0
+   updateMarker: 46
+   temp: 4096
+   flags: 0000
+   alt_buffer_data: 0x300f30
+   ...
+}) == 0
 ```
-`spy.so`'s output on `xochitl` is very promising and straightforward for such an investigation.
-More updates coming soon.
+
+## FrameBuffer Spy
+A shared library that intercepts and displays undocumented framebuffer refresh ioctl calls for the Remarkable Paper Tablet.
+Usage:
+```sh
+$ systemctl stop xochitl
+$ LD_PRELOAD=./spy.so xochitl
+...
+12:06.842 DebugHelperClass    	 void DocumentWorker::loadCachedPage(int) 191 ms (~DebugHelperClass() ../git/src/debug.h:16)
+ioctl(3, 0x4048462e, 0x7ea2d290{
+   updateRegion: x: 0
+                 y: 0
+                 width: 1404
+                 height: 1872
+   waveformMode: 3,
+   updateMode:   0
+   updateMarker: 45
+   temp: 4096
+   flags: 0000
+   alt_buffer_data: 0x300f30
+   ...
+}) == 0
+12:07.207 DebugHelperClass    	 void DocumentWorker::loadCachedPage(int) 364 ms (~DebugHelperClass() ../git/src/debug.h:16)
+12:07.384 DebugHelperClass    	 void DocumentWorker::loadCachedPage(int) 175 ms (~DebugHelperClass() ../git/src/debug.h:16)
+12:07.548 DebugHelperClass    	 void DocumentWorker::loadCachedPage(int) 162 ms (~DebugHelperClass() ../git/src/debug.h:16)
+12:07.705 DebugHelperClass    	 void DocumentWorker::loadCachedPage(int) 155 ms (~DebugHelperClass() ../git/src/debug.h:16)
+ioctl(3, 0x4048462e, 0x7ea2d290{
+   updateRegion: x: 0
+                 y: 0
+                 width: 1404
+                 height: 1872
+   waveformMode: 3,
+   updateMode:   0
+   updateMarker: 46
+   temp: 4096
+   flags: 0000
+   alt_buffer_data: 0x300f30
+   ...
+}) == 0
+```
