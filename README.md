@@ -26,28 +26,28 @@ Contains the proof of concept for directly interacting with the eInk display dri
 The key finding here is the magic values and their usage in conjunction with the dumped `mxcfb_*` data structures. Simply update the framebuffer and then call `ioctl` on the `/dev/fb0` FD with `REMARKABLE_PREFIX | MXCFB_SEND_UPDATE` in order to quickly the redraw region defined by `data.update_region` and that region only.
 
 ```c
-#define REMARKABLE_PREFIX                       0x40480000
-#define MXCFB_SEND_UPDATE                       0x0000462e
-#define MXCFB_WAIT_FOR_VSYNC                    0x00004620
-#define MXCFB_SET_GBL_ALPHA                     0x00004621
-#define MXCFB_SET_CLR_KEY                       0x00004622
-#define MXCFB_SET_OVERLAY_POS                   0x00004624
-#define MXCFB_GET_FB_IPU_CHAN	                0x00004625
-#define MXCFB_SET_LOC_ALPHA	                0x00004626
-#define MXCFB_SET_LOC_ALP_BUF	                0x00004627
-#define MXCFB_SET_GAMMA	                        0x00004628
-#define MXCFB_GET_FB_IPU_DI	                0x00004629
-#define MXCFB_GET_DIFMT	                        0x0000462a
-#define MXCFB_GET_FB_BLANK	                0x0000462b
-#define MXCFB_SET_WAVEFORM_MODES	        0x0000462b
-#define MXCFB_SET_DIFMT	                        0x0000462c
-#define MXCFB_SET_TEMPERATURE	                0x0000462c
-#define MXCFB_SET_AUTO_UPDATE_MODE              0x0000462d
-#define MXCFB_WAIT_FOR_UPDATE_COMPLETE	        0x0000462f
-#define MXCFB_SET_PWRDOWN_DELAY	                0x00004630
-#define MXCFB_GET_PWRDOWN_DELAY	                0x00004631
-#define MXCFB_SET_UPDATE_SCHEME                 0x00004632
-#define MXCFB_SET_MERGE_ON_WAVEFORM_MISMATCH    0x00004637
+#define REMARKABLE_PREFIX                       0x40484600
+#define MXCFB_SEND_UPDATE                       0x0000002e
+#define MXCFB_WAIT_FOR_VSYNC                    0x00000020
+#define MXCFB_SET_GBL_ALPHA                     0x00000021
+#define MXCFB_SET_CLR_KEY                       0x00000022
+#define MXCFB_SET_OVERLAY_POS                   0x00000024
+#define MXCFB_GET_FB_IPU_CHAN                   0x00000025
+#define MXCFB_SET_LOC_ALPHA                     0x00000026
+#define MXCFB_SET_LOC_ALP_BUF                   0x00000027
+#define MXCFB_SET_GAMMA                         0x00000028
+#define MXCFB_GET_FB_IPU_DI                     0x00000029
+#define MXCFB_GET_DIFMT                         0x0000002a
+#define MXCFB_GET_FB_BLANK                      0x0000002b
+#define MXCFB_SET_WAVEFORM_MODES                0x0000002b
+#define MXCFB_SET_DIFMT                         0x0000002c
+#define MXCFB_SET_TEMPERATURE                   0x0000002c
+#define MXCFB_SET_AUTO_UPDATE_MODE              0x0000002d
+#define MXCFB_WAIT_FOR_UPDATE_COMPLETE	        0x0000002f
+#define MXCFB_SET_PWRDOWN_DELAY	                0x00000030
+#define MXCFB_GET_PWRDOWN_DELAY	                0x00000031
+#define MXCFB_SET_UPDATE_SCHEME                 0x00000032
+#define MXCFB_SET_MERGE_ON_WAVEFORM_MISMATCH    0x00000037
 
 mxcfb_update_data data;
 data.update_region.top = 0;
