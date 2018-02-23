@@ -14,6 +14,11 @@ typedef uint8_t remarkable_color;
 #define REMARKABLE_BRIGHTEST                    0xFF
 #define TO_REMARKABLE_COLOR(r, g, b)               ((r << 11) | (g << 5) | b)
 
+#define YRES(remarkable_framebuffer_ptr)         remarkable_framebuffer_ptr->vinfo.yres 
+#define YRES_VIRTUAL(remarkable_framebuffer_ptr) remarkable_framebuffer_ptr->vinfo.yres_virtual
+#define XRES(remarkable_framebuffer_ptr)         remarkable_framebuffer_ptr->vinfo.xres 
+#define XRES_VIRTUAL(remarkable_framebuffer_ptr) remarkable_framebuffer_ptr->vinfo.xres_virtual
+
 // TODO: Figure out why this is used only when drawing (not for refresh) and only 
 // when referring to width (not height, and not x-axis offset).
 /*
@@ -239,3 +244,6 @@ int  remarkable_framebuffer_wait_refresh_marker(remarkable_framebuffer* fb, uint
 /* serde.c */
 char* serialize_mxcfb_update_data(mxcfb_update_data* x);
 void  print_mxcfb_update_data(mxcfb_update_data* x);
+
+/* freetype.c */
+mxcfb_rect remarkable_framebuffer_draw_text(remarkable_framebuffer* fb, const char* fontFilename, const char* text, unsigned top, unsigned left, int target_height);

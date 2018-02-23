@@ -1,6 +1,9 @@
 # Build artifacts
 poc
 
+# Deps
+libfreetype/
+
 # Prerequisites
 *.d
 
