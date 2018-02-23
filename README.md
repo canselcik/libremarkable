@@ -119,7 +119,7 @@ The `xochitl` program is statically linked with the `QsgEpaperPlugin` which can 
 
 However, looking at the function signatures and the analysis so far, it looks like the PoC actually has gotten them right (`EPFrameBuffer::WaveformMode, EPFrameBuffer::UpdateMode` in `EPFramebuffer::sendUpdate`, returning a `uint32_t refresh_marker` that is referred to as an `updateCounter` in `epframebuffer.o`):
 
-```
+```c
 epcontext.o:
   EPRenderContext::initialize(QOpenGLContext*)
   EPRenderContext::initialize(QSGMaterialShader*)
