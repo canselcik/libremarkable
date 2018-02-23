@@ -8,7 +8,9 @@ This repository contains a collection of scripts, code and general information o
 
 ## Build Instructions
 First run `make freetype` to generate the `libfreetype` static build with the expected flags.
+
 Execute `make all` to generate the `poc` executable along with `spy.so`, `libremarkable.so` and `libremarkable.a`.
+
 The makefiles assume the following are available in your `$PATH`, you may need to override or change them if they are installed elsewhere on your system:
 ```
 CC = arm-linux-gnueabihf-gcc
@@ -23,6 +25,7 @@ Remarkable:  https://remarkable.engineering/deploy/sdk/poky-glibc-x86_64-meta-to
 
 ## Partial Redraw Proof of Concept (poc)
 Contains the proof of concept for directly interacting with the eInk display driver to perform partial updates.
+
 The key finding here is the magic values and their usage in conjunction with the dumped `mxcfb_*` data structures. Simply update the framebuffer and then call `ioctl` on the `/dev/fb0` FD with `REMARKABLE_PREFIX | MXCFB_SEND_UPDATE` in order to quickly the redraw region defined by `data.update_region` and that region only.
 
 ```c
