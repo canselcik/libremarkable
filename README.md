@@ -1,4 +1,4 @@
-# Remarkable Framebuffer Analysis Project
+# Documenting the Undocumented Remarkable Low Latency I/O
 
 This repository contains a collection of scripts, code and general information on what makes Remarkable Paper Tablet tick, focusing on gaining access to the low latency refresh capabilities of the device which are normally not exposed.
 
