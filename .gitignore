@@ -1,5 +1,6 @@
 # Build artifacts
 poc
+evtest
 
 # Deps
 libfreetype/

@@ -9,7 +9,7 @@ This repository contains a collection of scripts, code and general information o
 ## Build Instructions
 First run `make freetype` to generate the `libfreetype` static build with the expected flags.
 
-Execute `make all` to generate the `poc` executable along with `spy.so`, `libremarkable.so` and `libremarkable.a`.
+Execute `make all` to generate the `poc` executable along with `spy.so`, `libremarkable.so`, `libremarkable.a` and `evtest`.
 
 The makefiles assume the following are available in your `$PATH`, you may need to override or change them if they are installed elsewhere on your system:
 ```
@@ -117,8 +117,271 @@ ioctl(3, 0x4048462e, 0x7ea2d290{
 
 The `xochitl` program is statically linked with the `QsgEpaperPlugin` which can be found in this repository with the filename `libqsgepaper.a`, containing the following object files, providing the following implementations. These implementations, however, are not used in the PoC as they are not yet fully explored. What is used instead skipping what `libqsgepaper` can achieve with its undocumented portions of the API listed below, and explored all throughout this repository.
 
-However, looking at the function signatures and the analysis so far, it looks like the PoC actually has gotten them right (`EPFrameBuffer::WaveformMode, EPFrameBuffer::UpdateMode` in `EPFramebuffer::sendUpdate`, returning a `uint32_t refresh_marker` that is referred to as an `updateCounter` in `epframebuffer.o`):
+However, looking at the function signatures and the analysis so far, it looks like the PoC actually has gotten them right (`EPFrameBuffer::WaveformMode, EPFrameBuffer::UpdateMode` in `EPFramebuffer::sendUpdate`, returning a `uint32_t refresh_marker` that is referred to as an `updateCounter` in `epframebuffer.o`). The list of prototypes can be found at the end of this page.
 
+## FrameBuffer Spy
+A shared library that intercepts and displays undocumented framebuffer refresh ioctl calls for the Remarkable Paper Tablet.
+Usage:
+```sh
+$ systemctl stop xochitl
+$ LD_PRELOAD=./spy.so xochitl
+...
+12:06.842 DebugHelperClass    	 void DocumentWorker::loadCachedPage(int) 191 ms (~DebugHelperClass() ../git/src/debug.h:16)
+ioctl(3, 0x4048462e, 0x7ea2d290{
+   updateRegion: x: 0
+                 y: 0
+                 width: 1404
+                 height: 1872
+   waveformMode: 3,
+   updateMode:   0
+   updateMarker: 45
+   temp: 4096
+   flags: 0000
+   alt_buffer_data: 0x300f30
+   ...
+}) == 0
+12:07.207 DebugHelperClass    	 void DocumentWorker::loadCachedPage(int) 364 ms (~DebugHelperClass() ../git/src/debug.h:16)
+12:07.384 DebugHelperClass    	 void DocumentWorker::loadCachedPage(int) 175 ms (~DebugHelperClass() ../git/src/debug.h:16)
+12:07.548 DebugHelperClass    	 void DocumentWorker::loadCachedPage(int) 162 ms (~DebugHelperClass() ../git/src/debug.h:16)
+12:07.705 DebugHelperClass    	 void DocumentWorker::loadCachedPage(int) 155 ms (~DebugHelperClass() ../git/src/debug.h:16)
+ioctl(3, 0x4048462e, 0x7ea2d290{
+   updateRegion: x: 0
+                 y: 0
+                 width: 1404
+                 height: 1872
+   waveformMode: 3,
+   updateMode:   0
+   updateMarker: 46
+   temp: 4096
+   flags: 0000
+   alt_buffer_data: 0x300f30
+   ...
+}) == 0
+```
+
+## Reading from Wacom Digitizer, Touch Screen and the physical buttons
+The device features an ARM SoC from the i.MX6 family by Freescale (--> NXP --> Qualcomm).
+```
+remarkable: ~/ cat /proc/device-tree/model
+reMarkable Prototype 1
+
+remarkable: ~/ cat /proc/device-tree/compatible 
+remarkable,zero-gravitasfsl,imx6sl
+
+remarkable: ~/ cat /proc/bus/input/devices 
+I: Bus=0018 Vendor=056a Product=0000 Version=0036
+N: Name="Wacom I2C Digitizer"
+P: Phys=
+S: Sysfs=/devices/soc0/soc/2100000.aips-bus/21a4000.i2c/i2c-1/1-0009/input/input0
+U: Uniq=
+H: Handlers=mouse0 event0 
+B: PROP=0
+B: EV=b
+B: KEY=1c03 0 0 0 0 0 0 0 0 0 0
+B: ABS=f000003
+
+I: Bus=0000 Vendor=0000 Product=0000 Version=0000
+N: Name="cyttsp5_mt"
+P: Phys=2-0024/input0
+S: Sysfs=/devices/soc0/soc/2100000.aips-bus/21a8000.i2c/i2c-2/2-0024/input/input1
+U: Uniq=
+H: Handlers=event1 
+B: PROP=2
+B: EV=f
+B: KEY=0
+B: REL=0
+B: ABS=6f38000 2000000
+
+I: Bus=0019 Vendor=0001 Product=0001 Version=0100
+N: Name="gpio-keys"
+P: Phys=gpio-keys/input0
+S: Sysfs=/devices/soc0/gpio-keys/input/input2
+U: Uniq=
+H: Handlers=kbd event2 
+B: PROP=0
+B: EV=3
+B: KEY=8000 100640 0 0 0
+
+remarkable: ~/ ls -latr /dev/input/
+lrwxrwxrwx    1 root     root             6 Feb 23 05:52 touchscreen0 -> event0
+crw-rw----    1 root     input      13,  32 Feb 23 05:52 mouse0
+crw-rw----    1 root     input      13,  66 Feb 23 05:52 event2
+crw-rw----    1 root     input      13,  65 Feb 23 05:52 event1
+crw-rw----    1 root     input      13,  64 Feb 23 05:52 event0
+drwxr-xr-x    2 root     root           120 Feb 23 05:52 by-path
+drwxr-xr-x    3 root     root           180 Feb 23 05:52 .
+crw-rw----    1 root     input      13,  63 Feb 23 05:52 mice
+drwxr-xr-x    8 root     root          3460 Feb 23 09:30 ..
+```
+Events from the touchscreen/digitizer can be seen by reading from these devices. Using the `evtest` like shown below:
+
+#### /dev/input/event0 (Wacom I2C Digitizer)
+- Only for input via the pen
+- With and without contact
+- Pressure sensitive
+```bash
+remarkable: ~/ ./evtest /dev/input/event0
+Input driver version is 1.0.1
+Input device ID: bus 0x18 vendor 0x56a product 0x0 version 0x36
+Input device name: "Wacom I2C Digitizer"
+Supported events:
+  Event type 0 (Sync)
+  Event type 1 (Key)
+    Event code 320 (ToolPen)
+    Event code 321 (ToolRubber)
+    Event code 330 (Touch)
+    Event code 331 (Stylus)
+    Event code 332 (Stylus2)
+  Event type 3 (Absolute)
+    Event code 0 (X)
+      Value   7509
+      Min        0
+      Max    20967
+    Event code 1 (Y)
+      Value  11277
+      Min        0
+      Max    15725
+    Event code 24 (Pressure)
+      Value      0
+      Min        0
+      Max     4095
+    Event code 25 (Distance)
+      Value     62
+      Min        0
+      Max      255
+    Event code 26 (XTilt)
+      Value      0
+      Min    -9000
+      Max     9000
+    Event code 27 (YTilt)
+      Value      0
+      Min    -9000
+      Max     9000
+Testing ... (interrupt to exit)
+Event: time 1519455612.131963, -------------- Report Sync ------------
+Event: time 1519455612.138317, type 3 (Absolute), code 0 (X), value 6536
+Event: time 1519455612.138317, type 3 (Absolute), code 25 (Distance), value 49
+Event: time 1519455612.138317, -------------- Report Sync ------------
+Event: time 1519455612.141944, type 3 (Absolute), code 0 (X), value 6562
+Event: time 1519455612.141944, type 3 (Absolute), code 1 (Y), value 9457
+Event: time 1519455612.141944, type 3 (Absolute), code 25 (Distance), value 54
+Event: time 1519455612.141944, -------------- Report Sync ------------
+Event: time 1519455612.148315, type 3 (Absolute), code 0 (X), value 6590
+Event: time 1519455612.148315, type 3 (Absolute), code 1 (Y), value 9456
+Event: time 1519455612.148315, type 3 (Absolute), code 25 (Distance), value 60
+Event: time 1519455612.148315, -------------- Report Sync ------------
+Event: time 1519455612.151963, type 3 (Absolute), code 0 (X), value 6617
+Event: time 1519455612.151963, type 3 (Absolute), code 1 (Y), value 9454
+Event: time 1519455612.151963, type 3 (Absolute), code 25 (Distance), value 67
+Event: time 1519455612.151963, -------------- Report Sync ------------
+Event: time 1519455612.158320, type 3 (Absolute), code 0 (X), value 6645
+Event: time 1519455612.158320, type 3 (Absolute), code 1 (Y), value 9452
+Event: time 1519455612.158320, type 3 (Absolute), code 25 (Distance), value 74
+Event: time 1519455612.158320, -------------- Report Sync ------------
+Event: time 1519455612.161156, type 3 (Absolute), code 0 (X), value 6669
+Event: time 1519455612.161156, type 3 (Absolute), code 1 (Y), value 9449
+Event: time 1519455612.161156, -------------- Report Sync ------------
+Event: time 1519455612.167466, type 3 (Absolute), code 0 (X), value 6688
+Event: time 1519455612.167466, type 3 (Absolute), code 1 (Y), value 9446
+Event: time 1519455612.167466, -------------- Report Sync ------------
+Event: time 1519455612.181232, type 1 (Key), code 320 (ToolPen), value 0
+Event: time 1519455612.181232, -------------- Report Sync ------------
+```
+
+#### /dev/input/event1 (cyttsp5_mt 'multitouch')
+```
+remarkable: ~/ ./evtest /dev/input/event1
+Input driver version is 1.0.1
+Input device ID: bus 0x0 vendor 0x0 product 0x0 version 0x0
+Input device name: "cyttsp5_mt"
+Supported events:
+  Event type 0 (Sync)
+  Event type 1 (Key)
+  Event type 2 (Relative)
+  Event type 3 (Absolute)
+    Event code 25 (Distance)
+      Value      0
+      Min        0
+      Max      255
+    Event code 47 (?)
+      Value      0
+      Min        0
+      Max       31
+    Event code 48 (?)
+      Value      0
+      Min        0
+      Max      255
+    Event code 49 (?)
+      Value      0
+      Min        0
+      Max      255
+    Event code 52 (?)
+      Value      0
+      Min     -127
+      Max      127
+    Event code 53 (?)
+      Value      0
+      Min        0
+      Max      767
+    Event code 54 (?)
+      Value      0
+      Min        0
+      Max     1023
+    Event code 55 (?)
+      Value      0
+      Min        0
+      Max        1
+    Event code 57 (?)
+      Value      0
+      Min        0
+      Max    65535
+    Event code 58 (?)
+      Value      0
+      Min        0
+      Max      255
+Testing ... (interrupt to exit)
+Event: time 1519456007.622705, type 3 (Absolute), code 57 (?), value 139
+Event: time 1519456007.622705, type 3 (Absolute), code 53 (?), value 186
+Event: time 1519456007.622705, type 3 (Absolute), code 54 (?), value 323
+Event: time 1519456007.622705, type 3 (Absolute), code 58 (?), value 117
+Event: time 1519456007.622705, type 3 (Absolute), code 48 (?), value 9
+Event: time 1519456007.622705, type 3 (Absolute), code 52 (?), value 3
+Event: time 1519456007.622705, -------------- Report Sync ------------
+Event: time 1519456007.667954, type 3 (Absolute), code 57 (?), value -1
+Event: time 1519456007.667954, -------------- Report Sync ------------
+Event: time 1519456008.162604, type 3 (Absolute), code 57 (?), value 140
+Event: time 1519456008.162604, type 3 (Absolute), code 53 (?), value 222
+Event: time 1519456008.162604, type 3 (Absolute), code 54 (?), value 509
+Event: time 1519456008.162604, type 3 (Absolute), code 58 (?), value 75
+Event: time 1519456008.162604, type 3 (Absolute), code 48 (?), value 4
+Event: time 1519456008.162604, type 3 (Absolute), code 52 (?), value 2
+Event: time 1519456008.162604, -------------- Report Sync ------------
+Event: time 1519456008.245695, type 3 (Absolute), code 57 (?), value -1
+Event: time 1519456008.245695, -------------- Report Sync ------------
+```
+
+#### /dev/input/event2 (Reading Physical Buttons)
+```
+remarkable: ~/ ./evtest /dev/input/event2
+Input driver version is 1.0.1
+Input device ID: bus 0x19 vendor 0x1 product 0x1 version 0x100
+Input device name: "gpio-keys"
+Supported events:
+  Event type 0 (Sync)
+  Event type 1 (Key)
+    Event code 102 (Home)
+    Event code 105 (Left)
+    Event code 106 (Right)
+    Event code 116 (Power)
+    Event code 143 (WakeUp)
+Testing ... (interrupt to exit)
+Event: time 1519456176.426978, type 1 (Key), code 106 (Right), value 1
+Event: time 1519456176.426978, -------------- Report Sync ------------
+Event: time 1519456176.706831, type 1 (Key), code 106 (Right), value 0
+Event: time 1519456176.706831, -------------- Report Sync ------------
+```
+
+## Relevant Classes from xochitl
 ```c
 epcontext.o:
   EPRenderContext::initialize(QOpenGLContext*)
@@ -346,137 +609,4 @@ moc_eptexture.o:
 moc_qsgepaperplugin.o:
   QsgEpaperPlugin::staticMetaObject
   QsgEpaperPlugin::~QsgEpaperPlugin()
-```
-
-## FrameBuffer Spy
-A shared library that intercepts and displays undocumented framebuffer refresh ioctl calls for the Remarkable Paper Tablet.
-Usage:
-```sh
-$ systemctl stop xochitl
-$ LD_PRELOAD=./spy.so xochitl
-...
-12:06.842 DebugHelperClass    	 void DocumentWorker::loadCachedPage(int) 191 ms (~DebugHelperClass() ../git/src/debug.h:16)
-ioctl(3, 0x4048462e, 0x7ea2d290{
-   updateRegion: x: 0
-                 y: 0
-                 width: 1404
-                 height: 1872
-   waveformMode: 3,
-   updateMode:   0
-   updateMarker: 45
-   temp: 4096
-   flags: 0000
-   alt_buffer_data: 0x300f30
-   ...
-}) == 0
-12:07.207 DebugHelperClass    	 void DocumentWorker::loadCachedPage(int) 364 ms (~DebugHelperClass() ../git/src/debug.h:16)
-12:07.384 DebugHelperClass    	 void DocumentWorker::loadCachedPage(int) 175 ms (~DebugHelperClass() ../git/src/debug.h:16)
-12:07.548 DebugHelperClass    	 void DocumentWorker::loadCachedPage(int) 162 ms (~DebugHelperClass() ../git/src/debug.h:16)
-12:07.705 DebugHelperClass    	 void DocumentWorker::loadCachedPage(int) 155 ms (~DebugHelperClass() ../git/src/debug.h:16)
-ioctl(3, 0x4048462e, 0x7ea2d290{
-   updateRegion: x: 0
-                 y: 0
-                 width: 1404
-                 height: 1872
-   waveformMode: 3,
-   updateMode:   0
-   updateMarker: 46
-   temp: 4096
-   flags: 0000
-   alt_buffer_data: 0x300f30
-   ...
-}) == 0
-```
-
-## Findings about the Digitizer / Touch Screen
-The device features an ARM SoC from the i.MX6 family by Freescale (--> NXP --> Qualcomm).
-```
-remarkable: ~/ cat /proc/device-tree/model
-reMarkable Prototype 1
-
-remarkable: ~/ cat /proc/device-tree/compatible 
-remarkable,zero-gravitasfsl,imx6sl
-
-remarkable: ~/ cat /proc/bus/input/devices 
-I: Bus=0018 Vendor=056a Product=0000 Version=0036
-N: Name="Wacom I2C Digitizer"
-P: Phys=
-S: Sysfs=/devices/soc0/soc/2100000.aips-bus/21a4000.i2c/i2c-1/1-0009/input/input0
-U: Uniq=
-H: Handlers=mouse0 event0 
-B: PROP=0
-B: EV=b
-B: KEY=1c03 0 0 0 0 0 0 0 0 0 0
-B: ABS=f000003
-
-I: Bus=0000 Vendor=0000 Product=0000 Version=0000
-N: Name="cyttsp5_mt"
-P: Phys=2-0024/input0
-S: Sysfs=/devices/soc0/soc/2100000.aips-bus/21a8000.i2c/i2c-2/2-0024/input/input1
-U: Uniq=
-H: Handlers=event1 
-B: PROP=2
-B: EV=f
-B: KEY=0
-B: REL=0
-B: ABS=6f38000 2000000
-
-I: Bus=0019 Vendor=0001 Product=0001 Version=0100
-N: Name="gpio-keys"
-P: Phys=gpio-keys/input0
-S: Sysfs=/devices/soc0/gpio-keys/input/input2
-U: Uniq=
-H: Handlers=kbd event2 
-B: PROP=0
-B: EV=3
-B: KEY=8000 100640 0 0 0
-
-remarkable: ~/ ls -latr /dev/input/
-lrwxrwxrwx    1 root     root             6 Feb 23 05:52 touchscreen0 -> event0
-crw-rw----    1 root     input      13,  32 Feb 23 05:52 mouse0
-crw-rw----    1 root     input      13,  66 Feb 23 05:52 event2
-crw-rw----    1 root     input      13,  65 Feb 23 05:52 event1
-crw-rw----    1 root     input      13,  64 Feb 23 05:52 event0
-drwxr-xr-x    2 root     root           120 Feb 23 05:52 by-path
-drwxr-xr-x    3 root     root           180 Feb 23 05:52 .
-crw-rw----    1 root     input      13,  63 Feb 23 05:52 mice
-drwxr-xr-x    8 root     root          3460 Feb 23 09:30 ..
-```
-Events from the touchscreen/digitizer can be seen by reading from these devices.
-```
-remarkable: ~/ cat /dev/input/mouse0 | hexdump -C
-00000000  38 81 81 38 f0 db 28 00  ff 28 00 ff 28 00 ff 38  |8..8..(..(..(..8|
-00000010  ff ff 18 ff 00 38 fe ff  18 fe 00 18 fe 00 18 fe  |.....8..........|
-00000020  00 38 fe ff 18 fd 00 18  fe 00 18 fd 00 18 fe 00  |.8..............|
-00000030  18 fd 00 38 fe ff 18 fd  00 18 fd 00 18 fe 00 18  |...8............|
-00000040  fd 00 18 fd 00 18 fe 00  18 fd 00 18 fe 00 18 fd  |................|
-00000050  00 18 fb 01 18 fc 01 18  fd 01 18 fd 01 18 fe 01  |................|
-00000060  18 fd 01 18 fe 00 18 fe  01 18 fe 01 18 ff 01 18  |................|
-00000070  fe 00 18 ff 01 18 ff 00  18 ff 01 18 ff 00 18 ff  |................|
-00000080  01 18 ff 00 08 00 01 18  ff 00 08 00 01 08 00 01  |................|
-
-remarkable: ~/ cat /dev/input/event0 | hexdump -C
-000025e0  9d 7d 90 5a 2c dc 01 00  03 00 01 00 af 2c 00 00  |.}.Z,........,..|
-000025f0  9d 7d 90 5a 2c dc 01 00  03 00 19 00 1d 00 00 00  |.}.Z,...........|
-00002600  9d 7d 90 5a 2c dc 01 00  00 00 00 00 00 00 00 00  |.}.Z,...........|
-00002610  9d 7d 90 5a 7e f4 01 00  03 00 00 00 e4 14 00 00  |.}.Z~...........|
-00002620  9d 7d 90 5a 7e f4 01 00  03 00 01 00 ad 2c 00 00  |.}.Z~........,..|
-00002630  9d 7d 90 5a 7e f4 01 00  03 00 19 00 24 00 00 00  |.}.Z~.......$...|
-00002640  9d 7d 90 5a 7e f4 01 00  00 00 00 00 00 00 00 00  |.}.Z~...........|
-00002650  9d 7d 90 5a c6 02 02 00  03 00 00 00 05 15 00 00  |.}.Z............|
-00002660  9d 7d 90 5a c6 02 02 00  03 00 01 00 ac 2c 00 00  |.}.Z.........,..|
-00002670  9d 7d 90 5a c6 02 02 00  03 00 19 00 2d 00 00 00  |.}.Z........-...|
-00002680  9d 7d 90 5a c6 02 02 00  00 00 00 00 00 00 00 00  |.}.Z............|
-00002690  9d 7d 90 5a 02 1c 02 00  03 00 00 00 2d 15 00 00  |.}.Z........-...|
-000026a0  9d 7d 90 5a 02 1c 02 00  03 00 01 00 aa 2c 00 00  |.}.Z.........,..|
-000026b0  9d 7d 90 5a 02 1c 02 00  03 00 19 00 37 00 00 00  |.}.Z........7...|
-000026c0  9d 7d 90 5a 02 1c 02 00  00 00 00 00 00 00 00 00  |.}.Z............|
-000026d0  9d 7d 90 5a cf 26 02 00  03 00 00 00 52 15 00 00  |.}.Z.&......R...|
-000026e0  9d 7d 90 5a cf 26 02 00  03 00 01 00 a9 2c 00 00  |.}.Z.&.......,..|
-000026f0  9d 7d 90 5a cf 26 02 00  00 00 00 00 00 00 00 00  |.}.Z.&..........|
-00002700  9d 7d 90 5a 62 3f 02 00  03 00 00 00 76 15 00 00  |.}.Zb?......v...|
-00002710  9d 7d 90 5a 62 3f 02 00  03 00 01 00 a7 2c 00 00  |.}.Zb?.......,..|
-00002720  9d 7d 90 5a 62 3f 02 00  00 00 00 00 00 00 00 00  |.}.Zb?..........|
-00002730  9d 7d 90 5a 4e 66 02 00  01 00 40 01 00 00 00 00  |.}.ZNf....@.....|
-00002740  9d 7d 90 5a 4e 66 02 00  00 00 00 00 00 00 00 00  |.}.ZNf..........|
 ```
