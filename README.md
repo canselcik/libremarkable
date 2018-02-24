@@ -1,4 +1,4 @@
-# Documenting the Undocumented Remarkable Low Latency I/O
+## Documenting the Undocumented Remarkable Low Latency I/O
 
 This repository contains a collection of scripts, code and general information on what makes Remarkable Paper Tablet tick, focusing on gaining access to the low latency refresh capabilities of the device which are normally not exposed.
 
@@ -6,7 +6,7 @@ This repository contains a collection of scripts, code and general information o
 
 (GIF Preview has limited FPS -- click to watch at full framerate)
 
-## Build Instructions
+### Build Instructions
 First run `make freetype` to generate the `libfreetype` static build with the expected flags.
 
 Execute `make all` to generate the `poc` executable along with `spy.so`, `libremarkable.so`, `libremarkable.a` and `evtest`.
@@ -23,7 +23,7 @@ AUR:         https://aur.archlinux.org/packages/arm-linux-gnueabihf-gcc/
 Remarkable:  https://remarkable.engineering/deploy/sdk/poky-glibc-x86_64-meta-toolchain-qt5-cortexa9hf-neon-toolchain-2.1.3.sh
 ```
 
-## Partial Redraw Proof of Concept (poc)
+### Partial Redraw Proof of Concept (poc)
 Contains the proof of concept for directly interacting with the eInk display driver to perform partial updates.
 
 The key finding here is the magic values and their usage in conjunction with the dumped `mxcfb_*` data structures. Simply update the framebuffer and then call `ioctl` on the `/dev/fb0` FD with `REMARKABLE_PREFIX | MXCFB_SEND_UPDATE` in order to quickly the redraw region defined by `data.update_region` and that region only.
@@ -66,7 +66,7 @@ data.alt_buffer_data = NULL;
 ioctl(fb, REMARKABLE_PREFIX | MXCFB_SEND_UPDATE, &data);
 ```
 
-## Initial Findings (not up to date, check the code, comments and the latest commits for the latest findings)
+### Framebuffer Overview
 Current framebuffer can be dumped with:
 ```bash
 ssh root@10.11.99.1 "cat /dev/fb0" | convert -depth 16 -size 1408x1872+0 gray:- png:/tmp/frame;
@@ -115,14 +115,13 @@ ioctl(3, 0x4048462e, 0x7ea2d290{
 }) == 0
 ```
 
-The `xochitl` program is statically linked with the `QsgEpaperPlugin` which can be found in this repository with the filename `libqsgepaper.a`, containing the following object files, providing the following implementations. These implementations, however, are not used in the PoC as they are not yet fully explored. What is used instead skipping what `libqsgepaper` can achieve with its undocumented portions of the API listed below, and explored all throughout this repository.
+The `xochitl` program is statically linked with the `QsgEpaperPlugin` which can be found in this repository with the filename `libqsgepaper.a`. These implementations contained withing that library, however, are not used in the PoC as they are not yet fully explored and entirely undocumented. What is used instead is skipping what `libqsgepaper` can achieve with its undocumented portions listed at the end of the page and instead gaining lower level access to the hardware.
 
 However, looking at the function signatures and the analysis so far, it looks like the PoC actually has gotten them right (`EPFrameBuffer::WaveformMode, EPFrameBuffer::UpdateMode` in `EPFramebuffer::sendUpdate`, returning a `uint32_t refresh_marker` that is referred to as an `updateCounter` in `epframebuffer.o`). The list of prototypes can be found at the end of this page.
 
-## FrameBuffer Spy
-A shared library that intercepts and displays undocumented framebuffer refresh ioctl calls for the Remarkable Paper Tablet.
-Usage:
-```sh
+### FrameBuffer Spy
+A shared library that intercepts and displays undocumented framebuffer refresh `ioctl` calls for the Remarkable Paper Tablet. Usage:
+```bash
 $ systemctl stop xochitl
 $ LD_PRELOAD=./spy.so xochitl
 ...
@@ -159,9 +158,9 @@ ioctl(3, 0x4048462e, 0x7ea2d290{
 }) == 0
 ```
 
-## Reading from Wacom Digitizer, Touch Screen and the physical buttons
+### Reading from Wacom Digitizer, Touch Screen and the physical buttons
 The device features an ARM SoC from the i.MX6 family by Freescale (--> NXP --> Qualcomm).
-```
+```bash
 remarkable: ~/ cat /proc/device-tree/model
 reMarkable Prototype 1
 
@@ -289,7 +288,7 @@ Event: time 1519455612.181232, -------------- Report Sync ------------
 ```
 
 #### /dev/input/event1 (cyttsp5_mt 'multitouch')
-```
+```bash
 remarkable: ~/ ./evtest /dev/input/event1
 Input driver version is 1.0.1
 Input device ID: bus 0x0 vendor 0x0 product 0x0 version 0x0
@@ -361,7 +360,7 @@ Event: time 1519456008.245695, -------------- Report Sync ------------
 ```
 
 #### /dev/input/event2 (Reading Physical Buttons)
-```
+```bash
 remarkable: ~/ ./evtest /dev/input/event2
 Input driver version is 1.0.1
 Input device ID: bus 0x19 vendor 0x1 product 0x1 version 0x100
