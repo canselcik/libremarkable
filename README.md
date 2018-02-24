@@ -397,6 +397,40 @@ reMarkable Prototype 1
 remarkable: ~/ cat /proc/device-tree/compatible 
 remarkable,zero-gravitasfsl,imx6sl
 
+remarkable: ~/ cat /proc/bus/input/devices 
+I: Bus=0018 Vendor=056a Product=0000 Version=0036
+N: Name="Wacom I2C Digitizer"
+P: Phys=
+S: Sysfs=/devices/soc0/soc/2100000.aips-bus/21a4000.i2c/i2c-1/1-0009/input/input0
+U: Uniq=
+H: Handlers=mouse0 event0 
+B: PROP=0
+B: EV=b
+B: KEY=1c03 0 0 0 0 0 0 0 0 0 0
+B: ABS=f000003
+
+I: Bus=0000 Vendor=0000 Product=0000 Version=0000
+N: Name="cyttsp5_mt"
+P: Phys=2-0024/input0
+S: Sysfs=/devices/soc0/soc/2100000.aips-bus/21a8000.i2c/i2c-2/2-0024/input/input1
+U: Uniq=
+H: Handlers=event1 
+B: PROP=2
+B: EV=f
+B: KEY=0
+B: REL=0
+B: ABS=6f38000 2000000
+
+I: Bus=0019 Vendor=0001 Product=0001 Version=0100
+N: Name="gpio-keys"
+P: Phys=gpio-keys/input0
+S: Sysfs=/devices/soc0/gpio-keys/input/input2
+U: Uniq=
+H: Handlers=kbd event2 
+B: PROP=0
+B: EV=3
+B: KEY=8000 100640 0 0 0
+
 remarkable: ~/ ls -latr /dev/input/
 lrwxrwxrwx    1 root     root             6 Feb 23 05:52 touchscreen0 -> event0
 crw-rw----    1 root     input      13,  32 Feb 23 05:52 mouse0
