@@ -239,11 +239,18 @@ uint32_t remarkable_framebuffer_refresh(remarkable_framebuffer* fb,
                                         mxcfb_alt_buffer_data* alt_buffer_data,
                                         unsigned y, unsigned x,
                                         unsigned height, unsigned width);
-int  remarkable_framebuffer_wait_refresh_marker(remarkable_framebuffer* fb, uint32_t marker);
+uint32_t remarkable_framebuffer_wait_refresh_marker(remarkable_framebuffer* fb, uint32_t marker);
 
 /* serde.c */
 char* serialize_mxcfb_update_data(mxcfb_update_data* x);
 void  print_mxcfb_update_data(mxcfb_update_data* x);
 
 /* freetype.c */
-mxcfb_rect remarkable_framebuffer_draw_text(remarkable_framebuffer* fb, const char* fontFilename, const char* text, unsigned top, unsigned left, int target_height);
+struct remarkable_font;
+
+struct remarkable_font*    remarkable_framebuffer_font_init(remarkable_framebuffer* fb, const char* fontFilename, unsigned target_height);
+mxcfb_rect                 remarkable_framebuffer_draw_text(remarkable_framebuffer* fb,
+                                                            struct remarkable_font* font,
+                                                            const char* text,
+                                                            unsigned top, unsigned left);
+void                       remarkable_framebuffer_font_destroy(struct remarkable_font* font);

@@ -25,9 +25,8 @@ uint32_t remarkable_framebuffer_refresh(remarkable_framebuffer* fb,
   if (fb == NULL)
     return -1;
 
-  // TODO: Figure out the reason why this does it
+  // TODO: So the drawing is twice as densely packed as refreshing horizontally?
   x = x / 2;
-  width = to_remarkable_width(width);
 
   mxcfb_update_data data = {0};
   data.update_region.top = max(min(y, fb->vinfo.yres - 1), 0);
@@ -65,11 +64,12 @@ uint32_t remarkable_framebuffer_refresh(remarkable_framebuffer* fb,
   return data.update_marker;
 }
 
-int remarkable_framebuffer_wait_refresh_marker(remarkable_framebuffer* fb, uint32_t marker) {
+uint32_t remarkable_framebuffer_wait_refresh_marker(remarkable_framebuffer* fb, uint32_t marker) {
   if (fb == NULL)
     return -1;
 
   // TODO: Collusion test (2nd value) is an output param here. It's value might be useful.
 	mxcfb_update_marker_data mdata = { marker, 0 };
-  return ioctl(fb->fd, REMARKABLE_PREFIX(MXCFB_WAIT_FOR_UPDATE_COMPLETE), &mdata);
+	ioctl(fb->fd, REMARKABLE_PREFIX(MXCFB_WAIT_FOR_UPDATE_COMPLETE), &mdata);
+	return mdata.collision_test;
 }

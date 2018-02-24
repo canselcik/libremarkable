@@ -92,6 +92,9 @@ void remarkable_framebuffer_draw_rect(remarkable_framebuffer* fb, mxcfb_rect rec
   if (fb == NULL)
     return;
 
+  if (rect.height == 0 && rect.width == 0)
+    return;
+
   // TODO: Figure out the reason why this does it
   rect.width = to_remarkable_width(rect.width);
 
