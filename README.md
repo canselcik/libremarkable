@@ -217,7 +217,7 @@ Events from the touchscreen/digitizer can be seen by reading from these devices.
 #### /dev/input/event0 (Wacom I2C Digitizer)
 - Only for input via the pen
 - With and without contact
-- Pressure sensitive
+- Pressure sensitive, tilt-capable
 ```bash
 remarkable: ~/ ./evtest /dev/input/event0
 Input driver version is 1.0.1
