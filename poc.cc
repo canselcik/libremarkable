@@ -138,7 +138,7 @@ void scanning_line(remarkable_framebuffer* fb, unsigned iter) {
                                                     UPDATE_MODE_PARTIAL,
                                                     WAVEFORM_MODE_DU,
                                                     TEMP_USE_PAPYRUS,
-                                                    EPDC_FLAG_USE_DITHERING_FLOYD_STEINBERG,
+                                                    EPDC_FLAG_USE_DITHERING_Y1,
                                                     0,    // flags
                                                     0,    // quant_bit
                                                     NULL, // alt_buffer_data

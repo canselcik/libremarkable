@@ -115,6 +115,29 @@ typedef struct {
   int temp;                         // 0x1001 = TEMP_USE_PAPYRUS
   unsigned int flags;               // 0x0000
 
+
+  /*
+   * Dither mode is entirely unused since the following means v1 is used not v2
+   *
+   * arch/arm/configs/zero-gravitas_defconfig
+      173:CONFIG_FB_MXC_EINK_PANEL=y
+
+     firmware/Makefile
+      68:fw-shipped-$(CONFIG_FB_MXC_EINK_PANEL) += \
+
+     drivers/video/fbdev/mxc/mxc_epdc_fb.c
+      4969:#ifdef CONFIG_FB_MXC_EINK_AUTO_UPDATE_MODE
+      5209:#ifdef CONFIG_FB_MXC_EINK_AUTO_UPDATE_MODE
+
+     drivers/video/fbdev/mxc/mxc_epdc_v2_fb.c
+      5428:#ifdef CONFIG_FB_MXC_EINK_AUTO_UPDATE_MODE
+      5662:#ifdef CONFIG_FB_MXC_EINK_AUTO_UPDATE_MODE
+
+     drivers/video/fbdev/mxc/Makefile
+      10:obj-$(CONFIG_FB_MXC_EINK_PANEL)      += mxc_epdc_fb.o
+      11:obj-$(CONFIG_FB_MXC_EINK_V2_PANEL)   += mxc_epdc_v2_fb.o
+   *
+   */
   int dither_mode;
 	int quant_bit; // used only when dither_mode is > PASSTHROUGH and < MAX
 
@@ -123,11 +146,9 @@ typedef struct {
 
 typedef enum _mxcfb_dithering_mode {
 	EPDC_FLAG_USE_DITHERING_PASSTHROUGH = 0x0,
-	EPDC_FLAG_USE_DITHERING_FLOYD_STEINBERG,
-	EPDC_FLAG_USE_DITHERING_ATKINSON,
-	EPDC_FLAG_USE_DITHERING_ORDERED,
-	EPDC_FLAG_USE_DITHERING_QUANT_ONLY,
-	EPDC_FLAG_USE_DITHERING_MAX,
+	// Dithering Processing (Version 1.0 - for i.MX508 and i.MX6SL)
+  EPDC_FLAG_USE_DITHERING_Y1          = 0x2000,
+  EPDC_FLAG_USE_DITHERING_Y4          = 0x4000
 } mxcfb_dithering_mode;
 
 
@@ -161,11 +182,8 @@ typedef enum _mxcfb_dithering_mode {
 #define EPDC_FLAG_TEST_COLLISION                0x0200
 #define EPDC_FLAG_GROUP_UPDATE                  0x0400
 
-// <--  * Dithering Processing (Version 1.0 - for i.MX508 and i.MX6SL)
 // Both are verified to be respected by the flags in the update_data
-#define EPDC_FLAG_USE_DITHERING_Y1              0x2000
-#define EPDC_FLAG_USE_DITHERING_Y4              0x4000
-#define EPDC_FLAG_USE_REGAL                     0x8000
+
 
 /*
   vinfo:
