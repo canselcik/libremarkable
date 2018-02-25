@@ -59,11 +59,11 @@ typedef enum _update_mode
 
 typedef enum _waveform_mode {
   WAVEFORM_MODE_INIT         = 0x0,	                 /* Screen goes to white (clears) */
-  WAVEFORM_MODE_GLR16			   = 0x4,                  /* Official */
+  WAVEFORM_MODE_GLR16			   = 0x4,                  /* Basically A2 (so partial refresh shouldnt be possible here) */
   WAVEFORM_MODE_GLD16			   = 0x5,                  /* Official -- and enables Regal D Processing */
 
   // Unsupported?
-  WAVEFORM_MODE_DU           = 0x1,	                 /* Grey->white/grey->black  -- remarkable uses this for drawing */
+  WAVEFORM_MODE_DU           = 0x1,	                 /* [Direct Update] Grey->white/grey->black  -- remarkable uses this for drawing */
   WAVEFORM_MODE_GC16         = 0x2,	                 /* High fidelity (flashing) */
   WAVEFORM_MODE_GC4          = WAVEFORM_MODE_GC16,   /* For compatibility */
   WAVEFORM_MODE_GC16_FAST    = 0x3,                  /* Medium fidelity  -- remarkable uses this for UI */

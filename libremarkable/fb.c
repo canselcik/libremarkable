@@ -27,8 +27,46 @@ remarkable_framebuffer* remarkable_framebuffer_init(const char* device_path) {
     return NULL;
   }
 
-  buff->len = buff->vinfo.xres * buff->vinfo.yres * buff->vinfo.bits_per_pixel / 8;
-  buff->mapped_buffer = mmap(NULL, buff->len, PROT_READ | PROT_WRITE, MAP_SHARED, buff->fd, 0);
+  buff->vinfo.accel_flags = 0x01;
+  buff->vinfo.width = buff->vinfo.xres;
+  buff->vinfo.height  = buff->vinfo.yres;
+  buff->vinfo.rotate = 1;
+  buff->vinfo.pixclock = 120000000;
+  buff->vinfo.xres = 1872;
+  buff->vinfo.yres = 1404;
+  buff->vinfo.left_margin = 52;
+  buff->vinfo.right_margin = 75;
+  buff->vinfo.upper_margin = 4;
+  buff->vinfo.lower_margin = 14;
+  buff->vinfo.hsync_len = 60;
+  buff->vinfo.vsync_len = 2;
+  buff->vinfo.sync = 0;
+  buff->vinfo.vmode = FB_VMODE_NONINTERLACED;
+  buff->vinfo.accel_flags = 0;
+
+  // Let's set it to our liking and see what happens
+  if (ioctl(buff->fd, FBIOPUT_VSCREENINFO, &buff->vinfo)) {
+    printf("Failed to set the var screen info for %s\n", device_path);
+    close(buff->fd);
+    free(buff);
+    return NULL;
+  }
+
+  if (ioctl(buff->fd, FBIOGET_VSCREENINFO, &buff->vinfo)) {
+    printf("Could not get screen vinfo for %s\n", device_path);
+    close(buff->fd);
+    free(buff);
+    return NULL;
+  }
+  if (ioctl(buff->fd, FBIOGET_FSCREENINFO, &buff->finfo)) {
+    printf("Could not get screen finfo for %s\n", device_path);
+    close(buff->fd);
+    free(buff);
+    return NULL;
+  }
+
+  buff->len = buff->vinfo.yres_virtual * buff->finfo.line_length;
+  buff->mapped_buffer = mmap(0, buff->len, PROT_READ | PROT_WRITE, MAP_SHARED, buff->fd, (off_t)0);
   if (buff->mapped_buffer == NULL) {
     printf("Failed to mmap the framebuffer\n");
     close(buff->fd);

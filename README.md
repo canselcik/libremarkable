@@ -121,6 +121,8 @@ The `xochitl` program is statically linked with the `QsgEpaperPlugin` which can 
 
 However, looking at the function signatures and the analysis so far, it looks like the PoC actually has gotten them right (`EPFrameBuffer::WaveformMode, EPFrameBuffer::UpdateMode` in `EPFramebuffer::sendUpdate`, returning a `uint32_t refresh_marker` that is referred to as an `updateCounter` in `epframebuffer.o`). The list of prototypes can be found at the end of this page.
 
+Additionally take a look at the `/usr/bin/remarkable-test` program. It definitely offers interesting insights into the device.
+
 ### FrameBuffer Spy
 A shared library that intercepts and displays undocumented framebuffer refresh `ioctl` calls for the Remarkable Paper Tablet. Usage:
 ```bash

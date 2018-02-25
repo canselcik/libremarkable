@@ -51,7 +51,7 @@ void evdraw(remarkable_framebuffer* fb, const char* evDevicePath, remarkable_fon
 
   int version;
   if (ioctl(fd, EVIOCGVERSION, &version)) {
-    perror("evtest: can't get version");
+    printf("evtest: can't get version");
     return;
   }
 
@@ -84,9 +84,11 @@ void evdraw(remarkable_framebuffer* fb, const char* evDevicePath, remarkable_fon
       struct input_event& curr = ev[i];
       if (curr.type == EV_ABS) {
         if (curr.code == 0x00) {
+          // wacom x
           x = curr.value;
         }
         else if (curr.code == 0x01) {
+          // wacom y
           y = curr.value;
           char text[255] = {0};
           snprintf(text, 255, "Wacom Input:  y: %d   |   x: %d", y, x);
@@ -143,7 +145,7 @@ void scanning_line(remarkable_framebuffer* fb, unsigned iter) {
                                                     tb.top - 10, tb.left,
                                                     tb.height + 20, tb.width);
     remarkable_framebuffer_wait_refresh_marker(fb, refresh_marker);
-    usleep(35000);
+    usleep(3500);
   }
 }
 
@@ -263,6 +265,7 @@ void draw_sample_shapes(remarkable_framebuffer* fb) {
                                  0,    // quant_bit
                                  NULL, /* alt_buffer_data (not very useful -- not even here as the phys_addr
                                                                              needs to be within finfo->smem) */
+                                 /* In order to take advantage of this, we would need to use the other part of the framebuffer (the virtual part that's not displayed) */
                                  320, 1720,   // y, x
                                  64, 64 * 4); // h: 64, w: 3 * 64 (4 shapes)
 }
@@ -271,7 +274,7 @@ int demo(void* thrdata) {
   struct thrinit* initData = (struct thrinit*)thrdata;
   remarkable_framebuffer* fb = (remarkable_framebuffer*)initData->data;
   while (true) {
-    random_rects((remarkable_framebuffer*)fb, 30);
+    random_rects((remarkable_framebuffer*)fb, 100);
     scanning_line((remarkable_framebuffer*)fb, 395);
   }
 }

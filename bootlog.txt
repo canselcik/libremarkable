@@ -1,0 +1,256 @@
+[    0.000000] Booting Linux on physical CPU 0x0
+[    0.000000] Linux version 4.1.28-fslc+g7f82abb (buildbot@malacandra.arbol.no) (gcc version 5.3.0 (GCC) ) #1 Tue Nov 21 19:03:42 CET 2017
+[    0.000000] CPU: ARMv7 Processor [412fc09a] revision 10 (ARMv7), cr=10c5387d
+[    0.000000] CPU: PIPT / VIPT nonaliasing data cache, VIPT aliasing instruction cache
+[    0.000000] Machine model: reMarkable Prototype 1
+[    0.000000] Reserved memory: created CMA memory pool at 0x88000000, size 320 MiB
+[    0.000000] Reserved memory: initialized node linux,cma, compatible id shared-dma-pool
+[    0.000000] Memory policy: Data cache writeback
+[    0.000000] On node 0 totalpages: 131072
+[    0.000000] free_area_init_node: node 0, pgdat 80824614, node_mem_map 9fb57000
+[    0.000000]   Normal zone: 1024 pages used for memmap
+[    0.000000]   Normal zone: 0 pages reserved
+[    0.000000]   Normal zone: 131072 pages, LIFO batch:31
+[    0.000000] CPU: All CPU(s) started in SVC mode.
+[    0.000000] pcpu-alloc: s0 r0 d32768 u32768 alloc=1*32768
+[    0.000000] pcpu-alloc: [0] 0 
+[    0.000000] Built 1 zonelists in Zone order, mobility grouping on.  Total pages: 130048
+[    0.000000] Kernel command line: console=ttymxc0,115200 systemd.crash_reboot=true root=/dev/mmcblk1p3 rootwait rw por=wdog
+[    0.000000] PID hash table entries: 2048 (order: 1, 8192 bytes)
+[    0.000000] Dentry cache hash table entries: 65536 (order: 6, 262144 bytes)
+[    0.000000] Inode-cache hash table entries: 32768 (order: 5, 131072 bytes)
+[    0.000000] Memory: 182612K/524288K available (5350K kernel code, 221K rwdata, 2536K rodata, 200K init, 353K bss, 13996K reserved, 327680K cma-reserved, 0K highmem)
+[    0.000000] Virtual kernel memory layout:
+[    0.000000]     vector  : 0xffff0000 - 0xffff1000   (   4 kB)
+[    0.000000]     fixmap  : 0xffc00000 - 0xfff00000   (3072 kB)
+[    0.000000]     vmalloc : 0xa0800000 - 0xff000000   (1512 MB)
+[    0.000000]     lowmem  : 0x80000000 - 0xa0000000   ( 512 MB)
+[    0.000000]     pkmap   : 0x7fe00000 - 0x80000000   (   2 MB)
+[    0.000000]       .text : 0x80008000 - 0x807bbd2c   (7888 kB)
+[    0.000000]       .init : 0x807bc000 - 0x807ee000   ( 200 kB)
+[    0.000000]       .data : 0x807ee000 - 0x80825580   ( 222 kB)
+[    0.000000]        .bss : 0x80825580 - 0x8087dbac   ( 354 kB)
+[    0.000000] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=1, Nodes=1
+[    0.000000] NR_IRQS:16 nr_irqs:16 16
+[    0.000000] L2C-310 erratum 769419 enabled
+[    0.000000] L2C-310 enabling early BRESP for Cortex-A9
+[    0.000000] L2C-310 full line of zeros enabled for Cortex-A9
+[    0.000000] L2C-310 ID prefetch enabled, offset 16 lines
+[    0.000000] L2C-310 dynamic clock gating enabled, standby mode enabled
+[    0.000000] L2C-310 cache controller enabled, 16 ways, 256 kB
+[    0.000000] L2C-310: CACHE_ID 0x410000c8, AUX_CTRL 0x76430001
+[    0.000000] mxc_clocksource_init 24000000
+[    0.000000] Switching to timer-based delay loop, resolution 41ns
+[    0.000005] sched_clock: 32 bits at 24MHz, resolution 41ns, wraps every 89478484971ns
+[    0.000019] clocksource mxc_timer1: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 79635851949 ns
+[    0.000668] Console: colour dummy device 80x30
+[    0.000683] Calibrating delay loop (skipped), value calculated using timer frequency.. 48.00 BogoMIPS (lpj=240000)
+[    0.000694] pid_max: default: 32768 minimum: 301
+[    0.000770] Mount-cache hash table entries: 1024 (order: 0, 4096 bytes)
+[    0.000780] Mountpoint-cache hash table entries: 1024 (order: 0, 4096 bytes)
+[    0.001231] CPU: Testing write buffer coherency: ok
+[    0.001430] Setting up static identity map for 0x80008200 - 0x80008258
+[    0.002350] devtmpfs: initialized
+[    0.007556] VFP support v0.3: implementor 41 architecture 3 part 30 variant 9 rev 4
+[    0.007858] clocksource jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns
+[    0.019429] pinctrl core: initialized pinctrl subsystem
+[    0.020320] NET: Registered protocol family 16
+[    0.025557] DMA: preallocated 256 KiB pool for atomic coherent allocations
+[    0.026310] cpuidle: using governor ladder
+[    0.026325] cpuidle: using governor menu
+[    0.046042] hw-breakpoint: found 5 (+1 reserved) breakpoint and 1 watchpoint registers.
+[    0.046053] hw-breakpoint: maximum watchpoint size is 4 bytes.
+[    0.046586] imx6sl-pinctrl 20e0000.iomuxc: initialized IMX pinctrl driver
+[    0.052275] reg-fixed-voltage regulators:regulator@0: Failed to resolve vin-supply for usb_otg1_vbus
+[    0.053112] SCSI subsystem initialized
+[    0.053351] usbcore: registered new interface driver usbfs
+[    0.053396] usbcore: registered new interface driver hub
+[    0.053462] usbcore: registered new device driver usb
+[    0.053626] 2000000.aips-bus:usbphy_nop1 supply vcc not found, using dummy regulator
+[    0.054582] 0-0048 supply SENSOR not found, using dummy regulator
+[    0.056347] max17135 0-0048: PMIC MAX17135 for eInk display
+[    0.056369] i2c i2c-0: IMX I2C adapter registered
+[    0.056383] i2c i2c-0: can't use DMA
+[    0.056804] i2c i2c-1: IMX I2C adapter registered
+[    0.056819] i2c i2c-1: can't use DMA
+[    0.057195] i2c i2c-2: IMX I2C adapter registered
+[    0.057208] i2c i2c-2: can't use DMA
+[    0.057300] pps_core: LinuxPPS API ver. 1 registered
+[    0.057307] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    0.057332] PTP clock support registered
+[    0.059044] reg-fixed-voltage regulators:regulator@0: Failed to resolve vin-supply for usb_otg1_vbus
+[    0.059224] reg-fixed-voltage regulators:regulator@0: Failed to resolve vin-supply for usb_otg1_vbus
+[    0.059391] reg-fixed-voltage regulators:regulator@0: Failed to resolve vin-supply for usb_otg1_vbus
+[    0.059560] reg-fixed-voltage regulators:regulator@0: Failed to resolve vin-supply for usb_otg1_vbus
+[    0.060834] reg-fixed-voltage regulators:regulator@0: Failed to resolve vin-supply for usb_otg1_vbus
+[    0.062063] reg-fixed-voltage regulators:regulator@0: Failed to resolve vin-supply for usb_otg1_vbus
+[    0.062232] reg-fixed-voltage regulators:regulator@0: Failed to resolve vin-supply for usb_otg1_vbus
+[    0.062410] reg-fixed-voltage regulators:regulator@0: Failed to resolve vin-supply for usb_otg1_vbus
+[    0.063806] reg-fixed-voltage regulators:regulator@0: Failed to resolve vin-supply for usb_otg1_vbus
+[    0.067962] Switched to clocksource mxc_timer1
+[    0.076551] NET: Registered protocol family 2
+[    0.077159] TCP established hash table entries: 4096 (order: 2, 16384 bytes)
+[    0.077209] TCP bind hash table entries: 4096 (order: 2, 16384 bytes)
+[    0.077258] TCP: Hash tables configured (established 4096 bind 4096)
+[    0.077308] UDP hash table entries: 256 (order: 0, 4096 bytes)
+[    0.077325] UDP-Lite hash table entries: 256 (order: 0, 4096 bytes)
+[    0.077449] NET: Registered protocol family 1
+[    0.077910] CPU PMU: Failed to parse /soc/pmu/interrupt-affinity[0]
+[    0.077941] hw perfevents: enabled with armv7_cortex_a9 PMU driver, 7 counters available
+[    0.078675] reg-fixed-voltage regulators:regulator@0: Failed to resolve vin-supply for usb_otg1_vbus
+[    0.079449] futex hash table entries: 256 (order: -1, 3072 bytes)
+[    0.085912] VFS: Disk quotas dquot_6.6.0
+[    0.086102] VFS: Dquot-cache hash table entries: 1024 (order 0, 4096 bytes)
+[    0.089110] io scheduler noop registered
+[    0.089128] io scheduler deadline registered
+[    0.089170] io scheduler cfq registered (default)
+[    0.092712] imx-sdma 20ec000.sdma: no event needs to be remapped
+[    0.092831] imx-sdma 20ec000.sdma: loaded firmware 3.3
+[    0.095414] imx-sdma 20ec000.sdma: initialized
+[    0.096824] pfuze100-regulator 0-0008: Full layer: 2, Metal layer: 1
+[    0.097365] pfuze100-regulator 0-0008: FAB: 0, FIN: 0
+[    0.097377] pfuze100-regulator 0-0008: pfuze100 found.
+[    0.098853] reg-fixed-voltage regulators:regulator@0: Failed to resolve vin-supply for usb_otg1_vbus
+[    0.100142] reg-fixed-voltage regulators:regulator@0: Failed to resolve vin-supply for usb_otg1_vbus
+[    0.100873] reg-fixed-voltage regulators:regulator@0: Failed to resolve vin-supply for usb_otg1_vbus
+[    0.101617] reg-fixed-voltage regulators:regulator@0: Failed to resolve vin-supply for usb_otg1_vbus
+[    0.102359] reg-fixed-voltage regulators:regulator@0: Failed to resolve vin-supply for usb_otg1_vbus
+[    0.103098] reg-fixed-voltage regulators:regulator@0: Failed to resolve vin-supply for usb_otg1_vbus
+[    0.103821] usb_otg1_vbus: supplied by SWBST
+[    0.110490] 2020000.serial: ttymxc0 at MMIO 0x2020000 (irq = 19, base_baud = 5000000) is a IMX
+[    0.838141] console [ttymxc0] enabled
+[    0.842814] phy index low: 1, phy index high: 2
+[    0.875318] imx-rng 21b4000.rng: iMX RNG Registered.
+[    0.888705] brd: module loaded
+[    0.895865] loop: module loaded
+[    0.899280] nbd: registered device at major 43
+[    0.912339] ehci_hcd: USB 2.0 'Enhanced' Host Controller (EHCI) Driver
+[    0.918929] ehci-mxc: Freescale On-Chip EHCI Host driver
+[    0.924324] ohci_hcd: USB 1.1 'Open' Host Controller (OHCI) Driver
+[    0.930620] usbcore: registered new interface driver usb-storage
+[    0.943340] using random self ethernet address
+[    0.947804] using random host ethernet address
+[    0.952815] usb0: HOST MAC 5a:bb:0e:f0:93:ab
+[    0.957139] usb0: MAC 1a:28:94:05:97:a1
+[    0.961035] using random self ethernet address
+[    0.965490] using random host ethernet address
+[    0.969996] g_ether gadget: Ethernet Gadget, version: Memorial Day 2008
+[    0.976617] g_ether gadget: g_ether ready
+[    0.983861] mousedev: PS/2 mouse device common for all mice
+[    0.993391] input: Wacom I2C Digitizer as /devices/soc0/soc/2100000.aips-bus/21a4000.i2c/i2c-1/1-0009/input/input0
+[    1.004283] cyttsp5_i2c_adapter 2-0024: cyttsp5_init: INIT CYTTSP RST gpio=101 and IRQ gpio=99 r=0
+[    1.022667] cyttsp5_i2c_adapter 2-0024: cyttsp5_startup_: Bootloader mode
+[    1.140512] cyttsp5_i2c_adapter 2-0024: cyttsp5_startup_: Operational mode
+[    1.147395] cyttsp5_i2c_adapter 2-0024: cyttsp5_startup_: Reading report descriptor
+[    1.253633] cyttsp5_i2c_adapter 2-0024: cyttsp5 Protocol Version: 1.7
+[    1.270215] input: cyttsp5_mt as /devices/soc0/soc/2100000.aips-bus/21a8000.i2c/i2c-2/2-0024/input/input1
+[    1.280044] cyttsp5_i2c_adapter 2-0024: cyttsp5_loader_probe: Successful probe 2-0024
+[    1.287886] cyttsp5_loader_init: Parade TTSP FW Loader Driver (Built TTDA.03.07.844339) rc=0
+[    1.297026] snvs_rtc 20cc000.snvs:snvs-rtc-lp: rtc core: registered 20cc000.snvs:snvs-r as rtc0
+[    1.305857] i2c /dev entries driver
+[    1.310390] thermal thermal_zone0: failed to read out thermal zone (-19)
+[    1.317111] bq27xxx-battery 0-0055: support ver. 1.2.0 enabled
+[    1.323916] bq27xxx-battery 0-0055: Measured voltage: 4155mV
+[    1.337368] imx2-wdt 20bc000.wdog: timeout 60 sec (nowayout=0)
+[    1.343646] softdog: Software Watchdog Timer: 0.08 initialized. soft_noboot=0 soft_margin=60 sec soft_panic=0 (nowayout=0)
+[    1.354937] sdhci: Secure Digital Host Controller Interface driver
+[    1.361152] sdhci: Copyright(c) Pierre Ossman
+[    1.365527] sdhci-pltfm: SDHCI platform and OF driver helper
+[    1.373058] /soc/aips-bus@02100000/usdhc@02194000: voltage-ranges unspecified
+[    1.380496] sdhci-esdhc-imx 2194000.usdhc: No vmmc regulator found
+[    1.386693] sdhci-esdhc-imx 2194000.usdhc: No vqmmc regulator found
+[    1.437990] mmc1: SDHCI controller on 2194000.usdhc [2194000.usdhc] using DMA
+[    1.449015] /soc/aips-bus@02100000/usdhc@02198000: voltage-ranges unspecified
+[    1.456265] sdhci-esdhc-imx 2198000.usdhc: allocated mmc-pwrseq
+[    1.462226] sdhci-esdhc-imx 2198000.usdhc: assigned as wifi host
+[    1.473707] sdhci-esdhc-imx 2198000.usdhc: No vmmc regulator found
+[    1.479931] sdhci-esdhc-imx 2198000.usdhc: No vqmmc regulator found
+[    1.513839] unable to send app op cond
+[    1.527983] mmc2: SDHCI controller on 2198000.usdhc [2198000.usdhc] using DMA
+[    1.535952] usbcore: registered new interface driver usbhid
+[    1.541571] usbhid: USB HID core driver
+[    1.546263] NET: Registered protocol family 10
+[    1.551530] sit: IPv6 over IPv4 tunneling driver
+[    1.557865] NET: Registered protocol family 17
+[    1.562467] Key type dns_resolver registered
+[    1.567012] Registering SWP/SWPB emulation handler
+[    1.592260] mmc1: MAN_BKOPS_EN bit is not set
+[    1.623661] 20f4000.epdc supply V3P3 not found, using dummy regulator
+[    1.633646] input: gpio-keys as /devices/soc0/gpio-keys/input/input2
+[    1.641462] snvs_rtc 20cc000.snvs:snvs-rtc-lp: setting system clock to 2018-02-25 05:37:50 UTC (1519537070)
+[    1.657074] vddpu: disabling
+[    1.661112] usb_otg1_vbus: disabling
+[    1.664714] mmc1: new DDR MMC card at address 0001
+[    1.669540] GVDD: disabling
+[    1.672340] GVEE: disabling
+[    1.675136] HVINN: disabling
+[    1.678397] mmcblk1: mmc1:0001 DG4008 7.28 GiB 
+[    1.683010] HVINP: disabling
+[    1.685995] mmcblk1boot0: mmc1:0001 DG4008 partition 1 4.00 MiB
+[    1.692068] mmcblk1boot1: mmc1:0001 DG4008 partition 2 4.00 MiB
+[    1.698102] mmcblk1rpmb: mmc1:0001 DG4008 partition 3 4.00 MiB
+[    1.704215] VNEG: disabling
+[    1.707018] VPOS: disabling
+[    1.710104] TMST: disabling
+[    1.712914] SW4: disabling
+[    1.722183]  mmcblk1: p1 p2 p3 p4 < p5 p6 p7 >
+[    1.730507] EXT3-fs (mmcblk1p3): error: couldn't mount because of unsupported optional features (240)
+[    1.741862] EXT2-fs (mmcblk1p3): error: couldn't mount because of unsupported optional features (240)
+[    1.772944] EXT4-fs (mmcblk1p3): mounted filesystem with ordered data mode. Opts: (null)
+[    1.781128] VFS: Mounted root (ext4 filesystem) on device 179:3.
+[    1.787701] devtmpfs: mounted
+[    1.790915] Freeing unused kernel memory: 200K (807bc000 - 807ee000)
+[    1.802028] mmc2: queuing unknown CIS tuple 0x80 (2 bytes)
+[    1.809888] mmc2: queuing unknown CIS tuple 0x80 (3 bytes)
+[    1.817608] mmc2: queuing unknown CIS tuple 0x80 (3 bytes)
+[    1.827730] mmc2: queuing unknown CIS tuple 0x80 (7 bytes)
+[    1.897319] mmc2: new high speed SDIO card at address 0001
+[    1.903589] brcmf_ops_sdio_probe
+[    1.903811] brcmf_ops_sdio_probe
+[    1.940474] systemd[1]: Failed to insert module 'autofs4': No such file or directory
+[    1.951743] random: systemd urandom read with 30 bits of entropy available
+[    1.962467] systemd[1]: systemd 229 running in system mode. (-PAM -AUDIT -SELINUX -IMA -APPARMOR -SMACK +SYSVINIT +UTMP -LIBCRYPTSETUP -GCRYPT -GNUTLS +ACL +XZ -LZ4 -SECCOMP +BLKID -ELFUTILS +KMOD -IDN)
+[    1.990330] systemd[1]: Detected architecture arm.
+[    2.018667] systemd[1]: Set hostname to <remarkable>.
+[    2.139719] random: nonblocking pool is initialized
+[    2.198083] brcmfmac: brcmf_c_preinit_dcmds: Firmware version = wl0: Jan  6 2014 15:11:29 version 5.90.195.89.13 FWID 01-72f124c5
+[    2.236076] brcmfmac: brcmf_cfg80211_reg_notifier: not a ISO3166 code
+[    2.361949] systemd[1]: [/lib/systemd/system/xochitl.service:3] Unknown lvalue 'StartLimitIntervalSec' in section 'Unit'
+[    2.376721] systemd[1]: [/lib/systemd/system/crashuploader.service:4] Unknown lvalue 'StartLimitIntervalSec' in section 'Unit'
+[    2.424122] systemd[1]: Started Forward Password Requests to Wall Directory Watch.
+[    2.448198] systemd[1]: Reached target Remote File Systems.
+[    2.468337] systemd[1]: Started Dispatch Password Requests to Console Directory Watch.
+[    2.498155] systemd[1]: Reached target Paths.
+[    2.518328] systemd[1]: Listening on Journal Socket (/dev/log).
+[    2.538422] systemd[1]: Created slice System Slice.
+[    2.558438] systemd[1]: Created slice system-serial\x2dgetty.slice.
+[    2.578404] systemd[1]: Created slice system-busybox\x2dudhcpd.slice.
+[    2.608368] systemd[1]: Created slice system-getty.slice.
+[    2.642536] systemd[1]: Listening on Process Core Dump Socket.
+[    2.668569] systemd[1]: Listening on Syslog Socket.
+[    2.688343] systemd[1]: Listening on udev Kernel Socket.
+[    2.708315] systemd[1]: Listening on /dev/initctl Compatibility Named Pipe.
+[    2.738426] systemd[1]: Listening on Network Service Netlink Socket.
+[    2.758336] systemd[1]: Created slice User and Session Slice.
+[    2.778171] systemd[1]: Reached target Slices.
+[    2.798335] systemd[1]: Listening on Journal Socket.
+[    2.819502] systemd[1]: Starting Journal Service...
+[    2.842849] systemd[1]: Mounting Temporary Directory...
+[    2.864596] systemd[1]: Mounting Debug File System...
+[    2.895298] systemd[1]: Starting Apply Kernel Variables...
+[    2.949519] systemd[1]: Mounting Configuration File System...
+[    2.973251] systemd[1]: Starting Setup Virtual Console...
+[    3.008247] systemd[1]: Reached target Swap.
+[    3.039507] systemd[1]: Starting Remount Root and Kernel File Systems...
+[    3.068448] systemd[1]: Created slice system-systemd\x2dfsck.slice.
+[    3.083042] EXT4-fs (mmcblk1p3): re-mounted. Opts: (null)
+[    3.092226] systemd[1]: Listening on udev Control Socket.
+[    3.120499] systemd[1]: Mounted Debug File System.
+[    3.148259] systemd[1]: Mounted Configuration File System.
+[    3.168253] systemd[1]: Mounted Temporary Directory.
+[    3.188553] systemd[1]: Started Journal Service.
+[    3.593128] systemd-journald[70]: Received request to flush runtime journal from PID 1
+[    5.874502] IPv6: ADDRCONF(NETDEV_UP): usb0: link is not ready
+[    6.052724] brcmfmac: brcmf_add_if: ERROR: netdev:wlan0 already exists
+[    6.059310] brcmfmac: brcmf_add_if: ignore IF event
+[    6.686397] EXT4-fs (mmcblk1p7): mounted filesystem with ordered data mode. Opts: (null)

@@ -122,6 +122,7 @@ int ioctl(int fd, int request, ...) {
         break;
       case REMARKABLE_PREFIX(MXCFB_WAIT_FOR_UPDATE_COMPLETE):
         hexDump("MXCFB_WAIT_FOR_UPDATE_COMPLETE(mxcfb_update_marker_data)", p, sizeof(mxcfb_update_marker_data));
+        break;
       default:
         printf(" (unknown)");
         break;
