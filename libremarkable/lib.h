@@ -160,8 +160,11 @@ typedef enum _mxcfb_dithering_mode {
 // either update has this flag set, unless they are identical regions (same y,x,h,w)
 #define EPDC_FLAG_TEST_COLLISION                0x0200
 #define EPDC_FLAG_GROUP_UPDATE                  0x0400
+
+// <--  * Dithering Processing (Version 1.0 - for i.MX508 and i.MX6SL)
+// Both are verified to be respected by the flags in the update_data
 #define EPDC_FLAG_USE_DITHERING_Y1              0x2000
-#define EPDC_FLAG_USE_DITHERING_Y4              0x4000  // <-- very good 
+#define EPDC_FLAG_USE_DITHERING_Y4              0x4000
 #define EPDC_FLAG_USE_REGAL                     0x8000
 
 /*
