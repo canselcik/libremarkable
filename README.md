@@ -163,7 +163,22 @@ ioctl(3, 0x4048462e, 0x7ea2d290{
 ```
 
 ### Reading from Wacom Digitizer, Touch Screen and the physical buttons
-The device features an ARM SoC from the i.MX6 family by Freescale (--> NXP --> Qualcomm).
+The device features an ARM SoC from the i.MX6 family by Freescale (--> NXP --> Qualcomm) alongside a Parade TrueTouch Gen5 multitouch screen. The EPaper Display seems to be referred to as `es103cs1`. The firmware for this display can be found at `kernel-mxc-epdc-fb-reference/epdc_ES103CS1.fw`.
+```
+      epdc@020f4000 {
+        compatible = "fsl,imx6sl-epdc", "fsl,imx6dl-epdc";
+        reg = <0x20f4000 0x4000>;
+        interrupts = <0x0 0x61 0x4>;
+        clocks = <0x2 0x70 0x2 0x73>;
+        clock-names = "epdc_axi", "epdc_pix";
+        pinctrl-names = "default";
+        pinctrl-0 = <0x10>;
+        VCOM-supply = <0x11>;
+        DISPLAY-supply = <0x12>;
+        TMST-supply = <0x13>;
+        status = "okay";
+      };
+```
 ```bash
 remarkable: ~/ cat /proc/device-tree/model
 reMarkable Prototype 1
@@ -216,12 +231,34 @@ drwxr-xr-x    3 root     root           180 Feb 23 05:52 .
 crw-rw----    1 root     input      13,  63 Feb 23 05:52 mice
 drwxr-xr-x    8 root     root          3460 Feb 23 09:30 ..
 ```
-Events from the touchscreen/digitizer can be seen by reading from these devices. Using the `evtest` like shown below:
+The firmware blob is available for this device however it isn't included in this repo since it is rather standard. Events from the digitizer can be seen by reading from these devices. Using the `evtest` like shown below:
 
 #### /dev/input/event0 (Wacom I2C Digitizer)
 - Only for input via the pen
 - With and without contact
 - Pressure sensitive, tilt-capable
+```
+      i2c@021a4000 {
+        #address-cells = <0x1>;
+        #size-cells = <0x0>;
+        compatible = "fsl,imx6sl-i2c", "fsl,imx21-i2c";
+        reg = <0x21a4000 0x4000>;
+        interrupts = <0x0 0x25 0x4>;
+        clocks = <0x2 0x6b>;
+        status = "okay";
+        clock-frequency = <0x186a0>;
+        pinctrl-names = "default";
+        pinctrl-0 = <0x28>;
+
+        wacom-i2c@09 {
+          compatible = "wacom,wacom-i2c";
+          reg = <0x9>;
+          interrupt-parent = <0x27>;
+          interrupts = <0xa 0x2>;
+          resets = <0x29>;
+        };
+      };
+```
 ```bash
 remarkable: ~/ ./evtest /dev/input/event0
 Input driver version is 1.0.1
@@ -292,6 +329,50 @@ Event: time 1519455612.181232, -------------- Report Sync ------------
 ```
 
 #### /dev/input/event1 (cyttsp5_mt 'multitouch')
+The device features a Parade TrueTouch Gen5 multitouch screen. The firmware for the MT controller can be found at `kernel-mxc-epdc-fb-reference/cyttsp5_fw_pid00.bin`.
+```
+cy,mt {
+       cy,name = "cyttsp5_mt";
+
+       cy,inp_dev_name = "cyttsp5_mt";
+       cy,flags = <0>;
+       cy,abs =
+         /* ABS_MT_POSITION_X, CY_ABS_MIN_X, CY_ABS_MAX_X, 0, 0 */
+         <0x35 0 880 0 0
+         /* ABS_MT_POSITION_Y, CY_ABS_MIN_Y, CY_ABS_MAX_Y, 0, 0 */
+         0x36 0 1280 0 0
+         /* ABS_MT_PRESSURE, CY_ABS_MIN_P, CY_ABS_MAX_P, 0, 0 */
+         0x3a 0 255 0 0
+         /* CY_IGNORE_VALUE, CY_ABS_MIN_W, CY_ABS_MAX_W, 0, 0 */
+         0xffff 0 255 0 0
+         /* ABS_MT_TRACKING_ID, CY_ABS_MIN_T, CY_ABS_MAX_T, 0, 0 */
+         0x39 0 15 0 0
+         /* ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0 */
+         0x30 0 255 0 0
+         /* ABS_MT_TOUCH_MINOR, 0, 255, 0, 0 */
+         0x31 0 255 0 0
+         /* ABS_MT_ORIENTATION, -127, 127, 0, 0 */
+         0x34 0xffffff81 127 0 0
+         /* ABS_MT_TOOL_TYPE, 0, MT_TOOL_MAX, 0, 0 */
+         0x37 0 1 0 0
+         /* ABS_DISTANCE, 0, 255, 0, 0 */
+         0x19 0 255 0 0>;
+
+       cy,vkeys_x = <720>;
+       cy,vkeys_y = <1280>;
+
+       cy,virtual_keys = /* KeyCode CenterX CenterY Width Height */
+         /* KEY_BACK */
+         <158 1360 90 160 180
+         /* KEY_MENU */
+         139 1360 270 160 180
+         /* KEY_HOMEPAGE */
+         172 1360 450 160 180
+         /* KEY SEARCH */
+         217 1360 630 160 180>;
+     };
+```
+
 ```bash
 remarkable: ~/ ./evtest /dev/input/event1
 Input driver version is 1.0.1

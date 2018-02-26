@@ -2,6 +2,11 @@
 poc
 evtest
 
+.project
+.cproject
+*.mp4
+.settings
+
 # Deps
 libfreetype/
 
