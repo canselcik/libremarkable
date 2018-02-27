@@ -19,6 +19,7 @@ typedef uint8_t remarkable_color;
 #define XRES(remarkable_framebuffer_ptr)         remarkable_framebuffer_ptr->vinfo.xres 
 #define XRES_VIRTUAL(remarkable_framebuffer_ptr) remarkable_framebuffer_ptr->vinfo.xres_virtual
 
+
 // TODO: Figure out why this is used only when drawing (not for refresh) and only 
 // when referring to width (not height, and not x-axis offset).
 /*
@@ -51,10 +52,21 @@ typedef enum _eink_ioctl_command {
   MXCFB_ENABLE_EPDC_ACCESS             = 0x36
 } eink_ioctl_command;
 
+typedef enum _auto_update_mode {
+  AUTO_UPDATE_MODE_REGION_MODE         = 0,
+  AUTO_UPDATE_MODE_AUTOMATIC_MODE      = 1
+} auto_update_mode;
+
+typedef enum _update_scheme {
+  UPDATE_SCHEME_SNAPSHOT         = 0,
+  UPDATE_SCHEME_QUEUE            = 1,
+  UPDATE_SCHEME_QUEUE_AND_MERGE  = 2
+} update_scheme;
+
 typedef enum _update_mode
 {
-  UPDATE_MODE_PARTIAL   = 0x0,
-  UPDATE_MODE_FULL      = 0x1
+  UPDATE_MODE_PARTIAL   = 0,
+  UPDATE_MODE_FULL      = 1
 } update_mode;
 
 typedef enum _waveform_mode {
@@ -241,6 +253,10 @@ typedef struct {
 
 /* fb.c */
 remarkable_framebuffer* remarkable_framebuffer_init(const char* device_path);
+int  remarkable_framebuffer_set_epdc_access(remarkable_framebuffer* fb, int enabled);
+int  remarkable_framebuffer_set_auto_update_mode(remarkable_framebuffer* fb, auto_update_mode mode);
+int  remarkable_framebuffer_set_auto_update_period(remarkable_framebuffer* fb, int period);
+int  remarkable_framebuffer_set_update_scheme(remarkable_framebuffer* fb, update_scheme scheme);
 void remarkable_framebuffer_destroy(remarkable_framebuffer* fb);
 int  remarkable_framebuffer_set_pixel(remarkable_framebuffer* fb, const unsigned y, const unsigned x, const remarkable_color c);
 void remarkable_framebuffer_draw_shape(remarkable_framebuffer* fb, remarkable_color* shape, unsigned rows,   unsigned cols,

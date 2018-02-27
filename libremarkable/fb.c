@@ -83,6 +83,31 @@ remarkable_framebuffer* remarkable_framebuffer_init(const char* device_path) {
   return buff;
 }
 
+int remarkable_framebuffer_set_epdc_access(remarkable_framebuffer* fb, int enabled) {
+  if (fb == NULL)
+    return 1;
+  return ioctl(fb->fd, REMARKABLE_PREFIX(enabled == 0 ? MXCFB_DISABLE_EPDC_ACCESS : MXCFB_ENABLE_EPDC_ACCESS));
+}
+
+int remarkable_framebuffer_set_auto_update_mode(remarkable_framebuffer* fb, auto_update_mode mode) {
+  if (fb == NULL)
+    return 1;
+  return ioctl(fb->fd, REMARKABLE_PREFIX(MXCFB_SET_AUTO_UPDATE_MODE), (uint32_t*)&mode);
+}
+
+int remarkable_framebuffer_set_auto_update_period(remarkable_framebuffer* fb, int period) {
+  if (fb == NULL)
+    return 1;
+  return ioctl(fb->fd, REMARKABLE_PREFIX(MXCFB_SET_TEMP_AUTO_UPDATE_PERIOD), &period);
+}
+
+int remarkable_framebuffer_set_update_scheme(remarkable_framebuffer* fb, update_scheme scheme) {
+  if (fb == NULL)
+    return 1;
+  uint32_t val = 0;
+  return ioctl(fb->fd, REMARKABLE_PREFIX(MXCFB_SET_UPDATE_SCHEME), &val);
+}
+
 void remarkable_framebuffer_destroy(remarkable_framebuffer* fb) {
   if (fb == NULL)
     return;
@@ -95,14 +120,14 @@ void remarkable_framebuffer_destroy(remarkable_framebuffer* fb) {
 
 int remarkable_framebuffer_set_pixel(remarkable_framebuffer* fb, const unsigned y, const unsigned x, const remarkable_color c) {
   if (fb == NULL)
-    return 0;
+    return 1;
   
   int c1_offset = y * fb->finfo.line_length + x;
   if (c1_offset >= fb->len)
-    return 0;
+    return 1;
 
   *(fb->mapped_buffer + c1_offset) = c;
-  return 1;
+  return 0;
 }
 
 void remarkable_framebuffer_draw_shape(remarkable_framebuffer* fb, remarkable_color* shape, unsigned rows,   unsigned cols,

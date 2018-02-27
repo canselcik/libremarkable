@@ -288,7 +288,6 @@ int main(void) {
     exit(1);
   }
 
-
   clear_display(fb);
 
   // display_bmp(fb, "/tmp/test.bmp");
