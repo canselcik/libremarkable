@@ -158,9 +158,12 @@ typedef struct {
 
 typedef enum _mxcfb_dithering_mode {
 	EPDC_FLAG_USE_DITHERING_PASSTHROUGH = 0x0,
+	EPDC_FLAG_USE_DITHERING_DRAWING     = 0x1,
 	// Dithering Processing (Version 1.0 - for i.MX508 and i.MX6SL)
-  EPDC_FLAG_USE_DITHERING_Y1          = 0x2000,
-  EPDC_FLAG_USE_DITHERING_Y4          = 0x4000
+  EPDC_FLAG_USE_DITHERING_Y1          = 0x002000,
+  EPDC_FLAG_USE_REMARKABLE_DITHER     = 0x300f30,
+  EPDC_FLAG_USE_DITHERING_Y4          = 0x004000
+
 } mxcfb_dithering_mode;
 
 
@@ -196,6 +199,7 @@ typedef enum _mxcfb_dithering_mode {
 
 // Both are verified to be respected by the flags in the update_data
 
+#define DRAWING_QUANT_BIT 0x76143b24
 
 /*
   vinfo:

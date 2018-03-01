@@ -100,10 +100,10 @@ void evdraw(remarkable_framebuffer* fb, const char* evDevicePath, remarkable_fon
           rect = remarkable_framebuffer_draw_text(fb, font, text, 1750, 1100);
           uint32_t refresh_marker = remarkable_framebuffer_refresh(fb,
                                                                    UPDATE_MODE_PARTIAL,
-                                                                   WAVEFORM_MODE_GC16_FAST,
-                                                                   TEMP_USE_PAPYRUS,
-                                                                   EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                                                                   0, 0, NULL,
+                                                                   WAVEFORM_MODE_DU,
+                                                                   TEMP_USE_REMARKABLE_DRAW,
+                                                                   EPDC_FLAG_USE_DITHERING_DRAWING,
+                                                                   0, DRAWING_QUANT_BIT, NULL,
                                                                    rect.top, rect.left, rect.height, rect.width);
           remarkable_framebuffer_wait_refresh_marker(fb, refresh_marker);
           break;
@@ -137,11 +137,9 @@ void scanning_line(remarkable_framebuffer* fb, unsigned iter) {
     refresh_marker = remarkable_framebuffer_refresh(fb, 
                                                     UPDATE_MODE_PARTIAL,
                                                     WAVEFORM_MODE_DU,
-                                                    TEMP_USE_PAPYRUS,
-                                                    EPDC_FLAG_USE_DITHERING_Y1,
-                                                    0,    // flags
-                                                    0,    // quant_bit
-                                                    NULL, // alt_buffer_data
+                                                    TEMP_USE_REMARKABLE_DRAW,
+                                                    EPDC_FLAG_USE_DITHERING_DRAWING,
+                                                    0, DRAWING_QUANT_BIT, NULL,
                                                     tb.top - 10, tb.left,
                                                     tb.height + 20, tb.width);
     remarkable_framebuffer_wait_refresh_marker(fb, refresh_marker);
@@ -314,7 +312,7 @@ int main(void) {
                                  UPDATE_MODE_PARTIAL,
                                  WAVEFORM_MODE_GC16_FAST,
                                  TEMP_USE_REMARKABLE_DRAW,
-                                 EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                                 EPDC_FLAG_USE_REMARKABLE_DITHER,
                                  0,          // flags
                                  0,          // quant_bit
                                  NULL,       // alt_buffer

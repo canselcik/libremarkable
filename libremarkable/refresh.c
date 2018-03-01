@@ -49,7 +49,8 @@ uint32_t remarkable_framebuffer_refresh(remarkable_framebuffer* fb,
   data.update_marker = gen++;
   data.dither_mode = 0; // entirely unused since epdc_v1 is used, not v2.
   data.quant_bit = quant_bit;
-  data.flags = flags | dither_mode;
+  data.flags = flags;
+  data.dither_mode = dither_mode;
 
   if (alt_buffer_data != NULL)
     data.alt_buffer_data = *alt_buffer_data;
