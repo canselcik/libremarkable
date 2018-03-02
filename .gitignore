@@ -2,6 +2,9 @@
 poc
 evtest
 
+target/
+Cargo.lock
+
 .project
 .cproject
 *.mp4
