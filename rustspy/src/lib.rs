@@ -176,7 +176,7 @@ hook! {
         FBIOPUTCMAP => println!("FBIOPUTCMAP({0:#?})", event),
         FBIO_CURSOR => println!("FBIO_CURSOR({0:#?})", event),
         FBIOPAN_DISPLAY => println!("FBIOPAN_DISPLAY({0:#?})", event),
-        FBIOPUT_VSCREENINFO => println!("FBIOPUT_VSCREENINFO(after: {0:#?})", p1 as *mut fb_var_screeninfo),
+        FBIOPUT_VSCREENINFO => println!("FBIOPUT_VSCREENINFO(after: {0:#?}) = {1}", *(p1 as *mut fb_var_screeninfo), res),
         FBIOGET_VSCREENINFO => println!("FBIOGET_VSCREENINFO(out: {0:#?})", p1 as *mut fb_var_screeninfo),
         FBIOGET_FSCREENINFO => println!("FBIOGET_FSCREENINFO(out: {0:#?})", event),
         _ => println!("unknown_ioctl({0:#?})", event),
