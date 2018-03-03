@@ -1,0 +1,20 @@
+[package]
+name = "librustpad"
+version = "0.1.0"
+authors = ["not-avail <not-avail@not-avail>"]
+
+[lib]
+name = "rustpad"
+crate_type = ["cdylib"]
+
+[[bin]]
+name = "poc"
+path = "src/lib.rs"
+
+[dependencies]
+ioctl-gen = "0.1.0"
+libc = "0.2.37"
+mmap = "0.1.1"
+rusttype = "0.4.1"
+image = "*"
+num-complex = "0.1.42"
