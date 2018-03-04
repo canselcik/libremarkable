@@ -1,6 +1,5 @@
 use libc;
 
-use std;
 use std::os::unix::io::AsRawFd;
 use std::sync::atomic::Ordering;
 
@@ -22,7 +21,6 @@ impl<'a> fb::Framebuffer<'a> {
         quant_bit: i32,
         flags: u32,
     ) -> u32 {
-        const SEND_UPDATE_IOCTL: u32 = iow!(b'F', 0x2E, std::mem::size_of::<mxcfb_update_data>());
         let whole = mxcfb_update_data {
             update_mode: update_mode as u32,
             update_marker: *self.marker.get_mut() as u32,
@@ -41,7 +39,7 @@ impl<'a> fb::Framebuffer<'a> {
         };
         let pt: *const mxcfb_update_data = &whole;
         unsafe {
-            libc::ioctl(self.device.as_raw_fd(), SEND_UPDATE_IOCTL, pt);
+            libc::ioctl(self.device.as_raw_fd(), mxc_types::MXCFB_SEND_UPDATE, pt);
         }
         // TODO: Do proper compare and swap
         self.marker.swap(whole.update_marker + 1, Ordering::Relaxed);
@@ -49,8 +47,6 @@ impl<'a> fb::Framebuffer<'a> {
     }
 
     pub fn wait_refresh_complete(&mut self, marker: u32) {
-        const MXCFB_WAIT_FOR_UPDATE_COMPLETE: u32 =
-            iowr!(b'F', 0x2F, std::mem::size_of::<mxcfb_update_marker_data>());
         let mut markerdata = mxcfb_update_marker_data {
             update_marker: marker,
             collision_test: 0,
@@ -58,7 +54,7 @@ impl<'a> fb::Framebuffer<'a> {
         unsafe {
             libc::ioctl(
                 self.device.as_raw_fd(),
-                MXCFB_WAIT_FOR_UPDATE_COMPLETE,
+                mxc_types::MXCFB_WAIT_FOR_UPDATE_COMPLETE,
                 &mut markerdata,
             );
         };

@@ -5,11 +5,11 @@ use libc::ioctl;
 use mmap;
 use mmap::MemoryMap;
 
-use std;
 use std::os::unix::io::AsRawFd;
 use std::sync::atomic::AtomicU32;
 use std::fs::{OpenOptions, File};
 
+use mxc_types;
 use mxc_types::{VarScreeninfo, FixScreeninfo, FBIOGET_FSCREENINFO, FBIOGET_VSCREENINFO,
                 FBIOPUT_VSCREENINFO};
 
@@ -80,22 +80,20 @@ impl<'a> Framebuffer<'a> {
     }
 
     pub fn set_autoupdate_mode(&mut self, mut mode: u32) {
-        const MXCFB_SET_AUTO_UPDATE_MODE: u32 = iow!(b'F', 0x2D, std::mem::size_of::<u32>());
         unsafe {
             libc::ioctl(
                 self.device.as_raw_fd(),
-                MXCFB_SET_AUTO_UPDATE_MODE,
+                mxc_types::MXCFB_SET_AUTO_UPDATE_MODE,
                 &mut mode,
             );
         };
     }
 
     pub fn set_update_scheme(&mut self, mut scheme: u32) {
-        const MXCFB_SET_UPDATE_SCHEME: u32 = iow!(b'F', 0x32, std::mem::size_of::<u32>());
         unsafe {
             libc::ioctl(
                 self.device.as_raw_fd(),
-                MXCFB_SET_UPDATE_SCHEME,
+                mxc_types::MXCFB_SET_UPDATE_SCHEME,
                 &mut scheme,
             );
         };

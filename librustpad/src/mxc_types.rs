@@ -1,6 +1,19 @@
 #![allow(dead_code)]
 #![allow(non_camel_case_types)]
 use libc::{intptr_t, c_int};
+use std;
+
+pub const MXCFB_SET_AUTO_UPDATE_MODE: u32 = iow!(b'F', 0x2D, std::mem::size_of::<u32>());
+pub const MXCFB_SET_UPDATE_SCHEME: u32 = iow!(b'F', 0x32, std::mem::size_of::<u32>());
+pub const MXCFB_SEND_UPDATE: u32 = iow!(b'F', 0x2E, std::mem::size_of::<mxcfb_update_data>());
+pub const MXCFB_WAIT_FOR_UPDATE_COMPLETE: u32 = iowr!(b'F', 0x2F, std::mem::size_of::<mxcfb_update_marker_data>());
+pub const FBIOPUT_VSCREENINFO: u32 = 0x4601;
+pub const FBIOGET_VSCREENINFO: u32 = 0x4600;
+pub const FBIOGET_FSCREENINFO: u32 = 0x4602;
+pub const FBIOGETCMAP: u32 = 0x4604;
+pub const FBIOPUTCMAP: u32 = 0x4605;
+pub const FBIOPAN_DISPLAY: u32 = 0x4606;
+pub const FBIO_CURSOR: u32 = 0x4608;
 
 ///Bitfield which is a part of VarScreeninfo.
 #[repr(C)]
@@ -217,13 +230,7 @@ pub struct fb_var_screeninfo {
     pub reserved: [u32; 4], /* Reserved for future compatibility */
 }
 
-pub const FBIOPUT_VSCREENINFO: u32 = 0x4601;
-pub const FBIOGET_VSCREENINFO: u32 = 0x4600;
-pub const FBIOGET_FSCREENINFO: u32 = 0x4602;
-pub const FBIOGETCMAP: u32 = 0x4604;
-pub const FBIOPUTCMAP: u32 = 0x4605;
-pub const FBIOPAN_DISPLAY: u32 = 0x4606;
-pub const FBIO_CURSOR: u32 = 0x4608;
+
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum mxcfb_ioctl {
