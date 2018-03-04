@@ -1,5 +1,5 @@
 [package]
-name = "rustspy"
+name = "rust-spy"
 version = "0.1.0"
 authors = ["not-avail <not-avail@not-avail>"]
 

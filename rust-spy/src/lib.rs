@@ -10,7 +10,7 @@ use librustpad::mxc_types;
 #[derive(Debug)]
 #[repr(C)]
 struct ioctl_intercept_event {
-       fd: c_int,
+  fd: c_int,
   request: u32,
   p1: intptr_t,
   p2: intptr_t,
