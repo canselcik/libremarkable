@@ -11,6 +11,8 @@ extern crate rusttype;
 
 mod mxc_types;
 mod fb;
+mod fbio;
+mod fbdraw;
 mod refresh;
 
 macro_rules! min {

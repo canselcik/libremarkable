@@ -1,4 +1,4 @@
-use libc::ioctl;
+use libc;
 
 use std;
 use std::os::unix::io::AsRawFd;
@@ -41,7 +41,7 @@ impl<'a> fb::Framebuffer<'a> {
         };
         let pt: *const mxcfb_update_data = &whole;
         unsafe {
-            ::libc::ioctl(self.device.as_raw_fd(), SEND_UPDATE_IOCTL, pt);
+            libc::ioctl(self.device.as_raw_fd(), SEND_UPDATE_IOCTL, pt);
         }
         // TODO: Do proper compare and swap
         self.marker.swap(whole.update_marker + 1, Ordering::Relaxed);
@@ -56,7 +56,7 @@ impl<'a> fb::Framebuffer<'a> {
             collision_test: 0,
         };
         unsafe {
-            ioctl(
+            libc::ioctl(
                 self.device.as_raw_fd(),
                 MXCFB_WAIT_FOR_UPDATE_COMPLETE,
                 &mut markerdata,
