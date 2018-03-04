@@ -1,7 +1,17 @@
 #![feature(integer_atomics)]
 #![feature(const_size_of)]
+
+#[macro_use]
+extern crate ioctl_gen;
+
+extern crate libc;
+extern crate mmap;
+extern crate image;
+extern crate rusttype;
+
 mod mxc_types;
 mod fb;
+mod refresh;
 
 macro_rules! min {
     ($x: expr) => ($x);
@@ -13,13 +23,9 @@ macro_rules! max {
     ($x: expr, $($z: expr),+) => (::std::cmp::max($x, max!($($z),*)));
 }
 
-#[macro_use]
-extern crate ioctl_gen;
 
-extern crate num_complex;
-extern crate image;
+
 use image::GenericImage;
-
 use mxc_types::{display_temp, waveform_mode, update_mode, dither_mode};
 
 #[allow(dead_code)]
@@ -103,13 +109,13 @@ fn main() {
 
     let mut x: i32 = 10;
     let mut y: i32 = 10;
-    let mut oldX: i32 = -1;
-    let mut oldY: i32 = -1;
+    let mut old_x: i32 = -1;
+    let mut old_y: i32 = -1;
     loop {
-        if oldY > 0 && oldX > 0 {
+        if old_y > 0 && old_x > 0 {
             framebuffer.draw_rect(
-                oldY as usize,
-                oldX as usize,
+                old_y as usize,
+                old_x as usize,
                 50,
                 50,
                 mxc_types::REMARKABLE_BRIGHTEST,
@@ -123,10 +129,10 @@ fn main() {
             mxc_types::REMARKABLE_DARKEST,
         );
         marker = framebuffer.refresh(
-            min!(y, oldY) as usize,
-            min!(x, oldX) as usize,
-            (max!(y, oldY) - min!(y, oldY) + 50) as usize,
-            (max!(x, oldX) - min!(x, oldX) + 50) as usize,
+            min!(y, old_y) as usize,
+            min!(x, old_x) as usize,
+            (max!(y, old_y) - min!(y, old_y) + 50) as usize,
+            (max!(x, old_x) - min!(x, old_x) + 50) as usize,
             update_mode::UPDATE_MODE_PARTIAL,
             waveform_mode::WAVEFORM_MODE_DU,
             display_temp::TEMP_USE_REMARKABLE_DRAW,
@@ -136,9 +142,10 @@ fn main() {
         );
         framebuffer.wait_refresh_complete(marker);
 
-        oldX = x;
-        oldY = y;
-        y += 1;
+        old_x = x;
+        old_y = y;
+        y += 6;
+        x += 6;
     }
 
 }

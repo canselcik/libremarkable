@@ -1,8 +1,6 @@
 #![allow(dead_code)]
 #![allow(non_camel_case_types)]
-
-extern crate libc;
-use self::libc::{intptr_t, c_int};
+use libc::{intptr_t, c_int};
 
 ///Bitfield which is a part of VarScreeninfo.
 #[repr(C)]
