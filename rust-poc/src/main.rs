@@ -29,6 +29,7 @@ fn clear(framebuffer: &mut fb::Framebuffer) {
 				        display_temp::TEMP_USE_AMBIENT,
 				        dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
 				        0, 0);
+    std::thread::sleep(Duration::from_millis(100));
 }
 
 fn display_text(framebuffer: &mut fb::Framebuffer) {
@@ -85,8 +86,7 @@ fn loop_print_time(framebuffer: &mut fb::Framebuffer) {
 	}
 }
 
-fn show_rust_logo(framebuffer: &mut fb::Framebuffer) {
-	let img = image::load_from_memory(include_bytes!("../rustlang.bmp")).unwrap();
+fn show_image(framebuffer: &mut fb::Framebuffer, img: &image::DynamicImage) {
     framebuffer.draw_image(&img, 350, 110);
     let marker = framebuffer.refresh(
 			        350, 110,
@@ -102,11 +102,12 @@ fn show_rust_logo(framebuffer: &mut fb::Framebuffer) {
 
 fn main() {
     let mut framebuffer = fb::Framebuffer::new("/dev/fb0");
+    let img = image::load_from_memory(include_bytes!("../rustlang.bmp")).unwrap();
     
     clear(&mut framebuffer);
 
 	display_text(&mut framebuffer);
-	show_rust_logo(&mut framebuffer);
+	show_image(&mut framebuffer, &img);
 
 	// TODO: Maybe actually try to reason with the borrow checker here 
 	unsafe {
@@ -125,20 +126,20 @@ fn main() {
 				last_trigger: std::time::SystemTime::now(),
     		});
 	    });
+	    let et_wacom = std::thread::spawn(move || {
+    		librustpad::ev::start_evdev("/dev/input/event0".to_owned(), librustpad::ev_debug::EvDeviceDebugHandler {
+				name: "Wacom".to_owned(),
+    		});
+	    });
+	    let et_mt = std::thread::spawn(move || {
+    		librustpad::ev::start_evdev("/dev/input/event1".to_owned(), librustpad::ev_debug::EvDeviceDebugHandler {
+				name: "MT".to_owned(),
+    		});
+	    });
 	    et_t.join().unwrap();
 	    et_btn.join().unwrap();
-//	    let et_wacom = std::thread::spawn(move || {
-//    		librustpad::ev::start_evdev("/dev/input/event0".to_owned(), librustpad::ev_debug::EvDeviceDebugHandler {
-//				name: "Wacom".to_owned(),
-//    		});
-//	    });
-//	    let et_mt = std::thread::spawn(move || {
-//    		librustpad::ev::start_evdev("/dev/input/event1".to_owned(), librustpad::ev_debug::EvDeviceDebugHandler {
-//				name: "MT".to_owned(),
-//    		});
-//	    });
-//	    et_mt.join().unwrap();
-//	    et_wacom.join().unwrap();
+	    et_mt.join().unwrap();
+	    et_wacom.join().unwrap();
 	}
     
 }

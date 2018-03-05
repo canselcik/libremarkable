@@ -10,3 +10,6 @@ evdev = "*"
 epoll = "3.1.1"
 libc = "*"
 chrono = "*"
+
+[profile.release]
+debug = true
