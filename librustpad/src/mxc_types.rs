@@ -100,7 +100,7 @@ impl ::std::default::Default for FixScreeninfo {
     }
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 #[repr(C)]
 pub struct mxcfb_rect {
     pub top: u32,
