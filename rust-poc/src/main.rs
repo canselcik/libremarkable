@@ -2,9 +2,12 @@ extern crate librustpad;
 extern crate image;
 extern crate libc;
 extern crate evdev;
+extern crate chrono;
+
+use chrono::{Local, DateTime};
 
 use std::option::Option;
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 use std::thread::sleep;
 
 use image::GenericImage;
@@ -13,7 +16,7 @@ use librustpad::fb;
 use librustpad::mxc_types;
 use mxc_types::{display_temp, waveform_mode, update_mode, dither_mode};
 
-mod physical_buttons;
+mod button_demo;
 
 fn clear(framebuffer: &mut fb::Framebuffer) {
 	let yres = framebuffer.var_screen_info.yres as usize;
@@ -49,12 +52,10 @@ fn display_text(framebuffer: &mut fb::Framebuffer) {
 }
 
 
-
 fn loop_print_time(framebuffer: &mut fb::Framebuffer) {
 	let mut draw_area: Option<mxc_types::mxcfb_rect> = None;
 	loop {	
-	    let now = SystemTime::now().duration_since(std::time::UNIX_EPOCH).expect("Failed to get time").as_secs();
-	    
+	    let dt: DateTime<Local> = Local::now();
 	    match draw_area {
 	    	Some(area) => framebuffer.draw_rect(area.top as usize, area.left as usize,
 									            area.height as usize, area.width as usize,
@@ -62,7 +63,8 @@ fn loop_print_time(framebuffer: &mut fb::Framebuffer) {
 	    	_ => {} 
 	    }
 	    
-        draw_area = Some(framebuffer.draw_text(320, 120, format!("{0}", now), 120, mxc_types::REMARKABLE_DARKEST));
+        draw_area = Some(framebuffer.draw_text(320, 120, format!("{}", dt.format("%F %r")),
+        		100, mxc_types::REMARKABLE_DARKEST));
         match draw_area {
 	    	Some(area) => {
 			    let marker = framebuffer.refresh(
@@ -79,7 +81,7 @@ fn loop_print_time(framebuffer: &mut fb::Framebuffer) {
 	    	},
 	    	_ => {}
         }
-	    sleep(Duration::from_millis(600));
+	    sleep(Duration::from_millis(400));
 	}
 }
 
@@ -114,27 +116,29 @@ fn main() {
 			let ptr = std::mem::transmute::<usize, &mut fb::Framebuffer>(pointer);
 			loop_print_time(ptr);       
 	    });
-	    let et_wacom = std::thread::spawn(move || {
-    		librustpad::ev::start_evdev("/dev/input/event0".to_owned(), librustpad::ev_debug::EvDeviceDebugHandler {
-				name: "Wacom".to_owned(),
-    		});
-	    });
-	    let et_mt = std::thread::spawn(move || {
-    		librustpad::ev::start_evdev("/dev/input/event1".to_owned(), librustpad::ev_debug::EvDeviceDebugHandler {
-				name: "MT".to_owned(),
-    		});
-	    });
 	    let et_btn = std::thread::spawn(move || {
     		let ptr = std::mem::transmute::<usize, &mut fb::Framebuffer>(pointer);
-    		librustpad::ev::start_evdev("/dev/input/event2".to_owned(), physical_buttons::PhysicalButtonHandler {
+    		librustpad::ev::start_evdev("/dev/input/event2".to_owned(), button_demo::DemoButtonHandler {
 				framebuffer: ptr,
-				name: "Btn".to_owned(),
+				name: "Physical Buttons".to_owned(),
+				states: [false;3],
+				last_trigger: std::time::SystemTime::now(),
     		});
 	    });
 	    et_t.join().unwrap();
-	    et_wacom.join().unwrap();
-	    et_mt.join().unwrap();
 	    et_btn.join().unwrap();
+//	    let et_wacom = std::thread::spawn(move || {
+//    		librustpad::ev::start_evdev("/dev/input/event0".to_owned(), librustpad::ev_debug::EvDeviceDebugHandler {
+//				name: "Wacom".to_owned(),
+//    		});
+//	    });
+//	    let et_mt = std::thread::spawn(move || {
+//    		librustpad::ev::start_evdev("/dev/input/event1".to_owned(), librustpad::ev_debug::EvDeviceDebugHandler {
+//				name: "MT".to_owned(),
+//    		});
+//	    });
+//	    et_mt.join().unwrap();
+//	    et_wacom.join().unwrap();
 	}
     
 }

@@ -1,8 +1,8 @@
 use evdev::Device;
 use evdev::raw::input_event;
 
-use librustpad::fb;
-use librustpad::ev;
+use fb;
+use ev;
 
 pub struct PhysicalButtonHandler<'a> {
 	pub framebuffer: &'a mut fb::Framebuffer<'a>,

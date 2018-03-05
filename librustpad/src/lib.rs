@@ -19,6 +19,7 @@ pub mod refresh;
 pub mod ev;
 
 pub mod ev_debug;
+pub mod physical_buttons;
 
 pub use evdev::Device;
 pub use evdev::raw::input_event;
