@@ -6,7 +6,8 @@ use std;
 pub const MXCFB_SET_AUTO_UPDATE_MODE: u32 = iow!(b'F', 0x2D, std::mem::size_of::<u32>());
 pub const MXCFB_SET_UPDATE_SCHEME: u32 = iow!(b'F', 0x32, std::mem::size_of::<u32>());
 pub const MXCFB_SEND_UPDATE: u32 = iow!(b'F', 0x2E, std::mem::size_of::<mxcfb_update_data>());
-pub const MXCFB_WAIT_FOR_UPDATE_COMPLETE: u32 = iowr!(b'F', 0x2F, std::mem::size_of::<mxcfb_update_marker_data>());
+pub const MXCFB_WAIT_FOR_UPDATE_COMPLETE: u32 =
+    iowr!(b'F', 0x2F, std::mem::size_of::<mxcfb_update_marker_data>());
 pub const FBIOPUT_VSCREENINFO: u32 = 0x4601;
 pub const FBIOGET_VSCREENINFO: u32 = 0x4600;
 pub const FBIOGET_FSCREENINFO: u32 = 0x4602;

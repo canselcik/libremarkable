@@ -54,22 +54,22 @@ impl<'a> Framebuffer<'a> {
         // TODO: Make this more portable (right now the build box needs to have it in the location here. Any font really.)
         let font_data = include_bytes!("/usr/share/fonts/TTF/DejaVuSans.ttf");
         let collection = FontCollection::from_bytes(font_data as &[u8]);
-        
+
         var_screen_info.xres = 1872;
-	    var_screen_info.yres = 1404;
-	    var_screen_info.rotate = 1;
-	    var_screen_info.width = var_screen_info.xres;
-	    var_screen_info.height = var_screen_info.yres;
-	    var_screen_info.pixclock = 160000000;
-	    var_screen_info.left_margin = 32;
-	    var_screen_info.right_margin = 326;
-	    var_screen_info.upper_margin = 4;
-	    var_screen_info.lower_margin = 12;
-	    var_screen_info.hsync_len = 44;
-	    var_screen_info.vsync_len = 1;
-	    var_screen_info.sync = 0;
-	    var_screen_info.vmode = 0; // FB_VMODE_NONINTERLACED
-	    var_screen_info.accel_flags = 0;
+        var_screen_info.yres = 1404;
+        var_screen_info.rotate = 1;
+        var_screen_info.width = var_screen_info.xres;
+        var_screen_info.height = var_screen_info.yres;
+        var_screen_info.pixclock = 160000000;
+        var_screen_info.left_margin = 32;
+        var_screen_info.right_margin = 326;
+        var_screen_info.upper_margin = 4;
+        var_screen_info.lower_margin = 12;
+        var_screen_info.hsync_len = 44;
+        var_screen_info.vsync_len = 1;
+        var_screen_info.sync = 0;
+        var_screen_info.vmode = 0; // FB_VMODE_NONINTERLACED
+        var_screen_info.accel_flags = 0;
         let mut fb = Framebuffer {
             marker: AtomicU32::new(1),
             device: device,
@@ -78,10 +78,10 @@ impl<'a> Framebuffer<'a> {
             var_screen_info: var_screen_info,
             fix_screen_info: fix_screen_info,
         };
-	    if !fb.put_var_screeninfo() {
-	        panic!("FBIOPUT_VSCREENINFO failed");
-	    }
-	    return fb;
+        if !fb.put_var_screeninfo() {
+            panic!("FBIOPUT_VSCREENINFO failed");
+        }
+        return fb;
     }
 
 
