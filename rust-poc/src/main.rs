@@ -16,10 +16,8 @@ use image::GenericImage;
 
 use librustpad::fb;
 use librustpad::mxc_types;
+use librustpad::physical_buttons;
 use mxc_types::{display_temp, waveform_mode, update_mode, dither_mode};
-
-mod button_demo;
-use button_demo::DemoButtonHandler;
 
 
 fn clear(ptr: *mut fb::Framebuffer) {
@@ -121,6 +119,28 @@ fn on_touch(_gesture_seq: u16, _finger_id: u16, y: u16, x: u16) {
 		  		        mxc_types::DRAWING_QUANT_BIT, 0);
 }
 
+fn on_button_press(btn: physical_buttons::PhysicalButton, new_state: u16) {
+	let framebuffer = unsafe { &mut *G_FRAMEBUFFER as &mut fb::Framebuffer };
+
+	let color = match new_state {
+		0 => mxc_types::REMARKABLE_BRIGHTEST,
+		_ => mxc_types::REMARKABLE_DARKEST,
+	};
+	let x_offset = match btn {
+		physical_buttons::PhysicalButton::LEFT => 50,
+		physical_buttons::PhysicalButton::MIDDLE => 640,
+		physical_buttons::PhysicalButton::RIGHT => 1250,
+	};
+                                     
+	framebuffer.draw_rect(1500, x_offset, 125, 125, color);      
+	framebuffer.refresh(1500, x_offset, 125, 125,
+		update_mode::UPDATE_MODE_PARTIAL,
+		waveform_mode::WAVEFORM_MODE_DU,
+		display_temp::TEMP_USE_PAPYRUS,
+		dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+		0, 0);
+}
+
 static mut G_FRAMEBUFFER: *mut fb::Framebuffer = std::ptr::null_mut::<fb::Framebuffer>();
 fn main() { 
     let mut fbuffer = fb::Framebuffer::new("/dev/fb0");
@@ -144,9 +164,12 @@ fn main() {
 	show_image(framebuffer, &img, 10, 900);
     
     let hw_btn_demo_thread = std::thread::spawn(move || {
-		let ptr = unsafe { &mut *G_FRAMEBUFFER as &mut fb::Framebuffer };
 		librustpad::ev::start_evdev("/dev/input/event2".to_owned(),
-			DemoButtonHandler::get_instance(ptr));
+			physical_buttons::PhysicalButtonHandler::get_instance(on_button_press));
+    });
+    let mt_demo_thread = std::thread::spawn(move || {
+		librustpad::ev::start_evdev("/dev/input/event1".to_owned(),
+			librustpad::multitouch::MultitouchHandler::get_instance(on_touch));
     });
     let wacom_demo_thread = std::thread::spawn(move || {
 		librustpad::ev::start_evdev("/dev/input/event0".to_owned(),
@@ -154,10 +177,6 @@ fn main() {
 				name: "Wacom".to_owned(),
     		}
 		);
-    });
-    let mt_demo_thread = std::thread::spawn(move || {
-		librustpad::ev::start_evdev("/dev/input/event1".to_owned(),
-			librustpad::multitouch::MultitouchHandler::get_instance(on_touch));
     });
 	    
     clock_thread.join().unwrap();
