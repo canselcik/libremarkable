@@ -9,11 +9,12 @@ use librustpad::ev;
 use librustpad::mxc_types;
 use librustpad::mxc_types::{update_mode,waveform_mode,display_temp,dither_mode};
 
-pub struct DemoButtonHandler<'a> {
-	pub framebuffer: &'a mut fb::Framebuffer<'a>,
+pub struct DemoButtonHandler {
+	pub framebuffer: &'static mut fb::Framebuffer<'static>,
 	pub name: String,
 	pub states: [bool;3],
 	pub last_trigger: SystemTime,
+	pub xochitl_child: Option<std::process::Child>,
 }
 
 fn clear(framebuffer: &mut fb::Framebuffer) {
@@ -29,7 +30,7 @@ fn clear(framebuffer: &mut fb::Framebuffer) {
 				        0, 0);
 }
 
-impl ev::EvdevHandler for DemoButtonHandler<'static> {
+impl ev::EvdevHandler for DemoButtonHandler {
 	fn on_init(&mut self, name: String, _device: &mut Device) {
 		println!("INFO: '{0}' input device EPOLL initialized", name);
 		self.name = name;
@@ -78,7 +79,17 @@ impl ev::EvdevHandler for DemoButtonHandler<'static> {
 	}
 }  
     
-impl DemoButtonHandler<'static> {
+impl DemoButtonHandler {
+	pub fn get_instance(ptr: &'static mut fb::Framebuffer<'static>) -> DemoButtonHandler {
+		return DemoButtonHandler {
+			framebuffer: ptr as &'static mut fb::Framebuffer<'static>,
+			name: "Physical Buttons".to_owned(),
+			states: [false;3],
+			xochitl_child: None,
+			last_trigger: std::time::SystemTime::now(),
+		};
+	}
+	
 	fn eval_key_combo(&mut self) {
 		if self.states[0] && !self.states[1] && self.states[2] {
 			let now = SystemTime::now();
