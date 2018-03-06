@@ -11,9 +11,6 @@ libremarkable/%:
 
 FREETYPE_PATH = ./libfreetype/install
 freetype:
-	rm -rvf libfreetype || true
-	git clone https://github.com/ricardoquesada/libfreetype
-	mkdir -p $(FREETYPE_PATH)
 	cd libfreetype && CXX=$(CXX) CC=$(CC) ./configure --host=arm-linux-gnueabihf --without-zlib --without-png --enable-static=yes --enable-shared=no             
 	cd libfreetype && make -j4  
 	cd libfreetype && DESTDIR=$(shell readlink -f libfreetype/install) make install

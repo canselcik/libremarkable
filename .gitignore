@@ -10,9 +10,6 @@ Cargo.lock
 *.mp4
 .settings
 
-# Deps
-libfreetype/
-
 # Prerequisites
 *.d
 
