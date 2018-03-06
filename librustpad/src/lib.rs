@@ -8,8 +8,10 @@ extern crate libc;
 extern crate mmap;
 extern crate image;
 extern crate rusttype;
-extern crate evdev;
 extern crate epoll;
+
+pub extern crate evdev;
+pub extern crate line_drawing;
 
 pub mod mxc_types;
 pub mod fb;
