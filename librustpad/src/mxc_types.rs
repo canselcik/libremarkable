@@ -3,6 +3,13 @@
 use libc::{intptr_t, c_int};
 use std;
 
+
+pub const DISPLAYWIDTH: u16 = 1404;
+pub const DISPLAYHEIGHT: u16 = 1872;
+
+pub const MTWIDTH: u16 = 767;
+pub const MTHEIGHT: u16 = 1023;
+
 pub const MXCFB_SET_AUTO_UPDATE_MODE: u32 = iow!(b'F', 0x2D, std::mem::size_of::<u32>());
 pub const MXCFB_SET_UPDATE_SCHEME: u32 = iow!(b'F', 0x32, std::mem::size_of::<u32>());
 pub const MXCFB_SEND_UPDATE: u32 = iow!(b'F', 0x2E, std::mem::size_of::<mxcfb_update_data>());

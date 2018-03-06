@@ -2,6 +2,7 @@ use evdev::Device;
 use evdev::raw::input_event;
 
 use ev;
+use mxc_types;
 
 /* Very simple and rather sufficient handler for multitouch screen on Remarkable Paper Tablet */
 
@@ -31,12 +32,9 @@ impl MultitouchHandler {
     }
 }
 
-const DISPLAYWIDTH: u16 = 1404;
-const DISPLAYHEIGHT: u16 = 1872;
-const WIDTH: u16 = 767;
-const HEIGHT: u16 = 1023;
-const HSCALAR: f32 = (DISPLAYWIDTH as f32) / (WIDTH as f32);
-const VSCALAR: f32 = (DISPLAYHEIGHT as f32) / (HEIGHT as f32);
+
+const HSCALAR: f32 = (mxc_types::DISPLAYWIDTH as f32) / (mxc_types::MTWIDTH as f32);
+const VSCALAR: f32 = (mxc_types::DISPLAYHEIGHT as f32) / (mxc_types::MTHEIGHT as f32);
 
 impl ev::EvdevHandler for MultitouchHandler {
     fn on_init(&mut self, name: String, _device: &mut Device) {
@@ -55,11 +53,11 @@ impl ev::EvdevHandler for MultitouchHandler {
                     }
                     53 => {
                         let val = ev.value as u16;
-                        self.last_x = WIDTH - val;
+                        self.last_x = mxc_types::MTWIDTH - val;
                     }
                     54 => {
                         let val = ev.value as u16;
-                        self.last_y = HEIGHT - val;
+                        self.last_y = mxc_types::MTHEIGHT - val;
 
                         // callback
                         (self.on_touch)(

@@ -13,22 +13,22 @@ impl<'a> fb::Framebuffer<'a> {
             self.write_pixel(top + y as usize, left + x as usize, pixel.data[0]);
         }
         return mxcfb_rect {
-			top: top as u32,
-			left: left as u32,
-			width: img.width(),
-			height: img.height(),
+            top: top as u32,
+            left: left as u32,
+            width: img.width(),
+            height: img.height(),
         };
     }
-    
+
     pub fn draw_circle(&mut self, y: usize, x: usize, rad: usize, color: u8) -> mxcfb_rect {
         for (x, y) in line_drawing::BresenhamCircle::new(x as i32, y as i32, rad as i32) {
-        	self.write_pixel(y as usize, x as usize, color);
+            self.write_pixel(y as usize, x as usize, color);
         }
         return mxcfb_rect {
-			top: y as u32 - rad as u32,
-			left: x as u32 - rad as u32,
-			width: 2 * rad as u32,
-			height: 2 * rad as u32,
+            top: y as u32 - rad as u32,
+            left: x as u32 - rad as u32,
+            width: 2 * rad as u32,
+            height: 2 * rad as u32,
         };
     }
 
