@@ -117,8 +117,8 @@ fn on_touch(_gesture_seq: u16, _finger_id: u16, y: u16, x: u16) {
 					    update_mode::UPDATE_MODE_PARTIAL,
 					    waveform_mode::WAVEFORM_MODE_DU,
 					    display_temp::TEMP_USE_PAPYRUS,
-				        dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-		  		        0, 0);
+				        dither_mode::EPDC_FLAG_USE_DITHERING_DRAWING,
+		  		        mxc_types::DRAWING_QUANT_BIT, 0);
 }
 
 static mut G_FRAMEBUFFER: *mut fb::Framebuffer = std::ptr::null_mut::<fb::Framebuffer>();
@@ -164,6 +164,5 @@ fn main() {
     hw_btn_demo_thread.join().unwrap();
     wacom_demo_thread.join().unwrap();
     mt_demo_thread.join().unwrap();
-
 }
 

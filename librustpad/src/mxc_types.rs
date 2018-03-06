@@ -248,17 +248,20 @@ pub enum mxcfb_ioctl {
     MXCFB_ENABLE_EPDC_ACCESS = 0x36,
 }
 
+#[derive(Debug)]
 pub enum auto_update_mode {
     AUTO_UPDATE_MODE_REGION_MODE = 0,
     AUTO_UPDATE_MODE_AUTOMATIC_MODE = 1,
 }
 
+#[derive(Debug)]
 pub enum update_scheme {
     UPDATE_SCHEME_SNAPSHOT = 0,
     UPDATE_SCHEME_QUEUE = 1,
     UPDATE_SCHEME_QUEUE_AND_MERGE = 2,
 }
 
+#[derive(Debug)]
 pub enum update_mode {
     UPDATE_MODE_PARTIAL = 0,
     UPDATE_MODE_FULL = 1,
@@ -300,6 +303,7 @@ pub const EPDC_FLAG_GROUP_UPDATE: u32 = 0x0400;
 // xochitl tends to draw with this
 pub const DRAWING_QUANT_BIT: i32 = 0x76143b24;
 
+#[derive(Debug)]
 pub enum dither_mode {
     EPDC_FLAG_USE_DITHERING_PASSTHROUGH = 0x0,
     EPDC_FLAG_USE_DITHERING_DRAWING = 0x1,
@@ -309,6 +313,7 @@ pub enum dither_mode {
     EPDC_FLAG_USE_DITHERING_Y4 = 0x004000,
 }
 
+#[derive(Debug)]
 pub enum waveform_mode {
     WAVEFORM_MODE_INIT = 0x0, /* Screen goes to white (clears) */
     WAVEFORM_MODE_GLR16 = 0x4, /* Basically A2 (so partial refresh shouldnt be possible here) */
@@ -328,6 +333,7 @@ pub enum waveform_mode {
     WAVEFORM_MODE_AUTO = 257, /* Official */
 }
 
+#[derive(Debug)]
 pub enum display_temp {
     TEMP_USE_AMBIENT = 0x1000,
     TEMP_USE_PAPYRUS = 0x1001,
