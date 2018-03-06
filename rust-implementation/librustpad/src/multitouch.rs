@@ -32,7 +32,6 @@ impl MultitouchHandler {
     }
 }
 
-
 const HSCALAR: f32 = (mxc_types::DISPLAYWIDTH as f32) / (mxc_types::MTWIDTH as f32);
 const VSCALAR: f32 = (mxc_types::DISPLAYHEIGHT as f32) / (mxc_types::MTHEIGHT as f32);
 

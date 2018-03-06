@@ -130,6 +130,21 @@ fn show_image(ptr: *mut fb::Framebuffer, img: &image::DynamicImage, y: usize, x:
     framebuffer.wait_refresh_complete(marker);
 }
 
+fn on_wacom_input(y: u16, x: u16) {
+    let framebuffer = unsafe { &mut *G_FRAMEBUFFER as &mut fb::Framebuffer };
+
+    let rect = framebuffer.draw_circle(y as usize, x as usize, 20, mxc_types::REMARKABLE_DARKEST);
+    framebuffer.refresh(
+        rect,
+        update_mode::UPDATE_MODE_PARTIAL,
+        waveform_mode::WAVEFORM_MODE_DU,
+        display_temp::TEMP_USE_REMARKABLE_DRAW,
+        dither_mode::EPDC_FLAG_USE_DITHERING_DRAWING,
+        mxc_types::DRAWING_QUANT_BIT,
+        0,
+    );
+}
+
 fn on_touch(_gesture_seq: u16, _finger_id: u16, y: u16, x: u16) {
     let framebuffer = unsafe { &mut *G_FRAMEBUFFER as &mut fb::Framebuffer };
 
@@ -219,7 +234,7 @@ fn main() {
     let wacom_demo_thread = std::thread::spawn(move || {
         librustpad::ev::start_evdev(
             "/dev/input/event0".to_owned(),
-            librustpad::ev_debug::EvDeviceDebugHandler { name: "Wacom".to_owned() },
+            librustpad::wacom::WacomHandler::get_instance(false, on_wacom_input),
         );
     });
 

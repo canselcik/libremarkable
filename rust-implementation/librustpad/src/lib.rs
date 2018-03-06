@@ -23,6 +23,7 @@ pub mod ev;
 pub mod ev_debug;
 pub mod physical_buttons;
 pub mod multitouch;
+pub mod wacom;
 
 pub use evdev::Device;
 pub use evdev::raw::input_event;
