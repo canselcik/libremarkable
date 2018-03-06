@@ -20,15 +20,18 @@ use mxc_types::{display_temp, waveform_mode, update_mode, dither_mode};
 
 fn clear(ptr: *mut fb::Framebuffer) {
     let framebuffer = unsafe { &mut *ptr as &mut fb::Framebuffer };
-
-    let yres = framebuffer.var_screen_info.yres as usize;
-    let xres = framebuffer.var_screen_info.xres as usize;
+    let (yres, xres) = (
+        framebuffer.var_screen_info.yres,
+        framebuffer.var_screen_info.xres,
+    );
     framebuffer.clear();
     framebuffer.refresh(
-        0,
-        0,
-        yres,
-        xres,
+        mxc_types::mxcfb_rect {
+            top: 0,
+            left: 0,
+            height: yres,
+            width: xres,
+        },
         update_mode::UPDATE_MODE_FULL,
         waveform_mode::WAVEFORM_MODE_INIT,
         display_temp::TEMP_USE_AMBIENT,
@@ -51,7 +54,7 @@ fn display_text(
 
     let draw_area: mxc_types::mxcfb_rect =
         framebuffer.draw_text(y, x, text, scale, mxc_types::REMARKABLE_DARKEST);
-    let marker = framebuffer.refresh_region(
+    let marker = framebuffer.refresh(
         draw_area,
         update_mode::UPDATE_MODE_PARTIAL,
         waveform_mode::WAVEFORM_MODE_GC16_FAST,
@@ -94,7 +97,7 @@ fn loop_print_time(ptr: *mut fb::Framebuffer, y: usize, x: usize, scale: usize) 
         ));
         match draw_area {
             Some(area) => {
-                let marker = framebuffer.refresh_region(
+                let marker = framebuffer.refresh(
                     area,
                     update_mode::UPDATE_MODE_PARTIAL,
                     waveform_mode::WAVEFORM_MODE_DU,
@@ -115,12 +118,15 @@ fn show_image(ptr: *mut fb::Framebuffer, img: &image::DynamicImage, y: usize, x:
     let framebuffer = unsafe { &mut *ptr as &mut fb::Framebuffer };
 
     let rect = framebuffer.draw_image(&img, y, x);
-    let marker = framebuffer.refresh_region(rect,
-									        update_mode::UPDATE_MODE_PARTIAL,
-									        waveform_mode::WAVEFORM_MODE_GC16_FAST,
-									        display_temp::TEMP_USE_REMARKABLE_DRAW,
-									        dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-									        0, 0);
+    let marker = framebuffer.refresh(
+        rect,
+        update_mode::UPDATE_MODE_PARTIAL,
+        waveform_mode::WAVEFORM_MODE_GC16_FAST,
+        display_temp::TEMP_USE_REMARKABLE_DRAW,
+        dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+        0,
+        0,
+    );
     framebuffer.wait_refresh_complete(marker);
 }
 
@@ -128,11 +134,11 @@ fn on_touch(_gesture_seq: u16, _finger_id: u16, y: u16, x: u16) {
     let framebuffer = unsafe { &mut *G_FRAMEBUFFER as &mut fb::Framebuffer };
 
     let rect = framebuffer.draw_circle(y as usize, x as usize, 20, mxc_types::REMARKABLE_DARKEST);
-    framebuffer.refresh_region(
+    framebuffer.refresh(
         rect,
         update_mode::UPDATE_MODE_PARTIAL,
         waveform_mode::WAVEFORM_MODE_DU,
-        display_temp::TEMP_USE_PAPYRUS,
+        display_temp::TEMP_USE_REMARKABLE_DRAW,
         dither_mode::EPDC_FLAG_USE_DITHERING_DRAWING,
         mxc_types::DRAWING_QUANT_BIT,
         0,
@@ -154,10 +160,12 @@ fn on_button_press(btn: physical_buttons::PhysicalButton, new_state: u16) {
 
     framebuffer.fill_rect(1500, x_offset, 125, 125, color);
     framebuffer.refresh(
-        1500,
-        x_offset,
-        125,
-        125,
+        mxc_types::mxcfb_rect {
+            top: 1500,
+            left: x_offset as u32,
+            height: 125,
+            width: 125,
+        },
         update_mode::UPDATE_MODE_PARTIAL,
         waveform_mode::WAVEFORM_MODE_DU,
         display_temp::TEMP_USE_PAPYRUS,
