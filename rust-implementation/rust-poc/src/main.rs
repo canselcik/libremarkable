@@ -18,39 +18,46 @@ use librustpad::physical_buttons;
 use mxc_types::{display_temp, waveform_mode, update_mode, dither_mode};
 
 
-fn clear(ptr: *mut fb::Framebuffer) {
-    let framebuffer = unsafe { &mut *ptr as &mut fb::Framebuffer };
+fn clear(quick: bool) {
+    let framebuffer = unsafe { &mut *G_FRAMEBUFFER as &mut fb::Framebuffer };
+
     let (yres, xres) = (
         framebuffer.var_screen_info.yres,
         framebuffer.var_screen_info.xres,
     );
     framebuffer.clear();
-    framebuffer.refresh(
+
+    let (update_mode, waveform_mode) = match quick {
+        true  => (update_mode::UPDATE_MODE_PARTIAL, waveform_mode::WAVEFORM_MODE_GC16_FAST),
+        false => (update_mode::UPDATE_MODE_FULL, waveform_mode::WAVEFORM_MODE_INIT),
+    };
+    let marker = framebuffer.refresh(
         mxc_types::mxcfb_rect {
             top: 0,
             left: 0,
             height: yres,
             width: xres,
         },
-        update_mode::UPDATE_MODE_FULL,
-        waveform_mode::WAVEFORM_MODE_INIT,
+        update_mode,
+        waveform_mode,
         display_temp::TEMP_USE_AMBIENT,
         dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-        0,
-        0,
+        0, 0,
     );
-    std::thread::sleep(Duration::from_millis(100));
+    match quick {
+        true => framebuffer.wait_refresh_complete(marker),
+        false => std::thread::sleep(Duration::from_millis(150)),
+    }
 }
 
 fn display_text(
-    ptr: *mut fb::Framebuffer,
     y: usize,
     x: usize,
     scale: usize,
     text: String,
     wait_refresh: bool,
 ) {
-    let framebuffer = unsafe { &mut *ptr as &mut fb::Framebuffer };
+    let framebuffer = unsafe { &mut *G_FRAMEBUFFER as &mut fb::Framebuffer };
 
     let draw_area: mxc_types::mxcfb_rect =
         framebuffer.draw_text(y, x, text, scale, mxc_types::REMARKABLE_DARKEST);
@@ -69,8 +76,8 @@ fn display_text(
 }
 
 
-fn loop_print_time(ptr: *mut fb::Framebuffer, y: usize, x: usize, scale: usize) {
-    let framebuffer = unsafe { &mut *ptr as &mut fb::Framebuffer };
+fn loop_print_time(y: usize, x: usize, scale: usize) {
+    let framebuffer = unsafe { &mut *G_FRAMEBUFFER as &mut fb::Framebuffer };
 
     let mut draw_area: Option<mxc_types::mxcfb_rect> = None;
     loop {
@@ -114,8 +121,8 @@ fn loop_print_time(ptr: *mut fb::Framebuffer, y: usize, x: usize, scale: usize) 
     }
 }
 
-fn show_image(ptr: *mut fb::Framebuffer, img: &image::DynamicImage, y: usize, x: usize) {
-    let framebuffer = unsafe { &mut *ptr as &mut fb::Framebuffer };
+fn show_image(img: &image::DynamicImage, y: usize, x: usize) {
+    let framebuffer = unsafe { &mut *G_FRAMEBUFFER as &mut fb::Framebuffer };
 
     let rect = framebuffer.draw_image(&img, y, x);
     let marker = framebuffer.refresh(
@@ -169,7 +176,10 @@ fn on_button_press(btn: physical_buttons::PhysicalButton, new_state: u16) {
     };
     let x_offset = match btn {
         physical_buttons::PhysicalButton::LEFT => 50,
-        physical_buttons::PhysicalButton::MIDDLE => 640,
+        physical_buttons::PhysicalButton::MIDDLE => {
+            draw_initial_scene(true);
+            return
+        },
         physical_buttons::PhysicalButton::RIGHT => 1250,
     };
 
@@ -190,34 +200,34 @@ fn on_button_press(btn: physical_buttons::PhysicalButton, new_state: u16) {
     );
 }
 
-static mut G_FRAMEBUFFER: *mut fb::Framebuffer = std::ptr::null_mut::<fb::Framebuffer>();
-fn main() {
-    let mut fbuffer = fb::Framebuffer::new("/dev/fb0");
-
-    // TODO: Maybe actually try to reason with the borrow checker here
-    let framebuffer = unsafe {
-        G_FRAMEBUFFER = &mut fbuffer;
-        G_FRAMEBUFFER
-    };
-
+fn draw_initial_scene(quick: bool) {
     let img = image::load_from_memory(include_bytes!("../rustlang.bmp")).unwrap();
+    clear(quick);
 
-    clear(framebuffer);
-
-    let clock_thread = std::thread::spawn(move || {
-        let ptr = unsafe { &mut *G_FRAMEBUFFER as &mut fb::Framebuffer };
-        loop_print_time(ptr, 100, 100, 65);
-    });
-
+    show_image(&img, 10, 900);
     display_text(
-        framebuffer,
         200,
         100,
         100,
         "Remarkable Tablet".to_owned(),
         false,
     );
-    show_image(framebuffer, &img, 10, 900);
+}
+
+static mut G_FRAMEBUFFER: *mut fb::Framebuffer = std::ptr::null_mut::<fb::Framebuffer>();
+fn main() {
+    let mut fbuffer = fb::Framebuffer::new("/dev/fb0");
+
+    // TODO: Maybe actually try to reason with the borrow checker here
+    unsafe {
+        G_FRAMEBUFFER = &mut fbuffer;
+    };
+
+    draw_initial_scene(false);
+
+    let clock_thread = std::thread::spawn(move || {
+        loop_print_time(100, 100, 65);
+    });
 
     let hw_btn_demo_thread = std::thread::spawn(move || {
         librustpad::ev::start_evdev(
