@@ -13,22 +13,36 @@ pub struct MultitouchHandler {
     pub currently_touching: bool,
     pub last_x: u16,
     pub last_y: u16,
-    pub on_touch: fn(u16, u16, u16, u16),
     pub last_finger_id: u16,
+    callback: fn(MultitouchEvent),
+    verbose: bool,
 }
 
 impl MultitouchHandler {
-    pub fn get_instance(on_touch: fn(u16, u16, u16, u16)) -> MultitouchHandler {
+    pub fn get_instance(verbose: bool, callback: fn(MultitouchEvent)) -> MultitouchHandler {
         return MultitouchHandler {
             name: "MT".to_owned(),
-            on_touch: on_touch,
             currently_touching: false,
             last_finger_id: 0,
             last_touch_id: 0,
             last_touch_size: 0,
             last_x: 0,
             last_y: 0,
+            callback,
+            verbose
         };
+    }
+}
+
+#[derive(PartialEq, Copy, Clone)]
+pub enum MultitouchEvent {
+    Touch { gesture_seq: u16, finger_id: u16, y: u16, x: u16 },
+    Unknown,
+}
+
+impl Default for MultitouchEvent{
+    fn default() -> MultitouchEvent {
+        MultitouchEvent::Unknown
     }
 }
 
@@ -58,13 +72,12 @@ impl ev::EvdevHandler for MultitouchHandler {
                         let val = ev.value as u16;
                         self.last_y = mxc_types::MTHEIGHT - val;
 
-                        // callback
-                        (self.on_touch)(
-                            self.last_touch_id,
-                            self.last_finger_id,
-                            (self.last_y as f32 * VSCALAR) as u16,
-                            (self.last_x as f32 * HSCALAR) as u16,
-                        );
+                        (self.callback)(MultitouchEvent::Touch {
+                            gesture_seq: self.last_touch_id,
+                            finger_id: self.last_finger_id,
+                            y: (self.last_y as f32 * VSCALAR) as u16,
+                            x: (self.last_x as f32 * HSCALAR) as u16,
+                        });
                     }
                     52 | 48 | 58 => {
                         // println!("unknown_absolute_touch_event(code={0}, value={1})", ev.code, ev.value);
@@ -86,25 +99,29 @@ impl ev::EvdevHandler for MultitouchHandler {
                     }
                     // very unlikely
                     _ => {
-                        println!(
-                            "Unknown event code for {0} [type: {1} code: {2} value: {3}]",
-                            self.name,
-                            ev._type,
-                            ev.code,
-                            ev.value
-                        )
+                        if self.verbose {
+                            println!(
+                                "Unknown event code for {0} [type: {1} code: {2} value: {3}]",
+                                self.name,
+                                ev._type,
+                                ev.code,
+                                ev.value
+                            )
+                        }
                     } 
                 }
             }
             _ => {
                 // very unlikely
-                println!(
-                    "Unknown event type for {0} [type: {1} code: {2} value: {3}]",
-                    self.name,
-                    ev._type,
-                    ev.code,
-                    ev.value
-                );
+                if self.verbose {
+                    println!(
+                        "Unknown event type for {0} [type: {1} code: {2} value: {3}]",
+                        self.name,
+                        ev._type,
+                        ev.code,
+                        ev.value
+                    );
+                }
             }
         }
     }
