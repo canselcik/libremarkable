@@ -1,9 +1,6 @@
 #![feature(const_ptr_null_mut)]
 
 extern crate librustpad;
-extern crate image;
-extern crate libc;
-extern crate evdev;
 extern crate chrono;
 
 use chrono::{Local, DateTime};
@@ -12,6 +9,9 @@ use std::option::Option;
 use std::time::Duration;
 use std::thread::sleep;
 
+use librustpad::multitouch;
+use librustpad::rb::*;
+use librustpad::image;
 use librustpad::fb;
 use librustpad::mxc_types;
 use librustpad::physical_buttons;
@@ -138,11 +138,6 @@ fn show_image(img: &image::DynamicImage, y: usize, x: usize) {
     framebuffer.wait_refresh_complete(marker);
 }
 
-/*
-    InstrumentChange { pen: WacomPen, state: bool },
-    Hover { y: u16, x: u16, distance: u16, tilt_x: u16, tilt_y: u16 },
-    Draw  { y: u16, x: u16, pressure: u16, tilt_x: u16, tilt_y: u16 },
-*/
 #[allow(unused_variables)]
 fn on_wacom_input(input: WacomEvent) {
     let framebuffer = unsafe { &mut *G_FRAMEBUFFER as &mut fb::Framebuffer };
@@ -165,27 +160,33 @@ fn on_wacom_input(input: WacomEvent) {
             );
         },
         WacomEvent::InstrumentChange{pen, state} => {
-            println!("WacomInstrumentChanged(inst: {0}, state: {1})", pen as u16, state);
+            // println!("WacomInstrumentChanged(inst: {0}, state: {1})", pen as u16, state);
         },
         WacomEvent::Hover{y, x, distance, tilt_x, tilt_y} => {
-//            println!("WacomHover(y: {0}, x: {1}, distance: {2})", y, x, distance);
+            // println!("WacomHover(y: {0}, x: {1}, distance: {2})", y, x, distance);
         },
+        _ => {},
     };
 }
 
-fn on_touch(_gesture_seq: u16, _finger_id: u16, y: u16, x: u16) {
+#[allow(unused_variables)]
+fn on_touch(input: multitouch::MultitouchEvent) {
     let framebuffer = unsafe { &mut *G_FRAMEBUFFER as &mut fb::Framebuffer };
-
-    let rect = framebuffer.draw_circle(y as usize, x as usize, 20, mxc_types::REMARKABLE_DARKEST);
-    framebuffer.refresh(
-        rect,
-        update_mode::UPDATE_MODE_PARTIAL,
-        waveform_mode::WAVEFORM_MODE_DU,
-        display_temp::TEMP_USE_REMARKABLE_DRAW,
-        dither_mode::EPDC_FLAG_USE_DITHERING_DRAWING,
-        mxc_types::DRAWING_QUANT_BIT,
-        0,
-    );
+    match input {
+        multitouch::MultitouchEvent::Touch{gesture_seq, finger_id, y, x} => {
+            let rect = framebuffer.draw_circle(y as usize, x as usize, 20, mxc_types::REMARKABLE_DARKEST);
+            framebuffer.refresh(
+                rect,
+                update_mode::UPDATE_MODE_PARTIAL,
+                waveform_mode::WAVEFORM_MODE_DU,
+                display_temp::TEMP_USE_REMARKABLE_DRAW,
+                dither_mode::EPDC_FLAG_USE_DITHERING_DRAWING,
+                mxc_types::DRAWING_QUANT_BIT,
+                0,
+            );
+        },
+        _ => {}
+    }
 }
 
 fn on_button_press(btn: physical_buttons::PhysicalButton, new_state: u16) {
@@ -253,27 +254,43 @@ fn main() {
         loop_print_time(100, 100, 65);
     });
 
-    let hw_btn_demo_thread = std::thread::spawn(move || {
+    let gpio_thread = std::thread::spawn(move || {
         librustpad::ev::start_evdev(
             "/dev/input/event2".to_owned(),
             physical_buttons::PhysicalButtonHandler::get_instance(on_button_press),
         );
     });
-    let mt_demo_thread = std::thread::spawn(move || {
+
+    let ringbuffer = librustpad::rb::SpscRb::new(1024);
+    let (producer, consumer) = (ringbuffer.producer(), ringbuffer.consumer());
+
+    let touch_thread = std::thread::spawn(move || {
         librustpad::ev::start_evdev(
             "/dev/input/event1".to_owned(),
-            librustpad::multitouch::MultitouchHandler::get_instance(on_touch),
-        );
-    });
-    let wacom_demo_thread = std::thread::spawn(move || {
-        librustpad::ev::start_evdev(
-            "/dev/input/event0".to_owned(),
-            WacomHandler::get_instance(true, on_wacom_input),
+            librustpad::multitouch::MultitouchHandler::get_instance(false, on_touch),
         );
     });
 
+    let wacom_thread = std::thread::spawn(move || {
+        librustpad::ev::start_evdev(
+            "/dev/input/event0".to_owned(),
+            WacomHandler::get_instance(false, &producer),
+        );
+    });
+
+    // Now we consume the input events;
+    let mut buf = [WacomEvent::Unknown; 128];
+    let mut _running = true;
+    while _running {
+        let _read = consumer.read_blocking(&mut buf).unwrap();
+        for &ev in buf.iter() {
+            on_wacom_input(ev);
+        }
+    }
+
+    // Wait for all threads to join
     clock_thread.join().unwrap();
-    hw_btn_demo_thread.join().unwrap();
-    wacom_demo_thread.join().unwrap();
-    mt_demo_thread.join().unwrap();
+    gpio_thread.join().unwrap();
+    wacom_thread.join().unwrap();
+    touch_thread.join().unwrap();
 }

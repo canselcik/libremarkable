@@ -6,10 +6,11 @@ extern crate ioctl_gen;
 
 extern crate libc;
 extern crate mmap;
-extern crate image;
 extern crate rusttype;
-extern crate epoll;
 
+pub extern crate image;
+pub extern crate epoll;
+pub extern crate rb;
 pub extern crate evdev;
 pub extern crate line_drawing;
 
@@ -24,6 +25,3 @@ pub mod ev_debug;
 pub mod physical_buttons;
 pub mod multitouch;
 pub mod wacom;
-
-pub use evdev::Device;
-pub use evdev::raw::input_event;

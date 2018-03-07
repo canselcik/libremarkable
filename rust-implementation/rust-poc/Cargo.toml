@@ -5,12 +5,7 @@ authors = ["not-avail <not-avail@not-avail>"]
 
 [dependencies]
 librustpad = { path = "../librustpad" }
-image = "*"
-evdev = "*"
-epoll = "3.1.1"
-libc = "*"
 chrono = "*"
-rb = "0.3.1"
 
 [profile.release]
 debug = true
