@@ -15,6 +15,7 @@ use std::thread::sleep;
 use librustpad::fb;
 use librustpad::mxc_types;
 use librustpad::physical_buttons;
+use librustpad::wacom::{WacomEvent, WacomHandler};
 use mxc_types::{display_temp, waveform_mode, update_mode, dither_mode};
 
 
@@ -137,19 +138,39 @@ fn show_image(img: &image::DynamicImage, y: usize, x: usize) {
     framebuffer.wait_refresh_complete(marker);
 }
 
-fn on_wacom_input(y: u16, x: u16) {
+/*
+    InstrumentChange { pen: WacomPen, state: bool },
+    Hover { y: u16, x: u16, distance: u16, tilt_x: u16, tilt_y: u16 },
+    Draw  { y: u16, x: u16, pressure: u16, tilt_x: u16, tilt_y: u16 },
+*/
+#[allow(unused_variables)]
+fn on_wacom_input(input: WacomEvent) {
     let framebuffer = unsafe { &mut *G_FRAMEBUFFER as &mut fb::Framebuffer };
+    match input {
+        WacomEvent::Draw{y, x, pressure, tilt_x, tilt_y} => {
+            let rad = (pressure as f32 / 4096. * 30.) as usize;
 
-    let rect = framebuffer.draw_circle(y as usize, x as usize, 20, mxc_types::REMARKABLE_DARKEST);
-    framebuffer.refresh(
-        rect,
-        update_mode::UPDATE_MODE_PARTIAL,
-        waveform_mode::WAVEFORM_MODE_DU,
-        display_temp::TEMP_USE_REMARKABLE_DRAW,
-        dither_mode::EPDC_FLAG_USE_DITHERING_DRAWING,
-        mxc_types::DRAWING_QUANT_BIT,
-        0,
-    );
+            let rect = framebuffer.draw_circle(
+                y as usize, x as usize,
+                rad, mxc_types::REMARKABLE_DARKEST);
+
+            framebuffer.refresh(
+                rect,
+                update_mode::UPDATE_MODE_PARTIAL,
+                waveform_mode::WAVEFORM_MODE_DU,
+                display_temp::TEMP_USE_REMARKABLE_DRAW,
+                dither_mode::EPDC_FLAG_USE_DITHERING_DRAWING,
+                mxc_types::DRAWING_QUANT_BIT,
+                0,
+            );
+        },
+        WacomEvent::InstrumentChange{pen, state} => {
+            println!("WacomInstrumentChanged(inst: {0}, state: {1})", pen as u16, state);
+        },
+        WacomEvent::Hover{y, x, distance, tilt_x, tilt_y} => {
+//            println!("WacomHover(y: {0}, x: {1}, distance: {2})", y, x, distance);
+        },
+    };
 }
 
 fn on_touch(_gesture_seq: u16, _finger_id: u16, y: u16, x: u16) {
@@ -244,7 +265,7 @@ fn main() {
     let wacom_demo_thread = std::thread::spawn(move || {
         librustpad::ev::start_evdev(
             "/dev/input/event0".to_owned(),
-            librustpad::wacom::WacomHandler::get_instance(false, on_wacom_input),
+            WacomHandler::get_instance(true, on_wacom_input),
         );
     });
 
