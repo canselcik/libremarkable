@@ -195,10 +195,13 @@ fn on_button_press(btn: physical_buttons::PhysicalButton, new_state: u16) {
         0 => mxc_types::REMARKABLE_BRIGHTEST,
         _ => mxc_types::REMARKABLE_DARKEST,
     };
+
     let x_offset = match btn {
         physical_buttons::PhysicalButton::LEFT => 50,
         physical_buttons::PhysicalButton::MIDDLE => {
-            draw_initial_scene(true);
+            if new_state != 0 {
+                draw_initial_scene(true);
+            };
             return
         },
         physical_buttons::PhysicalButton::RIGHT => 1250,
