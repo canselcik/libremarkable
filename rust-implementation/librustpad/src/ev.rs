@@ -4,10 +4,10 @@ use std;
 
 pub trait EvdevHandler {
     fn on_init(&mut self, name: String, device: &mut evdev::Device);
-    fn on_event(&mut self, event: evdev::raw::input_event);
+    fn on_event(&mut self, device: &String, event: evdev::raw::input_event);
 }
 
-pub fn start_evdev<H: EvdevHandler>(path: String, mut handler: H) {
+pub fn start_evdev<H: EvdevHandler>(path: String, handler: &mut H) {
     let mut dev = evdev::Device::open(&path).unwrap();
     let devn = unsafe {
         let mut ptr = std::mem::transmute(dev.name().as_ptr());
@@ -26,7 +26,7 @@ pub fn start_evdev<H: EvdevHandler>(path: String, mut handler: H) {
     epoll::ctl(epfd, epoll::ControlOptions::EPOLL_CTL_ADD, dev.fd(), v[0]).unwrap();
 
     // init callback
-    handler.on_init(devn, &mut dev);
+    handler.on_init(devn.clone(), &mut dev);
 
     loop {
         // -1 indefinite wait but it is okay because our EPOLL FD is watching on ALL input devices at once
@@ -37,7 +37,7 @@ pub fn start_evdev<H: EvdevHandler>(path: String, mut handler: H) {
 
         for ev in dev.events_no_sync().unwrap() {
             // event callback
-            handler.on_event(ev);
+            handler.on_event(&devn, ev);
         }
     }
 }
