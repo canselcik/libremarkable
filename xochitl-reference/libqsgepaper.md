@@ -19,7 +19,7 @@ epcontext.o:
   EPRenderContext::isValid() const;
   EPContext::minimumFBOSize() const;
   EPContext::defaultSurfaceFormat() const;
-```
+
 epframebuffer.o:
   EPFrameBuffer::sendUpdate(QRect, EPFrameBuffer::WaveformMode, EPFrameBuffer::UpdateMode, bool);
   EPFrameBuffer::clearScreen();
