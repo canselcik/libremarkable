@@ -248,11 +248,11 @@ fn draw_initial_scene(quick: bool) {
 static mut G_FRAMEBUFFER: *mut fb::Framebuffer = std::ptr::null_mut::<fb::Framebuffer>();
 static mut G_UNIFIED_IOH: *mut unifiedinput::UnifiedInputHandler = std::ptr::null_mut::<unifiedinput::UnifiedInputHandler>();
 fn main() {
-    let mut fbuffer = fb::Framebuffer::new("/dev/fb0");
+    let fbuffer = Box::new(fb::Framebuffer::new("/dev/fb0"));
 
     // TODO: Maybe actually try to reason with the borrow checker here
     unsafe {
-        G_FRAMEBUFFER = &mut fbuffer;
+        G_FRAMEBUFFER = Box::leak(fbuffer);
     };
 
     draw_initial_scene(false);
@@ -263,10 +263,8 @@ fn main() {
 
     let ringbuffer = librustpad::rb::SpscRb::new(4096);
     let consumer = ringbuffer.consumer();
-
     let producer = Box::new(ringbuffer.producer());
     let static_ref: &'static mut Producer<unifiedinput::InputEvent> = Box::leak(producer);
-
     let mut unified = unifiedinput::UnifiedInputHandler::new(false, static_ref);
     unsafe {
         G_UNIFIED_IOH = &mut unified;
