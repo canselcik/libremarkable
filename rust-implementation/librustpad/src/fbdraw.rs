@@ -32,6 +32,20 @@ impl<'a> fb::Framebuffer<'a> {
         };
     }
 
+    pub fn fill_circle(&mut self, y: usize, x: usize, rad: usize, color: u8) -> mxcfb_rect {
+        for current in {1..rad+1} {
+            for (x, y) in line_drawing::BresenhamCircle::new(x as i32, y as i32, current as i32) {
+                self.write_pixel(y as usize, x as usize, color);
+            }
+        }
+        return mxcfb_rect {
+            top: y as u32 - rad as u32,
+            left: x as u32 - rad as u32,
+            width: 2 * rad as u32,
+            height: 2 * rad as u32,
+        };
+    }
+
     pub fn draw_text(
         &mut self,
         y: usize,

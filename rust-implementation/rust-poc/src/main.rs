@@ -144,9 +144,9 @@ fn on_wacom_input(input: unifiedinput::WacomEvent) {
     let framebuffer = unsafe { &mut *G_FRAMEBUFFER as &mut fb::Framebuffer };
     match input {
         unifiedinput::WacomEvent::Draw{y, x, pressure, tilt_x, tilt_y} => {
-            let rad = (pressure as f32 / 4096. * 30.) as usize;
+            let rad = (pressure as f32 / 4096. * 4.) as usize;
 
-            let rect = framebuffer.draw_circle(
+            let rect = framebuffer.fill_circle(
                 y as usize, x as usize,
                 rad, mxc_types::REMARKABLE_DARKEST);
 
@@ -291,7 +291,7 @@ fn main() {
     });
 
     // Now we consume the input events;
-    let mut buf = [unifiedinput::InputEvent::Unknown {}; 128];
+    let mut buf = [unifiedinput::InputEvent::Unknown {}; 512];
     let mut _running = true;
     while _running {
         let _read = consumer.read_blocking(&mut buf).unwrap();
