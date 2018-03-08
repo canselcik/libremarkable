@@ -144,11 +144,11 @@ fn on_wacom_input(input: unifiedinput::WacomEvent) {
     let framebuffer = unsafe { &mut *G_FRAMEBUFFER as &mut fb::Framebuffer };
     match input {
         unifiedinput::WacomEvent::Draw{y, x, pressure, tilt_x, tilt_y} => {
-            let rad = (pressure as f32 / 4096. * 4.) as usize;
+            let rad = 8. * (pressure as f32) / 4096.;
 
             let rect = framebuffer.fill_circle(
                 y as usize, x as usize,
-                rad, mxc_types::REMARKABLE_DARKEST);
+                rad as usize, mxc_types::REMARKABLE_DARKEST);
 
             framebuffer.refresh(
                 rect,
