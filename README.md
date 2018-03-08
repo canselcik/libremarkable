@@ -19,7 +19,9 @@ This repository contains a collection of scripts, code and general information o
 (GIF Preview has limited FPS -- click to watch at full framerate)
 
 ### Build Instructions
-First run `make freetype` to generate the `libfreetype` static build with the expected flags.
+First, initialize the libfreetype submodules with `git submodule init && git submodule update`.
+
+Then, run `make freetype` to generate the `libfreetype` static build with the expected flags.
 
 Execute `make all` to generate the `poc` executable along with `spy.so`, `libremarkable.so`, `libremarkable.a` and `evtest`.
 

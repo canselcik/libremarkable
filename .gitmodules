@@ -1,0 +1,3 @@
+[submodule "libfreetype"]
+	path = libfreetype
+	url = git://github.com/ricardoquesada/libfreetype
