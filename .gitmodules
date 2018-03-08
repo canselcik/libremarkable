@@ -1,3 +1,3 @@
-[submodule "libfreetype"]
-	path = libfreetype
+[submodule "c-implementation/libfreetype"]
+	path = c-implementation/libfreetype
 	url = git://github.com/ricardoquesada/libfreetype
