@@ -155,7 +155,7 @@ fn on_wacom_input(input: unifiedinput::WacomEvent) {
                 update_mode::UPDATE_MODE_PARTIAL,
                 waveform_mode::WAVEFORM_MODE_DU,
                 display_temp::TEMP_USE_REMARKABLE_DRAW,
-                dither_mode::EPDC_FLAG_USE_DITHERING_DRAWING,
+                dither_mode::EPDC_FLAG_EXP1,
                 mxc_types::DRAWING_QUANT_BIT,
                 0,
             );
@@ -181,7 +181,7 @@ fn on_touch(input: unifiedinput::MultitouchEvent) {
                 update_mode::UPDATE_MODE_PARTIAL,
                 waveform_mode::WAVEFORM_MODE_DU,
                 display_temp::TEMP_USE_REMARKABLE_DRAW,
-                dither_mode::EPDC_FLAG_USE_DITHERING_DRAWING,
+                dither_mode::EPDC_FLAG_USE_DITHERING_ALPHA,
                 mxc_types::DRAWING_QUANT_BIT,
                 0,
             );
