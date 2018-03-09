@@ -44,10 +44,10 @@ impl<'a> fb::Framebuffer<'a> {
             update_marker: *self.marker.get_mut() as u32,
             waveform_mode: waveform_mode as u32,
             temp: temperature as i32,
-            flags: flags,
-            quant_bit: quant_bit,
+            flags,
+            quant_bit,
             dither_mode: dither_mode as i32,
-            update_region: update_region,
+            update_region,
             ..Default::default()
         };
         let pt: *const mxcfb_update_data = &whole;

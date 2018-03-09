@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 #![allow(non_camel_case_types)]
-use libc::{intptr_t, c_int};
+use libc;
+use libc::intptr_t;
+
 use std;
 
 
@@ -178,13 +180,13 @@ impl ::std::default::Default for mxcfb_update_data {
 #[derive(Debug)]
 #[repr(C)]
 pub struct ioctl_intercept_event {
-    pub fd: c_int,
+    pub fd: libc::c_int,
     pub request: u32,
     pub p1: intptr_t,
     pub p2: intptr_t,
     pub p3: intptr_t,
     pub p4: intptr_t,
-    pub ret: c_int,
+    pub ret: libc::c_int,
 }
 
 impl ::std::default::Default for ioctl_intercept_event {

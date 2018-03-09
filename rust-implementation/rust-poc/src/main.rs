@@ -15,9 +15,12 @@ use librustpad::rb::*;
 use librustpad::image;
 use librustpad::fb;
 use librustpad::mxc_types;
+use librustpad::mxc_types::display_temp;
+use librustpad::mxc_types::dither_mode;
+use librustpad::mxc_types::update_mode;
+use librustpad::mxc_types::waveform_mode;
 use librustpad::unifiedinput;
 
-use mxc_types::{display_temp, waveform_mode, update_mode, dither_mode};
 
 
 fn clear(quick: bool) {
@@ -57,24 +60,28 @@ fn display_text(
     x: usize,
     scale: usize,
     text: String,
-    wait_refresh: bool,
+    refresh: UIConstraintRefresh,
 ) {
     let framebuffer = unsafe { &mut *G_FRAMEBUFFER as &mut fb::Framebuffer };
 
     let draw_area: mxc_types::mxcfb_rect =
         framebuffer.draw_text(y, x, text, scale, mxc_types::REMARKABLE_DARKEST);
-    let marker = framebuffer.refresh(
-        draw_area,
-        update_mode::UPDATE_MODE_PARTIAL,
-        waveform_mode::WAVEFORM_MODE_GC16_FAST,
-        display_temp::TEMP_USE_REMARKABLE_DRAW,
-        dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-        0,
-        0,
-    );
-    if !wait_refresh {
-        framebuffer.wait_refresh_complete(marker);
-    }
+    let marker = match refresh {
+        UIConstraintRefresh::REFRESH | UIConstraintRefresh::REFRESH_AND_WAIT => framebuffer.refresh(
+                draw_area,
+                update_mode::UPDATE_MODE_PARTIAL,
+                waveform_mode::WAVEFORM_MODE_GC16_FAST,
+                display_temp::TEMP_USE_REMARKABLE_DRAW,
+                dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                0,
+                0,
+            ),
+        _ => return,
+    };
+    match refresh {
+        UIConstraintRefresh::REFRESH_AND_WAIT => framebuffer.wait_refresh_complete(marker),
+        _ => {},
+    };
 }
 
 
@@ -94,7 +101,7 @@ fn loop_print_time(y: usize, x: usize, scale: usize) {
                     mxc_types::REMARKABLE_BRIGHTEST,
                 )
             }
-            _ => {} 
+            _ => {}
         }
 
         draw_area = Some(framebuffer.draw_text(
@@ -207,7 +214,7 @@ fn on_button_press(input: unifiedinput::GPIOEvent) {
         unifiedinput::PhysicalButton::LEFT => 50,
         unifiedinput::PhysicalButton::MIDDLE => {
             if new_state {
-                draw_initial_scene(true);
+                draw_scene(true);
             };
             return
         },
@@ -231,18 +238,42 @@ fn on_button_press(input: unifiedinput::GPIOEvent) {
     );
 }
 
-fn draw_initial_scene(quick: bool) {
-    let img = image::load_from_memory(include_bytes!("../rustlang.bmp")).unwrap();
+#[derive(Clone, Debug)]
+enum UIConstraintRefresh {
+    NONE, REFRESH, REFRESH_AND_WAIT
+}
+enum UIElement {
+    Text {
+        text: String,
+        scale: usize,
+        y: usize,
+        x: usize,
+        refresh: UIConstraintRefresh,
+    },
+    Image {
+        img: image::DynamicImage,
+        y: usize,
+        x: usize,
+    }
+}
+
+fn draw_scene(quick: bool) {
+    let elements = [
+        UIElement::Text   { text: "Remarkable Tablet".to_owned(), y:200, x: 100, scale: 100, refresh: UIConstraintRefresh::NONE },
+        UIElement::Image  { img: image::load_from_memory(include_bytes!("../rustlang.bmp")).unwrap(), y: 10, x: 900 },
+        UIElement::Text   { text: "Current Waveform: ".to_owned(), y:350, x: 120, scale: 65, refresh: UIConstraintRefresh::NONE },
+        UIElement::Text   { text: "Current Dither Mode: ".to_owned(), y:400, x: 120, scale: 65, refresh: UIConstraintRefresh::NONE },
+        UIElement::Text   { text: "Current Quant: ".to_owned(), y:450, x: 120, scale: 65, refresh: UIConstraintRefresh::REFRESH_AND_WAIT },
+    ];
+
     clear(quick);
 
-    show_image(&img, 10, 900);
-    display_text(
-        200,
-        100,
-        100,
-        "Remarkable Tablet".to_owned(),
-        false,
-    );
+    for element in elements.iter() {
+        match element {
+            &UIElement::Text{ref text, y, x, scale, ref refresh} => display_text(y, x, scale, text.to_string(), refresh.clone()),
+            &UIElement::Image{ref img, y, x} => show_image(&img, y, x),
+        }
+    }
 }
 
 static mut G_FRAMEBUFFER: *mut fb::Framebuffer = std::ptr::null_mut::<fb::Framebuffer>();
@@ -255,7 +286,7 @@ fn main() {
         G_FRAMEBUFFER = Box::leak(fbuffer);
     };
 
-    draw_initial_scene(false);
+    draw_scene(false);
 
     let clock_thread = std::thread::spawn(move || {
         loop_print_time(100, 100, 65);

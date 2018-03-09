@@ -72,11 +72,11 @@ impl<'a> Framebuffer<'a> {
         var_screen_info.accel_flags = 0;
         let mut fb = Framebuffer {
             marker: AtomicU32::new(1),
-            device: device,
+            device,
             frame: mem_map,
             default_font: collection.into_font().unwrap(),
-            var_screen_info: var_screen_info,
-            fix_screen_info: fix_screen_info,
+            var_screen_info,
+            fix_screen_info,
         };
         if !fb.put_var_screeninfo() {
             panic!("FBIOPUT_VSCREENINFO failed");

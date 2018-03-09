@@ -5,7 +5,8 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 
 extern crate libc;
-use libc::{c_int,intptr_t};
+use libc::c_int;
+use libc::intptr_t;
 
 #[macro_use]
 extern crate redhook;
@@ -39,13 +40,13 @@ lazy_static! {
 #[derive(Debug)]
 #[repr(C)]
 struct ioctl_intercept_event {
-  fd: c_int,
+  fd: libc::c_int,
   request: u32,
   p1: intptr_t,
   p2: intptr_t,
   p3: intptr_t,
   p4: intptr_t,
-  ret: c_int,
+  ret: libc::c_int,
 }
 
 fn add_entry(map: &mut HashMap<u32, u32>, ent: u32) {
