@@ -1,3 +1,9 @@
+#[macro_use]
+extern crate lazy_static;
+
+use std::collections::HashMap;
+use std::sync::Mutex;
+
 extern crate libc;
 use libc::{c_int,intptr_t};
 
@@ -6,6 +12,29 @@ extern crate redhook;
 
 extern crate librustpad;
 use librustpad::mxc_types;
+
+lazy_static! {
+  static ref DIST_DITHER: Mutex<HashMap<u32, u32>> = {
+    let m = HashMap::new();
+    Mutex::new(m)
+  };
+  static ref DIST_WAVEFORM: Mutex<HashMap<u32, u32>> = {
+    let m = HashMap::new();
+    Mutex::new(m)
+  };
+  static ref DIST_QUANT: Mutex<HashMap<u32, u32>> = {
+    let m = HashMap::new();
+    Mutex::new(m)
+  };
+  static ref DIST_FLAGS: Mutex<HashMap<u32, u32>> = {
+    let m = HashMap::new();
+    Mutex::new(m)
+  };
+  static ref DIST_TEMP: Mutex<HashMap<u32, u32>> = {
+    let m = HashMap::new();
+    Mutex::new(m)
+  };
+}
 
 #[derive(Debug)]
 #[repr(C)]
@@ -19,10 +48,38 @@ struct ioctl_intercept_event {
   ret: c_int,
 }
 
+fn add_entry(map: &mut HashMap<u32, u32>, ent: u32) {
+  let count = match map.get(&ent) {
+    Some(count) => *count,
+    None => 0,
+  };
+  map.insert(ent, count + 1);
+  for (key, value) in &*map {
+    println!("  {0:x} --> {1} times", key, value);
+  }
+}
 
 fn handle_send_update(event: ioctl_intercept_event) {
+  let mut distdither= DIST_DITHER.lock().unwrap();
+  let mut distwave = DIST_WAVEFORM.lock().unwrap();
+  let mut distquant = DIST_QUANT.lock().unwrap();
+  let mut distflags = DIST_FLAGS.lock().unwrap();
+  let mut disttemp = DIST_TEMP.lock().unwrap();
+
+  let update_data = event.p1 as *mut mxc_types::mxcfb_update_data;
+
+  println!("===WAVEFORM DISTRIBUTION===");
+  add_entry(&mut distwave, unsafe { (*update_data).waveform_mode });
+  println!("===DITHERING DISTRIBUTION===");
+  add_entry(&mut distdither, unsafe { (*update_data).dither_mode } as u32);
+  println!("===TEMP DISTRIBUTION===");
+  add_entry(&mut disttemp, unsafe { (*update_data).temp } as u32);
+  println!("===QUANT DISTRIBUTION===");
+  add_entry(&mut distquant, unsafe { (*update_data).quant_bit } as u32);
+  println!("===FLAGS DISTRIBUTION===");
+  add_entry(&mut distflags, unsafe { (*update_data).flags } as u32);
+
   unsafe {
-    let update_data = event.p1 as *mut mxc_types::mxcfb_update_data;
     println!("mxcfb_send_update(fd: {0}, updateData: {1:#?}) = {2}", event.fd, *update_data, event.ret);
   }
 }
@@ -51,6 +108,10 @@ hook! {
       p4: p4,
       ret: res,
     };
+
+    if fd != 3 {
+      return res;
+    }
 
     match request {
         mxc_types::FBIOGETCMAP => println!("FBIOGETCMAP({0:#?})", event),

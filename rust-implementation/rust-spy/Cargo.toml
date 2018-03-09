@@ -11,3 +11,4 @@ crate_type = ["dylib"]
 redhook = "0.1.1"
 libc = "0.2.37"
 librustpad = { path = "../librustpad" }
+lazy_static = "*"

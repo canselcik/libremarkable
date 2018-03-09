@@ -2,6 +2,10 @@
 poc
 evtest
 
+*.iml
+*.iws
+*.ipr
+
 target/
 Cargo.lock
 
