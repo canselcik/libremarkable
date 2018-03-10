@@ -7,6 +7,16 @@ use line_drawing;
 
 use image::GenericImage;
 
+macro_rules! min {
+        ($x: expr) => ($x);
+        ($x: expr, $($z: expr),+) => (::std::cmp::min($x, min!($($z),*)));
+}
+
+macro_rules! max {
+        ($x: expr) => ($x);
+        ($x: expr, $($z: expr),+) => (::std::cmp::max($x, max!($($z),*)));
+}
+
 impl<'a> fb::Framebuffer<'a> {
     pub fn draw_image(&mut self, img: &DynamicImage, top: usize, left: usize) -> mxcfb_rect {
         for (x, y, pixel) in img.to_luma().enumerate_pixels() {
@@ -18,6 +28,56 @@ impl<'a> fb::Framebuffer<'a> {
             width: img.width(),
             height: img.height(),
         };
+    }
+
+
+
+    pub fn draw_line(&mut self, y0: i32, x0: i32, y1: i32, x1: i32, color: u8) -> mxcfb_rect {
+        // Create local variables for moving start point
+        let mut x0 = x0;
+        let mut y0 = y0;
+
+        // Get absolute x/y offset
+        let dx = if x0 > x1 { x0 - x1 } else { x1 - x0 };
+        let dy = if y0 > y1 { y0 - y1 } else { y1 - y0 };
+
+        // Get slopes
+        let sx = if x0 < x1 { 1 } else { -1 };
+        let sy = if y0 < y1 { 1 } else { -1 };
+
+        // Initialize error
+        let mut err = if dx > dy { dx } else {-dy} / 2;
+        let mut err2;
+
+        let mut minx = 0;
+        let mut miny = 0;
+        let mut maxx= 0;
+        let mut maxy = 0;
+        loop {
+            // Set pixel
+            self.write_pixel(y0 as usize, x0 as usize, color);
+            maxy = max!(maxy, y0);
+            miny = min!(miny, y0);
+            minx = min!(minx, x0);
+            maxx = max!(maxx, x0);
+
+            // Check end condition
+            if x0 == x1 && y0 == y1 { break };
+
+            // Store old error
+            err2 = 2 * err;
+
+            // Adjust error and start position
+            if err2 > -dx { err -= dy; x0 += sx; }
+            if err2 < dy { err += dx; y0 += sy; }
+        }
+
+        return mxcfb_rect {
+            top: miny as u32,
+            left: minx as u32,
+            width: (maxx-minx) as u32,
+            height: (maxy-miny) as u32,
+        }
     }
 
     pub fn draw_circle(&mut self, y: usize, x: usize, rad: usize, color: u8) -> mxcfb_rect {

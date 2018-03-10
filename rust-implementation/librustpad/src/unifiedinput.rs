@@ -6,11 +6,16 @@ use std;
 use mxc_types;
 use rb;
 
+use rb::RbProducer;
+
 const WACOM_HSCALAR: f32 = (mxc_types::DISPLAYWIDTH as f32) / (mxc_types::WACOMWIDTH as f32);
 const WACOM_VSCALAR: f32 = (mxc_types::DISPLAYHEIGHT as f32) / (mxc_types::WACOMHEIGHT as f32);
 
 const MT_HSCALAR: f32 = (mxc_types::DISPLAYWIDTH as f32) / (mxc_types::MTWIDTH as f32);
 const MT_VSCALAR: f32 = (mxc_types::DISPLAYHEIGHT as f32) / (mxc_types::MTHEIGHT as f32);
+
+unsafe impl<'a> Send for UnifiedInputHandler<'a> {}
+unsafe impl<'a> Sync for UnifiedInputHandler<'a> {}
 
 pub struct WacomState {
     last_x: u16,
@@ -78,7 +83,7 @@ pub struct UnifiedInputHandler<'a> {
     gpio: GPIOState,
     mt: MultitouchState,
     verbose: bool,
-    ringbuffer: &'a rb::RbProducer<InputEvent>,
+    ringbuffer: &'a rb::Producer<InputEvent>,
 }
 
 #[derive(PartialEq, Copy, Clone)]
@@ -96,7 +101,7 @@ impl Default for InputEvent {
 }
 
 impl<'a> UnifiedInputHandler<'a> {
-    pub fn new(verbose: bool, ringbuffer: &rb::RbProducer<InputEvent>) -> UnifiedInputHandler {
+    pub fn new(verbose: bool, ringbuffer: &rb::Producer<InputEvent>) -> UnifiedInputHandler {
         return UnifiedInputHandler {
             gpio: GPIOState {
                 states: [false;3],

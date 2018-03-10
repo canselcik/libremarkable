@@ -67,7 +67,7 @@ fn display_text(
     let draw_area: mxc_types::mxcfb_rect =
         framebuffer.draw_text(y, x, text, scale, mxc_types::REMARKABLE_DARKEST);
     let marker = match refresh {
-        UIConstraintRefresh::REFRESH | UIConstraintRefresh::REFRESH_AND_WAIT => framebuffer.refresh(
+        UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer.refresh(
                 draw_area,
                 update_mode::UPDATE_MODE_PARTIAL,
                 waveform_mode::WAVEFORM_MODE_GC16_FAST,
@@ -79,11 +79,32 @@ fn display_text(
         _ => return,
     };
     match refresh {
-        UIConstraintRefresh::REFRESH_AND_WAIT => framebuffer.wait_refresh_complete(marker),
+        UIConstraintRefresh::RefreshAndWait => framebuffer.wait_refresh_complete(marker),
         _ => {},
     };
 }
 
+fn display_image(img: &image::DynamicImage, y: usize, x: usize, refresh: UIConstraintRefresh) {
+    let framebuffer = unsafe { &mut *G_FRAMEBUFFER as &mut fb::Framebuffer };
+
+    let rect = framebuffer.draw_image(&img, y, x);
+    let marker = match refresh {
+        UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer.refresh(
+            rect,
+            update_mode::UPDATE_MODE_PARTIAL,
+            waveform_mode::WAVEFORM_MODE_GC16_FAST,
+            display_temp::TEMP_USE_REMARKABLE_DRAW,
+            dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+            0,
+            0,
+        ),
+        _ => return,
+    };
+    match refresh {
+        UIConstraintRefresh::RefreshAndWait => framebuffer.wait_refresh_complete(marker),
+        _ => {},
+    };
+}
 
 fn loop_print_time(y: usize, x: usize, scale: usize) {
     let framebuffer = unsafe { &mut *G_FRAMEBUFFER as &mut fb::Framebuffer };
@@ -130,28 +151,12 @@ fn loop_print_time(y: usize, x: usize, scale: usize) {
     }
 }
 
-fn show_image(img: &image::DynamicImage, y: usize, x: usize) {
-    let framebuffer = unsafe { &mut *G_FRAMEBUFFER as &mut fb::Framebuffer };
-
-    let rect = framebuffer.draw_image(&img, y, x);
-    let marker = framebuffer.refresh(
-        rect,
-        update_mode::UPDATE_MODE_PARTIAL,
-        waveform_mode::WAVEFORM_MODE_GC16_FAST,
-        display_temp::TEMP_USE_REMARKABLE_DRAW,
-        dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-        0,
-        0,
-    );
-    framebuffer.wait_refresh_complete(marker);
-}
-
 #[allow(unused_variables)]
 fn on_wacom_input(input: unifiedinput::WacomEvent) {
     let framebuffer = unsafe { &mut *G_FRAMEBUFFER as &mut fb::Framebuffer };
     match input {
         unifiedinput::WacomEvent::Draw{y, x, pressure, tilt_x, tilt_y} => {
-            let rad = 8. * (pressure as f32) / 4096.;
+            let rad = 3.5 * (pressure as f32) / 4096.;
 
             let rect = framebuffer.fill_circle(
                 y as usize, x as usize,
@@ -232,7 +237,7 @@ fn on_button_press(input: unifiedinput::GPIOEvent) {
         update_mode::UPDATE_MODE_PARTIAL,
         waveform_mode::WAVEFORM_MODE_DU,
         display_temp::TEMP_USE_PAPYRUS,
-        dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+        dither_mode::EPDC_FLAG_USE_DITHERING_ALPHA,
         0,
         0,
     );
@@ -240,7 +245,9 @@ fn on_button_press(input: unifiedinput::GPIOEvent) {
 
 #[derive(Clone, Debug)]
 enum UIConstraintRefresh {
-    NONE, REFRESH, REFRESH_AND_WAIT
+    NoRefresh,
+    Refresh,
+    RefreshAndWait
 }
 enum UIElement {
     Text {
@@ -254,16 +261,17 @@ enum UIElement {
         img: image::DynamicImage,
         y: usize,
         x: usize,
+        refresh: UIConstraintRefresh,
     }
 }
 
 fn draw_scene(quick: bool) {
     let elements = [
-        UIElement::Text   { text: "Remarkable Tablet".to_owned(), y:200, x: 100, scale: 100, refresh: UIConstraintRefresh::NONE },
-        UIElement::Image  { img: image::load_from_memory(include_bytes!("../rustlang.bmp")).unwrap(), y: 10, x: 900 },
-        UIElement::Text   { text: "Current Waveform: ".to_owned(), y:350, x: 120, scale: 65, refresh: UIConstraintRefresh::NONE },
-        UIElement::Text   { text: "Current Dither Mode: ".to_owned(), y:400, x: 120, scale: 65, refresh: UIConstraintRefresh::NONE },
-        UIElement::Text   { text: "Current Quant: ".to_owned(), y:450, x: 120, scale: 65, refresh: UIConstraintRefresh::REFRESH_AND_WAIT },
+        UIElement::Text   { text: "Remarkable Tablet".to_owned(), y:200, x: 100, scale: 100, refresh: UIConstraintRefresh::NoRefresh },
+        UIElement::Image  { img: image::load_from_memory(include_bytes!("../rustlang.bmp")).unwrap(), y: 10, x: 900, refresh: UIConstraintRefresh::Refresh },
+        UIElement::Text   { text: "Current Waveform: ".to_owned(), y:350, x: 120, scale: 65, refresh: UIConstraintRefresh::NoRefresh },
+        UIElement::Text   { text: "Current Dither Mode: ".to_owned(), y:410, x: 120, scale: 65, refresh: UIConstraintRefresh::NoRefresh },
+        UIElement::Text   { text: "Current Quant: ".to_owned(), y:470, x: 120, scale: 65, refresh: UIConstraintRefresh::RefreshAndWait },
     ];
 
     clear(quick);
@@ -271,7 +279,7 @@ fn draw_scene(quick: bool) {
     for element in elements.iter() {
         match element {
             &UIElement::Text{ref text, y, x, scale, ref refresh} => display_text(y, x, scale, text.to_string(), refresh.clone()),
-            &UIElement::Image{ref img, y, x} => show_image(&img, y, x),
+            &UIElement::Image{ref img, y, x, ref refresh} => display_image(&img, y, x, refresh.clone()),
         }
     }
 }
@@ -295,8 +303,7 @@ fn main() {
     let ringbuffer = librustpad::rb::SpscRb::new(4096);
     let consumer = ringbuffer.consumer();
     let producer = Box::new(ringbuffer.producer());
-    let static_ref: &'static mut Producer<unifiedinput::InputEvent> = Box::leak(producer);
-    let mut unified = unifiedinput::UnifiedInputHandler::new(false, static_ref);
+    let mut unified = unifiedinput::UnifiedInputHandler::new(false, Box::leak(producer));
     unsafe {
         G_UNIFIED_IOH = &mut unified;
     }
