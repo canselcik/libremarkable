@@ -12,13 +12,13 @@ use mxc_types::display_temp;
 use std::time::Duration;
 use rb::RbConsumer;
 use unifiedinput;
-
+use std::sync::atomic::{AtomicBool, Ordering};
 
 #[derive(Clone)]
 pub enum UIConstraintRefresh {
     NoRefresh,
     Refresh,
-    RefreshAndWait,
+    RefreshAndWait
 }
 
 #[derive(Clone)]
@@ -35,12 +35,12 @@ pub enum UIElement {
         y: usize,
         x: usize,
         refresh: UIConstraintRefresh,
-    },
+    }
 }
 
 pub struct ApplicationContext<'a> {
     framebuffer: fb::Framebuffer<'a>,
-
+    running: AtomicBool,
     on_button: fn(&mut fb::Framebuffer, unifiedinput::GPIOEvent),
     on_wacom: fn(&mut fb::Framebuffer, unifiedinput::WacomEvent),
     on_touch: fn(&mut fb::Framebuffer, unifiedinput::MultitouchEvent),
@@ -57,8 +57,10 @@ impl<'a> ApplicationContext<'a> {
                on_wacom: fn(&mut fb::Framebuffer, unifiedinput::WacomEvent),
                on_touch: fn(&mut fb::Framebuffer, unifiedinput::MultitouchEvent),
     ) -> ApplicationContext<'static> {
+
         ApplicationContext {
             framebuffer: fb::Framebuffer::new("/dev/fb0"),
+            running: AtomicBool::new(false),
             on_button,
             on_wacom,
             on_touch,
@@ -89,7 +91,7 @@ impl<'a> ApplicationContext<'a> {
         };
         match refresh {
             UIConstraintRefresh::RefreshAndWait => self.framebuffer.wait_refresh_complete(marker),
-            _ => {}
+            _ => {},
         };
     }
 
@@ -109,19 +111,19 @@ impl<'a> ApplicationContext<'a> {
         };
         match refresh {
             UIConstraintRefresh::RefreshAndWait => self.framebuffer.wait_refresh_complete(marker),
-            _ => {}
+            _ => {},
         };
     }
 
     pub fn draw_elements(&mut self, elements: &Vec<UIElement>) {
         for element in elements.iter() {
             match element {
-                &UIElement::Text { ref text, y, x, scale, ref refresh } => {
+                &UIElement::Text{ref text, y, x, scale, ref refresh} => {
                     self.display_text(y, x, scale, text.to_string(), refresh.clone())
-                }
-                &UIElement::Image { ref img, y, x, ref refresh } => {
+                },
+                &UIElement::Image{ref img, y, x, ref refresh} => {
                     self.display_image(&img, y, x, refresh.clone())
-                }
+                },
             }
         }
     }
@@ -135,7 +137,7 @@ impl<'a> ApplicationContext<'a> {
 
         let (update_mode, waveform_mode) = match deep {
             false => (update_mode::UPDATE_MODE_PARTIAL, waveform_mode::WAVEFORM_MODE_GC16_FAST),
-            true => (update_mode::UPDATE_MODE_FULL, waveform_mode::WAVEFORM_MODE_INIT),
+            true  => (update_mode::UPDATE_MODE_FULL, waveform_mode::WAVEFORM_MODE_INIT),
         };
 
         let marker = self.framebuffer.refresh(
@@ -153,16 +155,20 @@ impl<'a> ApplicationContext<'a> {
         );
         match deep {
             false => self.framebuffer.wait_refresh_complete(marker),
-            true => std::thread::sleep(Duration::from_millis(150)),
+            true  => std::thread::sleep(Duration::from_millis(150)),
         }
     }
 
-    pub fn dispatch_events(&mut self) {
-        let ringbuffer = rb::SpscRb::new(4096);
-        let producer = Box::new(ringbuffer.producer());
-        let unified = unsafe {
+    pub fn stop(&mut self) {
+        self.running.store(false, Ordering::Relaxed);
+    }
+
+    pub fn dispatch_events(&mut self, ringbuffer_size: usize, event_read_chunksize: usize) {
+        let ringbuffer= rb::SpscRb::new(ringbuffer_size);
+        let producer = ringbuffer.producer();
+        let unified =  unsafe {
             std::mem::transmute::<unifiedinput::UnifiedInputHandler, unifiedinput::UnifiedInputHandler<'static>>
-                (unifiedinput::UnifiedInputHandler::new(false, Box::leak(producer)))
+             (unifiedinput::UnifiedInputHandler::new(false, &producer))
         };
 
         let w: &mut unifiedinput::UnifiedInputHandler = unsafe { std::mem::transmute_copy(&&unified) };
@@ -176,22 +182,23 @@ impl<'a> ApplicationContext<'a> {
 
         // Now we consume the input events;
         let consumer = ringbuffer.consumer();
-        let mut buf = [unifiedinput::InputEvent::Unknown {}; 512];
-        let mut _running = true;
-        while _running {
+        let mut buf = vec![unifiedinput::InputEvent::Unknown {}; event_read_chunksize];
+
+        self.running.store(true, Ordering::Relaxed);
+        while self.running.load(Ordering::Relaxed) {
             let _read = consumer.read_blocking(&mut buf).unwrap();
             for &ev in buf.iter() {
                 match ev {
-                    unifiedinput::InputEvent::GPIO { event } => {
+                    unifiedinput::InputEvent::GPIO{event} => {
                         (self.on_button)(&mut self.framebuffer, event);
-                    }
-                    unifiedinput::InputEvent::MultitouchEvent { event } => {
+                    },
+                    unifiedinput::InputEvent::MultitouchEvent{event} => {
                         (self.on_touch)(&mut self.framebuffer, event);
-                    }
-                    unifiedinput::InputEvent::WacomEvent { event } => {
+                    },
+                    unifiedinput::InputEvent::WacomEvent{event} => {
                         (self.on_wacom)(&mut self.framebuffer, event);
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
         }

@@ -1,7 +1,3 @@
-#![feature(const_ptr_null_mut)]
-#![feature(box_leak)]
-
-
 extern crate librustpad;
 extern crate chrono;
 
@@ -198,6 +194,6 @@ fn main() {
         loop_print_time(fb, 100, 100, 65);
     });
 
-    app.dispatch_events();
+    app.dispatch_events(4096, 1024);
     clock_thread.join().unwrap();
 }
