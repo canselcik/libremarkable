@@ -152,6 +152,8 @@ fn on_button_press(framebuffer: &mut fb::Framebuffer, input: unifiedinput::GPIOE
 }
 
 fn main() {
+    // Takes callback functions as arguments
+    // They are called with the event and the &mut framebuffer
     let mut app = uix::ApplicationContext::new(
         on_button_press,
         on_wacom_input,
@@ -159,6 +161,8 @@ fn main() {
     );
 
     app.clear(true);
+
+    // A rudimentary way to declare a scene and layout
     app.draw_elements(&vec![
         UIElement::Text {
             text: "Remarkable Tablet".to_owned(),
@@ -189,11 +193,13 @@ fn main() {
         },
     ]);
 
+    // Get a &mut to the framebuffer object, exposing many convenience functions
     let fb = app.get_framebuffer();
     let clock_thread = std::thread::spawn(move || {
         loop_print_time(fb, 100, 100, 65);
     });
 
+    // Blocking call to process events from digitizer + touchscreen + physical buttons
     app.dispatch_events(4096, 1024);
     clock_thread.join().unwrap();
 }
