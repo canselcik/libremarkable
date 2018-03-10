@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 #![allow(non_camel_case_types)]
+
 use libc;
 use libc::intptr_t;
 
@@ -198,65 +199,101 @@ impl ::std::default::Default for ioctl_intercept_event {
 #[derive(Debug)]
 #[repr(C)]
 pub struct fb_bitfield {
-    pub offset: u32, /* beginning of bitfield	*/
-    pub length: u32, /* length of bitfield		*/
-    pub msb_right: u32, /* != 0 : Most significant bit is right */
+    pub offset: u32,
+    /* beginning of bitfield	*/
+    pub length: u32,
+    /* length of bitfield		*/
+    pub msb_right: u32,
+    /* != 0 : Most significant bit is right */
 }
 
 #[derive(Debug)]
 #[repr(C)]
 pub struct fb_var_screeninfo {
-    pub xres: u32, /* visible resolution	*/
+    pub xres: u32,
+    /* visible resolution	*/
     pub yres: u32,
-    pub xres_virtual: u32, /* virtual resolution	*/
+    pub xres_virtual: u32,
+    /* virtual resolution	*/
     pub yres_virtual: u32,
-    pub xoffset: u32, /* offset from virtual to visible */
-    pub yoffset: u32, /* resolution */
+    pub xoffset: u32,
+    /* offset from virtual to visible */
+    pub yoffset: u32,
+    /* resolution */
 
-    pub bits_per_pixel: u32, /* guess what */
-    pub grayscale: u32, /* 0 = color, 1 = grayscale,  >1 = FOURCC */
-    pub red: fb_bitfield, /* bitfield in fb mem if true color, */
-    pub green: fb_bitfield, /* else only length is significant */
+    pub bits_per_pixel: u32,
+    /* guess what */
+    pub grayscale: u32,
+    /* 0 = color, 1 = grayscale,  >1 = FOURCC */
+    pub red: fb_bitfield,
+    /* bitfield in fb mem if true color, */
+    pub green: fb_bitfield,
+    /* else only length is significant */
     pub blue: fb_bitfield,
-    pub transp: fb_bitfield, /* transparency */
+    pub transp: fb_bitfield,
+    /* transparency */
 
-    pub nonstd: u32, /* != 0 Non standard pixel format */
-    pub activate: u32, /* see FB_ACTIVATE_* */
+    pub nonstd: u32,
+    /* != 0 Non standard pixel format */
+    pub activate: u32,
+    /* see FB_ACTIVATE_* */
 
-    pub height: u32, /* height of picture in mm */
-    pub width: u32, /* width of picture in mm */
+    pub height: u32,
+    /* height of picture in mm */
+    pub width: u32,
+    /* width of picture in mm */
 
-    pub accel_flags: u32, /* (OBSOLETE) see fb_info.flags */
+    pub accel_flags: u32,
+    /* (OBSOLETE) see fb_info.flags */
 
     /* Timing: All values in pixclocks, except pixclock (of course) */
-    pub pixclock: u32, /* pixel clock in ps (pico seconds) */
-    pub left_margin: u32, /* time from sync to picture	*/
-    pub right_margin: u32, /* time from picture to sync	*/
-    pub upper_margin: u32, /* time from sync to picture	*/
+    pub pixclock: u32,
+    /* pixel clock in ps (pico seconds) */
+    pub left_margin: u32,
+    /* time from sync to picture	*/
+    pub right_margin: u32,
+    /* time from picture to sync	*/
+    pub upper_margin: u32,
+    /* time from sync to picture	*/
     pub lower_margin: u32,
-    pub hsync_len: u32, /* length of horizontal sync */
-    pub vsync_len: u32, /* length of vertical sync */
-    pub sync: u32, /* see FB_SYNC_* */
-    pub vmode: u32, /* see FB_VMODE_* */
-    pub rotate: u32, /* angle we rotate counter clockwise */
-    pub colorspace: u32, /* colorspace for FOURCC-based modes */
-    pub reserved: [u32; 4], /* Reserved for future compatibility */
+    pub hsync_len: u32,
+    /* length of horizontal sync */
+    pub vsync_len: u32,
+    /* length of vertical sync */
+    pub sync: u32,
+    /* see FB_SYNC_* */
+    pub vmode: u32,
+    /* see FB_VMODE_* */
+    pub rotate: u32,
+    /* angle we rotate counter clockwise */
+    pub colorspace: u32,
+    /* colorspace for FOURCC-based modes */
+    pub reserved: [u32; 4],
+    /* Reserved for future compatibility */
 }
-
 
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum mxcfb_ioctl {
     MXCFB_NONE = 0x00,
-    MXCFB_SET_WAVEFORM_MODES = 0x2B, // takes struct mxcfb_waveform_modes
-    MXCFB_SET_TEMPERATURE = 0x2C, // takes int32_t
-    MXCFB_SET_AUTO_UPDATE_MODE = 0x2D, // takes __u32
-    MXCFB_SEND_UPDATE = 0x2E, // takes struct mxcfb_update_data
-    MXCFB_WAIT_FOR_UPDATE_COMPLETE = 0x2F, // takes struct mxcfb_update_marker_data
-    MXCFB_SET_PWRDOWN_DELAY = 0x30, // takes int32_t
-    MXCFB_GET_PWRDOWN_DELAY = 0x31, // takes int32_t
-    MXCFB_SET_UPDATE_SCHEME = 0x32, // takes __u32
-    MXCFB_GET_WORK_BUFFER = 0x34, // takes unsigned long
+    MXCFB_SET_WAVEFORM_MODES = 0x2B,
+    // takes struct mxcfb_waveform_modes
+    MXCFB_SET_TEMPERATURE = 0x2C,
+    // takes int32_t
+    MXCFB_SET_AUTO_UPDATE_MODE = 0x2D,
+    // takes __u32
+    MXCFB_SEND_UPDATE = 0x2E,
+    // takes struct mxcfb_update_data
+    MXCFB_WAIT_FOR_UPDATE_COMPLETE = 0x2F,
+    // takes struct mxcfb_update_marker_data
+    MXCFB_SET_PWRDOWN_DELAY = 0x30,
+    // takes int32_t
+    MXCFB_GET_PWRDOWN_DELAY = 0x31,
+    // takes int32_t
+    MXCFB_SET_UPDATE_SCHEME = 0x32,
+    // takes __u32
+    MXCFB_GET_WORK_BUFFER = 0x34,
+    // takes unsigned long
     MXCFB_DISABLE_EPDC_ACCESS = 0x35,
     MXCFB_ENABLE_EPDC_ACCESS = 0x36,
 }
@@ -338,22 +375,35 @@ pub enum dither_mode {
 
 #[derive(Debug)]
 pub enum waveform_mode {
-    WAVEFORM_MODE_INIT = 0x0, /* Screen goes to white (clears) */
-    WAVEFORM_MODE_GLR16 = 0x4, /* Basically A2 (so partial refresh shouldnt be possible here) */
-    WAVEFORM_MODE_GLD16 = 0x5, /* Official -- and enables Regal D Processing */
+    WAVEFORM_MODE_INIT = 0x0,
+    /* Screen goes to white (clears) */
+    WAVEFORM_MODE_GLR16 = 0x4,
+    /* Basically A2 (so partial refresh shouldnt be possible here) */
+    WAVEFORM_MODE_GLD16 = 0x5,
+    /* Official -- and enables Regal D Processing */
 
     // Unsupported?
-    WAVEFORM_MODE_DU = 0x1, /* [Direct Update] Grey->white/grey->black  -- remarkable uses this for drawing */
-    WAVEFORM_MODE_GC16 = 0x2, /* High fidelity (flashing) */
+    WAVEFORM_MODE_DU = 0x1,
+    /* [Direct Update] Grey->white/grey->black  -- remarkable uses this for drawing */
+    WAVEFORM_MODE_GC16 = 0x2,
+    /* High fidelity (flashing) */
     //  WAVEFORM_MODE_GC4          = WAVEFORM_MODE_GC16,   /* For compatibility */
-    WAVEFORM_MODE_GC16_FAST = 0x3, /* Medium fidelity  -- remarkable uses this for UI */
-    WAVEFORM_MODE_GL16_FAST = 0x6, /* Medium fidelity from white transition */
-    WAVEFORM_MODE_DU4 = 0x7, /* Medium fidelity 4 level of gray direct update */
-    WAVEFORM_MODE_REAGL = 0x8, /* Ghost compensation waveform */
-    WAVEFORM_MODE_REAGLD = 0x9, /* Ghost compensation waveform with dithering */
-    WAVEFORM_MODE_GL4 = 0xA, /* 2-bit from white transition */
-    WAVEFORM_MODE_GL16_INV = 0xB, /* High fidelity for black transition */
-    WAVEFORM_MODE_AUTO = 257, /* Official */
+    WAVEFORM_MODE_GC16_FAST = 0x3,
+    /* Medium fidelity  -- remarkable uses this for UI */
+    WAVEFORM_MODE_GL16_FAST = 0x6,
+    /* Medium fidelity from white transition */
+    WAVEFORM_MODE_DU4 = 0x7,
+    /* Medium fidelity 4 level of gray direct update */
+    WAVEFORM_MODE_REAGL = 0x8,
+    /* Ghost compensation waveform */
+    WAVEFORM_MODE_REAGLD = 0x9,
+    /* Ghost compensation waveform with dithering */
+    WAVEFORM_MODE_GL4 = 0xA,
+    /* 2-bit from white transition */
+    WAVEFORM_MODE_GL16_INV = 0xB,
+    /* High fidelity for black transition */
+    WAVEFORM_MODE_AUTO = 257,
+    /* Official */
 }
 
 #[derive(Debug)]

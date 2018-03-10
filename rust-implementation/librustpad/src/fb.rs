@@ -25,6 +25,7 @@ pub struct Framebuffer<'a> {
 }
 
 unsafe impl<'a> Send for Framebuffer<'a> {}
+
 unsafe impl<'a> Sync for Framebuffer<'a> {}
 
 impl<'a> Framebuffer<'a> {
@@ -83,7 +84,6 @@ impl<'a> Framebuffer<'a> {
         }
         return fb;
     }
-
 
 
     pub fn set_epdc_access(&mut self, state: bool) {

@@ -31,7 +31,6 @@ impl<'a> fb::Framebuffer<'a> {
     }
 
 
-
     pub fn draw_line(&mut self, y0: i32, x0: i32, y1: i32, x1: i32, color: u8) -> mxcfb_rect {
         // Create local variables for moving start point
         let mut x0 = x0;
@@ -46,12 +45,12 @@ impl<'a> fb::Framebuffer<'a> {
         let sy = if y0 < y1 { 1 } else { -1 };
 
         // Initialize error
-        let mut err = if dx > dy { dx } else {-dy} / 2;
+        let mut err = if dx > dy { dx } else { -dy } / 2;
         let mut err2;
 
         let mut minx = 0;
         let mut miny = 0;
-        let mut maxx= 0;
+        let mut maxx = 0;
         let mut maxy = 0;
         loop {
             // Set pixel
@@ -62,22 +61,28 @@ impl<'a> fb::Framebuffer<'a> {
             maxx = max!(maxx, x0);
 
             // Check end condition
-            if x0 == x1 && y0 == y1 { break };
+            if x0 == x1 && y0 == y1 { break; };
 
             // Store old error
             err2 = 2 * err;
 
             // Adjust error and start position
-            if err2 > -dx { err -= dy; x0 += sx; }
-            if err2 < dy { err += dx; y0 += sy; }
+            if err2 > -dx {
+                err -= dy;
+                x0 += sx;
+            }
+            if err2 < dy {
+                err += dx;
+                y0 += sy;
+            }
         }
 
         return mxcfb_rect {
             top: miny as u32,
             left: minx as u32,
-            width: (maxx-minx) as u32,
-            height: (maxy-miny) as u32,
-        }
+            width: (maxx - minx) as u32,
+            height: (maxy - miny) as u32,
+        };
     }
 
     pub fn draw_circle(&mut self, y: usize, x: usize, rad: usize, color: u8) -> mxcfb_rect {
@@ -93,7 +98,7 @@ impl<'a> fb::Framebuffer<'a> {
     }
 
     pub fn fill_circle(&mut self, y: usize, x: usize, rad: usize, color: u8) -> mxcfb_rect {
-        for current in {1..rad+1} {
+        for current in { 1..rad + 1 } {
             for (x, y) in line_drawing::BresenhamCircle::new(x as i32, y as i32, current as i32) {
                 self.write_pixel(y as usize, x as usize, color);
             }

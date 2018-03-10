@@ -15,6 +15,7 @@ const MT_HSCALAR: f32 = (mxc_types::DISPLAYWIDTH as f32) / (mxc_types::MTWIDTH a
 const MT_VSCALAR: f32 = (mxc_types::DISPLAYHEIGHT as f32) / (mxc_types::MTHEIGHT as f32);
 
 unsafe impl<'a> Send for UnifiedInputHandler<'a> {}
+
 unsafe impl<'a> Sync for UnifiedInputHandler<'a> {}
 
 pub struct WacomState {
@@ -40,12 +41,12 @@ pub enum WacomPen {
 pub enum WacomEvent {
     InstrumentChange { pen: WacomPen, state: bool },
     Hover { y: u16, x: u16, distance: u16, tilt_x: u16, tilt_y: u16 },
-    Draw  { y: u16, x: u16, pressure: u16, tilt_x: u16, tilt_y: u16 },
+    Draw { y: u16, x: u16, pressure: u16, tilt_x: u16, tilt_y: u16 },
     Unknown,
 }
 
 pub struct GPIOState {
-    states: [bool;3],
+    states: [bool; 3],
 }
 
 pub struct MultitouchState {
@@ -73,8 +74,8 @@ pub enum PhysicalButton {
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum GPIOEvent {
-    Press { button: PhysicalButton, },
-    Unpress { button: PhysicalButton, },
+    Press { button: PhysicalButton },
+    Unpress { button: PhysicalButton },
     Unknown,
 }
 
@@ -88,10 +89,10 @@ pub struct UnifiedInputHandler<'a> {
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum InputEvent {
-    WacomEvent { event: WacomEvent, },
-    MultitouchEvent { event: MultitouchEvent, },
-    GPIO { event: GPIOEvent, },
-    Unknown {}
+    WacomEvent { event: WacomEvent },
+    MultitouchEvent { event: MultitouchEvent },
+    GPIO { event: GPIOEvent },
+    Unknown {},
 }
 
 impl Default for InputEvent {
@@ -104,7 +105,7 @@ impl<'a> UnifiedInputHandler<'a> {
     pub fn new(verbose: bool, ringbuffer: &rb::Producer<InputEvent>) -> UnifiedInputHandler {
         return UnifiedInputHandler {
             gpio: GPIOState {
-                states: [false;3],
+                states: [false; 3],
             },
             wacom: WacomState {
                 last_x: 0,
@@ -130,19 +131,19 @@ impl<'a> UnifiedInputHandler<'a> {
     fn wacom_handler(&mut self, ev: &input_event) {
         match ev._type {
             0 => { /* sync */ }
-            1 => { /* key (device detected - device out of range etc.) */
+            1 => {
+                /* key (device detected - device out of range etc.) */
                 if ev.code >= WacomPen::ToolPen as u16 && ev.code <= WacomPen::Stylus2 as u16 {
                     let event = WacomEvent::InstrumentChange {
                         pen: unsafe { std::mem::transmute_copy(&ev.code) },
                         state: ev.value != 0,
                     };
                     self.ringbuffer.write(&[InputEvent::WacomEvent { event }]).unwrap();
-                }
-                else {
+                } else {
                     println!("Unknown key event code for Wacom [type: {0} code: {1} value: {2}]",
                              ev._type, ev.code, ev.value);
                 }
-            },
+            }
             3 => {
                 // Absolute
                 match ev.code {
@@ -156,10 +157,10 @@ impl<'a> UnifiedInputHandler<'a> {
                             tilt_y: self.wacom.last_ytilt,
                         };
                         self.ringbuffer.write(&[InputEvent::WacomEvent { event }]).unwrap();
-                    },
+                    }
                     26 => { // xtilt -9000 to 9000
                         self.wacom.last_xtilt = ev.value as u16;
-                    },
+                    }
                     27 => { // ytilt -9000 to 9000
                         self.wacom.last_ytilt = ev.value as u16;
                     }
@@ -245,7 +246,7 @@ impl<'a> UnifiedInputHandler<'a> {
                     _ => {
                         if self.verbose {
                             println!("Unknown event code for multitouch [type: {0} code: {1} value: {2}]",
-                                    ev._type, ev.code, ev.value)
+                                     ev._type, ev.code, ev.value)
                         }
                     }
                 }
@@ -269,17 +270,17 @@ impl<'a> UnifiedInputHandler<'a> {
                         let ret = (PhysicalButton::MIDDLE, self.gpio.states[1]);
                         self.gpio.states[1] = ev.value != 0;
                         ret
-                    },
+                    }
                     105 => {
                         let ret = (PhysicalButton::LEFT, self.gpio.states[0]);
                         self.gpio.states[0] = ev.value != 0;
                         ret
-                    },
+                    }
                     106 => {
                         let ret = (PhysicalButton::RIGHT, self.gpio.states[2]);
                         self.gpio.states[2] = ev.value != 0;
                         ret
-                    },
+                    }
                     _ => return,
                 };
 
@@ -317,7 +318,7 @@ impl<'a> ev::EvdevHandler for UnifiedInputHandler<'a> {
             "Wacom I2C Digitizer" => self.wacom_handler(&ev),
             "cyttsp5_mt" => self.multitouch_handler(&ev),
             "gpio-keys" => self.gpio_handler(&ev),
-            _ => {},
+            _ => {}
         }
     }
 }

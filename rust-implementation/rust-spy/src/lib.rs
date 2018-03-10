@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 
 extern crate libc;
+
 use libc::c_int;
 use libc::intptr_t;
 
@@ -12,6 +13,7 @@ use libc::intptr_t;
 extern crate redhook;
 
 extern crate librustpad;
+
 use librustpad::mxc_types;
 
 lazy_static! {
@@ -40,56 +42,56 @@ lazy_static! {
 #[derive(Debug)]
 #[repr(C)]
 struct ioctl_intercept_event {
-  fd: libc::c_int,
-  request: u32,
-  p1: intptr_t,
-  p2: intptr_t,
-  p3: intptr_t,
-  p4: intptr_t,
-  ret: libc::c_int,
+    fd: libc::c_int,
+    request: u32,
+    p1: intptr_t,
+    p2: intptr_t,
+    p3: intptr_t,
+    p4: intptr_t,
+    ret: libc::c_int,
 }
 
 fn add_entry(map: &mut HashMap<u32, u32>, ent: u32) {
-  let count = match map.get(&ent) {
-    Some(count) => *count,
-    None => 0,
-  };
-  map.insert(ent, count + 1);
-  for (key, value) in &*map {
-    println!("  {0:x} --> {1} times", key, value);
-  }
+    let count = match map.get(&ent) {
+        Some(count) => *count,
+        None => 0,
+    };
+    map.insert(ent, count + 1);
+    for (key, value) in &*map {
+        println!("  {0:x} --> {1} times", key, value);
+    }
 }
 
 fn handle_send_update(event: ioctl_intercept_event) {
-  let mut distdither= DIST_DITHER.lock().unwrap();
-  let mut distwave = DIST_WAVEFORM.lock().unwrap();
-  let mut distquant = DIST_QUANT.lock().unwrap();
-  let mut distflags = DIST_FLAGS.lock().unwrap();
-  let mut disttemp = DIST_TEMP.lock().unwrap();
+    let mut distdither = DIST_DITHER.lock().unwrap();
+    let mut distwave = DIST_WAVEFORM.lock().unwrap();
+    let mut distquant = DIST_QUANT.lock().unwrap();
+    let mut distflags = DIST_FLAGS.lock().unwrap();
+    let mut disttemp = DIST_TEMP.lock().unwrap();
 
-  let update_data = event.p1 as *mut mxc_types::mxcfb_update_data;
+    let update_data = event.p1 as *mut mxc_types::mxcfb_update_data;
 
-  println!("===WAVEFORM DISTRIBUTION===");
-  add_entry(&mut distwave, unsafe { (*update_data).waveform_mode });
-  println!("===DITHERING DISTRIBUTION===");
-  add_entry(&mut distdither, unsafe { (*update_data).dither_mode } as u32);
-  println!("===TEMP DISTRIBUTION===");
-  add_entry(&mut disttemp, unsafe { (*update_data).temp } as u32);
-  println!("===QUANT DISTRIBUTION===");
-  add_entry(&mut distquant, unsafe { (*update_data).quant_bit } as u32);
-  println!("===FLAGS DISTRIBUTION===");
-  add_entry(&mut distflags, unsafe { (*update_data).flags } as u32);
+    println!("===WAVEFORM DISTRIBUTION===");
+    add_entry(&mut distwave, unsafe { (*update_data).waveform_mode });
+    println!("===DITHERING DISTRIBUTION===");
+    add_entry(&mut distdither, unsafe { (*update_data).dither_mode } as u32);
+    println!("===TEMP DISTRIBUTION===");
+    add_entry(&mut disttemp, unsafe { (*update_data).temp } as u32);
+    println!("===QUANT DISTRIBUTION===");
+    add_entry(&mut distquant, unsafe { (*update_data).quant_bit } as u32);
+    println!("===FLAGS DISTRIBUTION===");
+    add_entry(&mut distflags, unsafe { (*update_data).flags } as u32);
 
-  unsafe {
-    println!("mxcfb_send_update(fd: {0}, updateData: {1:#?}) = {2}", event.fd, *update_data, event.ret);
-  }
+    unsafe {
+        println!("mxcfb_send_update(fd: {0}, updateData: {1:#?}) = {2}", event.fd, *update_data, event.ret);
+    }
 }
 
 fn handle_wait_update_complete(event: ioctl_intercept_event) {
-  unsafe {
-    let update_data = event.p1 as *mut mxc_types::mxcfb_update_marker_data;
-    println!("mxcfb_wait_update_complete(fd: {0}, updateData: {1:#?}) = {2}", event.fd, *update_data, event.ret);
-  }
+    unsafe {
+        let update_data = event.p1 as *mut mxc_types::mxcfb_update_marker_data;
+        println!("mxcfb_wait_update_complete(fd: {0}, updateData: {1:#?}) = {2}", event.fd, *update_data, event.ret);
+    }
 }
 
 hook! {

@@ -21,9 +21,9 @@ impl<'a> fb::Framebuffer<'a> {
         // No accounting for this, out of bounds, entirely ignored
         if update_region.left >= mxc_types::DISPLAYWIDTH as u32 ||
             update_region.top >= mxc_types::DISPLAYHEIGHT as u32
-        {
-            return 0;
-        }
+            {
+                return 0;
+            }
 
         // Dont try to refresh OOB horizontally
         let max_x = update_region.left + update_region.width;
