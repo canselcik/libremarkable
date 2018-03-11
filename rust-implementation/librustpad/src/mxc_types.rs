@@ -129,6 +129,13 @@ impl ::std::default::Default for mxcfb_rect {
     }
 }
 
+impl mxcfb_rect {
+    pub fn contains_point(&mut self, y: u32, x: u32) -> bool {
+        x >= self.left && x < (self.left + self.width) &&
+        y >= self.top && x < (self.top + self.height)
+    }
+}
+
 #[derive(Debug)]
 #[repr(C)]
 pub struct mxcfb_update_marker_data {

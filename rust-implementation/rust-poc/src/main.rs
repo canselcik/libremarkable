@@ -200,6 +200,6 @@ fn main() {
     });
 
     // Blocking call to process events from digitizer + touchscreen + physical buttons
-    app.dispatch_events(4096, 1024);
+    app.dispatch_events(8192, 128);
     clock_thread.join().unwrap();
 }

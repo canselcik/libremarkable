@@ -30,7 +30,6 @@ impl<'a> fb::Framebuffer<'a> {
         };
     }
 
-
     pub fn draw_line(&mut self, y0: i32, x0: i32, y1: i32, x1: i32, color: u8) -> mxcfb_rect {
         // Create local variables for moving start point
         let mut x0 = x0;
@@ -109,6 +108,46 @@ impl<'a> fb::Framebuffer<'a> {
             width: 2 * rad as u32,
             height: 2 * rad as u32,
         };
+    }
+
+    pub fn draw_bezier(&mut self, startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32), color: u8) -> mxcfb_rect {
+        let mut upperleft: (usize, usize) = (0, 0);
+        let mut lowerright: (usize, usize) = (0, 0);
+        for pt in self.sample_bezier(startpt, ctrlpt, endpt) {
+            let approx = (pt.0 as usize, pt.1 as usize);
+            upperleft.1 = min!(upperleft.1, approx.1);
+            upperleft.0 = min!(upperleft.0, approx.0);
+            lowerright.1 = max!(lowerright.1, approx.1);
+            lowerright.0 = max!(lowerright.0, approx.0);
+            self.write_pixel(approx.1, approx.0, color);
+        }
+        return mxcfb_rect {
+            top: upperleft.1 as u32,
+            left: upperleft.0 as u32,
+            width: (lowerright.0 - upperleft.0) as u32,
+            height: (lowerright.1 - upperleft.1) as u32,
+        };
+    }
+
+    pub fn sample_bezier(&mut self, startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32)) -> Vec<(f32, f32)> {
+        let mut points = Vec::new();
+        let mut lastpt = (-100, -100);
+        for i in 0..1000 {
+            let t = (i as f32) / 1000.0;
+            let precisept = (
+                (1.0 - t).powf(2.0) * startpt.0 + 2.0 * (1.0 - t) * t * ctrlpt.0
+                    + t.powf(2.0) * endpt.0,
+                (1.0 - t).powf(2.0) * startpt.1 + 2.0 * (1.0 - t) * t * ctrlpt.1
+                    + t.powf(2.0) * endpt.1,
+            );
+            let pt = (precisept.0 as i32, precisept.1 as i32);
+            // prevent oversampling
+            if pt != lastpt {
+                points.push(precisept);
+                lastpt = pt;
+            }
+        }
+        return points;
     }
 
     pub fn draw_text(
