@@ -129,7 +129,7 @@ impl<'a> fb::Framebuffer<'a> {
         };
     }
 
-    pub fn sample_bezier(&mut self, startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32)) -> Vec<(f32, f32)> {
+    fn sample_bezier(&mut self, startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32)) -> Vec<(f32, f32)> {
         let mut points = Vec::new();
         let mut lastpt = (-100, -100);
         for i in 0..1000 {

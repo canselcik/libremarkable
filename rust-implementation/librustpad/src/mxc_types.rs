@@ -378,6 +378,10 @@ pub enum dither_mode {
     EPDC_FLAG_EXP6 = 0x274bd40,
     EPDC_FLAG_EXP7 = 0x7ecf22c0,
     EPDC_FLAG_EXP8 = 0x7ed3d2c0,
+    // 7eae40f8
+    // 7eae4178 quant
+    // 75e7bb24 draw quant?
+    // 53ed4
 }
 
 #[derive(Debug)]

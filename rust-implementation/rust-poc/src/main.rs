@@ -65,8 +65,8 @@ fn loop_print_time(framebuffer: &mut fb::Framebuffer, y: usize, x: usize, scale:
 #[allow(unused_variables)]
 fn on_wacom_input(framebuffer: &mut fb::Framebuffer, input: unifiedinput::WacomEvent) {
     match input {
-        unifiedinput::WacomEvent::Draw { y, x, pressure, tilt_x, tilt_y } => {
-            let rad = 3.8 * (pressure as f32) / 4096.;
+        unifiedinput::WacomEvent::Draw { y, x, pressure, tilt_x, tilt_y, prevy, prevx} => {
+            let mut rad = 3.8 * (pressure as f32) / 4096.;
 
             let rect = framebuffer.fill_circle(
                 y as usize, x as usize,
@@ -96,7 +96,17 @@ fn on_wacom_input(framebuffer: &mut fb::Framebuffer, input: unifiedinput::WacomE
 fn on_touch(framebuffer: &mut fb::Framebuffer, input: unifiedinput::MultitouchEvent) {
     match input {
         unifiedinput::MultitouchEvent::Touch { gesture_seq, finger_id, y, x } => {
-            let rect = framebuffer.draw_circle(y as usize, x as usize, 20, mxc_types::REMARKABLE_DARKEST);
+            let rect = match unsafe { DRAW_ON_TOUCH } {
+               1 => framebuffer.draw_bezier((x as f32, y as f32),
+                                            ((x + 155) as f32, (y + 14) as f32),
+                                            ((x + 200) as f32, (y + 200) as f32),
+                                            mxc_types::REMARKABLE_DARKEST),
+               2 => framebuffer.draw_circle(y as usize,
+                                            x as usize,
+                                            20,
+                                            mxc_types::REMARKABLE_DARKEST),
+               _ => return,
+            };
             framebuffer.refresh(
                 rect,
                 update_mode::UPDATE_MODE_PARTIAL,
@@ -124,7 +134,14 @@ fn on_button_press(framebuffer: &mut fb::Framebuffer, input: unifiedinput::GPIOE
     };
 
     let x_offset = match btn {
-        unifiedinput::PhysicalButton::LEFT => 50,
+        unifiedinput::PhysicalButton::LEFT => {
+            if new_state {
+                unsafe {
+                    DRAW_ON_TOUCH = (DRAW_ON_TOUCH + 1) % 3;
+                }
+            }
+            return; // 50
+        },
         unifiedinput::PhysicalButton::MIDDLE => {
             if new_state {
                 framebuffer.clear();
@@ -151,6 +168,10 @@ fn on_button_press(framebuffer: &mut fb::Framebuffer, input: unifiedinput::GPIOE
     );
 }
 
+// 0 -> None
+// 1 -> Circles
+// 2 -> Bezier
+static mut DRAW_ON_TOUCH: u32 = 0;
 fn main() {
     // Takes callback functions as arguments
     // They are called with the event and the &mut framebuffer
@@ -160,7 +181,8 @@ fn main() {
         on_touch,
     );
 
-    app.clear(true);
+    // We could just call `app.clear(true)` but let's invoke via Lua to showcase the API
+    app.execute_lua("fb.clear()");
 
     // A rudimentary way to declare a scene and layout
     app.draw_elements(&vec![
@@ -194,12 +216,12 @@ fn main() {
     ]);
 
     // Get a &mut to the framebuffer object, exposing many convenience functions
-    let fb = app.get_framebuffer();
+    let fb = app.get_framebuffer_ref();
     let clock_thread = std::thread::spawn(move || {
         loop_print_time(fb, 100, 100, 65);
     });
 
     // Blocking call to process events from digitizer + touchscreen + physical buttons
-    app.dispatch_events(8192, 128);
+    app.dispatch_events(8192, 512);
     clock_thread.join().unwrap();
 }

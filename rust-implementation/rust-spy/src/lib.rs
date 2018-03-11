@@ -112,6 +112,7 @@ hook! {
       ret: res,
     };
 
+    // For xochitl /dev/fb0 is FD=3. For remarkable-test program, it is FD=8.
     if fd != 3 {
       return res;
     }

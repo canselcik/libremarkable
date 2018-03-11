@@ -8,6 +8,8 @@ extern crate libc;
 extern crate mmap;
 extern crate rusttype;
 
+extern crate hlua;
+
 pub extern crate image;
 pub extern crate epoll;
 pub extern crate rb;
@@ -22,4 +24,7 @@ pub mod refresh;
 pub mod ev;
 
 pub mod unifiedinput;
+
+mod uix_lua;
 pub mod uix;
+

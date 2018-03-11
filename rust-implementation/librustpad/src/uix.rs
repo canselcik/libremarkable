@@ -13,6 +13,10 @@ use std::time::Duration;
 use rb::RbConsumer;
 use unifiedinput;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::cell::UnsafeCell;
+
+use uix_lua;
+use hlua::Lua;
 
 #[derive(Clone)]
 pub enum UIConstraintRefresh {
@@ -39,32 +43,39 @@ pub enum UIElement {
 }
 
 pub struct ApplicationContext<'a> {
-    framebuffer: fb::Framebuffer<'a>,
+    framebuffer: UnsafeCell<fb::Framebuffer<'a>>,
     running: AtomicBool,
+    pub lua: Lua<'a>,
     on_button: fn(&mut fb::Framebuffer, unifiedinput::GPIOEvent),
     on_wacom: fn(&mut fb::Framebuffer, unifiedinput::WacomEvent),
     on_touch: fn(&mut fb::Framebuffer, unifiedinput::MultitouchEvent),
 }
 
 impl<'a> ApplicationContext<'a> {
-    pub fn get_framebuffer(&mut self) -> &'a mut fb::Framebuffer<'static> {
+    pub fn get_framebuffer_ref(&mut self) -> &'a mut fb::Framebuffer<'static> {
         unsafe {
-            std::mem::transmute_copy(&&self.framebuffer)
+            std::mem::transmute::<_, &'a mut fb::Framebuffer<'static>>(self.framebuffer.get())
         }
+    }
+
+    pub fn get_framebuffer_ptr(&mut self) -> *mut fb::Framebuffer<'a> {
+        self.framebuffer.get()
     }
 
     pub fn new(on_button: fn(&mut fb::Framebuffer, unifiedinput::GPIOEvent),
                on_wacom: fn(&mut fb::Framebuffer, unifiedinput::WacomEvent),
                on_touch: fn(&mut fb::Framebuffer, unifiedinput::MultitouchEvent),
     ) -> ApplicationContext<'static> {
-
-        ApplicationContext {
-            framebuffer: fb::Framebuffer::new("/dev/fb0"),
+        let mut res = ApplicationContext {
+            framebuffer: UnsafeCell::new(fb::Framebuffer::new("/dev/fb0")),
             running: AtomicBool::new(false),
+            lua: Lua::new(),
             on_button,
             on_wacom,
             on_touch,
-        }
+        };
+        uix_lua::init(&mut res);
+        return res;
     }
 
     pub fn display_text(
@@ -75,10 +86,12 @@ impl<'a> ApplicationContext<'a> {
         text: String,
         refresh: UIConstraintRefresh,
     ) {
-        let draw_area: mxc_types::mxcfb_rect =
-            self.framebuffer.draw_text(y, x, text, scale, mxc_types::REMARKABLE_DARKEST);
+        let framebuffer = self.get_framebuffer_ref();
+        let draw_area: mxc_types::mxcfb_rect = framebuffer.draw_text(y, x,
+                                                                     text, scale,
+                                                                     mxc_types::REMARKABLE_DARKEST);
         let marker = match refresh {
-            UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => self.framebuffer.refresh(
+            UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer.refresh(
                 draw_area,
                 update_mode::UPDATE_MODE_PARTIAL,
                 waveform_mode::WAVEFORM_MODE_GC16_FAST,
@@ -90,15 +103,15 @@ impl<'a> ApplicationContext<'a> {
             _ => return,
         };
         match refresh {
-            UIConstraintRefresh::RefreshAndWait => self.framebuffer.wait_refresh_complete(marker),
+            UIConstraintRefresh::RefreshAndWait => framebuffer.wait_refresh_complete(marker),
             _ => {},
         };
     }
 
     pub fn display_image(&mut self, img: &image::DynamicImage, y: usize, x: usize, refresh: UIConstraintRefresh) {
-        let rect = self.framebuffer.draw_image(&img, y, x);
+        let framebuffer = self.get_framebuffer_ref();        let rect = framebuffer.draw_image(&img, y, x);
         let marker = match refresh {
-            UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => self.framebuffer.refresh(
+            UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer.refresh(
                 rect,
                 update_mode::UPDATE_MODE_PARTIAL,
                 waveform_mode::WAVEFORM_MODE_GC16_FAST,
@@ -110,7 +123,7 @@ impl<'a> ApplicationContext<'a> {
             _ => return,
         };
         match refresh {
-            UIConstraintRefresh::RefreshAndWait => self.framebuffer.wait_refresh_complete(marker),
+            UIConstraintRefresh::RefreshAndWait => framebuffer.wait_refresh_complete(marker),
             _ => {},
         };
     }
@@ -129,18 +142,19 @@ impl<'a> ApplicationContext<'a> {
     }
 
     pub fn clear(&mut self, deep: bool) {
+        let framebuffer = self.get_framebuffer_ref();
         let (yres, xres) = (
-            self.framebuffer.var_screen_info.yres,
-            self.framebuffer.var_screen_info.xres,
+            framebuffer.var_screen_info.yres,
+            framebuffer.var_screen_info.xres,
         );
-        self.framebuffer.clear();
+        framebuffer.clear();
 
         let (update_mode, waveform_mode) = match deep {
             false => (update_mode::UPDATE_MODE_PARTIAL, waveform_mode::WAVEFORM_MODE_GC16_FAST),
             true  => (update_mode::UPDATE_MODE_FULL, waveform_mode::WAVEFORM_MODE_INIT),
         };
 
-        let marker = self.framebuffer.refresh(
+        let marker = framebuffer.refresh(
             mxc_types::mxcfb_rect {
                 top: 0,
                 left: 0,
@@ -154,7 +168,7 @@ impl<'a> ApplicationContext<'a> {
             0, 0,
         );
         match deep {
-            false => self.framebuffer.wait_refresh_complete(marker),
+            false => framebuffer.wait_refresh_complete(marker),
             true  => std::thread::sleep(Duration::from_millis(150)),
         }
     }
@@ -164,6 +178,8 @@ impl<'a> ApplicationContext<'a> {
     }
 
     pub fn dispatch_events(&mut self, ringbuffer_size: usize, event_read_chunksize: usize) {
+        let mut framebuffer = self.get_framebuffer_ref();
+
         let ringbuffer= rb::SpscRb::new(ringbuffer_size);
         let producer = ringbuffer.producer();
         let unified =  unsafe {
@@ -190,13 +206,13 @@ impl<'a> ApplicationContext<'a> {
             for &ev in buf.iter() {
                 match ev {
                     unifiedinput::InputEvent::GPIO{event} => {
-                        (self.on_button)(&mut self.framebuffer, event);
+                        (self.on_button)(&mut framebuffer, event);
                     },
                     unifiedinput::InputEvent::MultitouchEvent{event} => {
-                        (self.on_touch)(&mut self.framebuffer, event);
+                        (self.on_touch)(&mut framebuffer, event);
                     },
                     unifiedinput::InputEvent::WacomEvent{event} => {
-                        (self.on_wacom)(&mut self.framebuffer, event);
+                        (self.on_wacom)(&mut framebuffer, event);
                     },
                     _ => {},
                 }

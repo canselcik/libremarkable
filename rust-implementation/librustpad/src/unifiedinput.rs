@@ -25,6 +25,8 @@ pub struct WacomState {
     last_ytilt: u16,
     last_dist: u16,
     last_pressure: u16,
+    previous_x: u16,
+    previous_y: u16,
 }
 
 #[repr(u16)]
@@ -41,7 +43,7 @@ pub enum WacomPen {
 pub enum WacomEvent {
     InstrumentChange { pen: WacomPen, state: bool },
     Hover { y: u16, x: u16, distance: u16, tilt_x: u16, tilt_y: u16 },
-    Draw { y: u16, x: u16, pressure: u16, tilt_x: u16, tilt_y: u16 },
+    Draw { y: u16, x: u16, pressure: u16, tilt_x: u16, tilt_y: u16, prevy: u16, prevx: u16 },
     Unknown,
 }
 
@@ -114,6 +116,8 @@ impl<'a> UnifiedInputHandler<'a> {
                 last_ytilt: 0,
                 last_dist: 0,
                 last_pressure: 0,
+                previous_x: 0,
+                previous_y: 0,
             },
             mt: MultitouchState {
                 last_touch_size: 0,
@@ -167,19 +171,23 @@ impl<'a> UnifiedInputHandler<'a> {
                     24 => { // contact made with pressure val up to 4095
                         self.wacom.last_pressure = ev.value as u16;
                         let event = WacomEvent::Draw {
-                            y: (self.wacom.last_y as f32 * WACOM_VSCALAR) as u16,
                             x: (self.wacom.last_x as f32 * WACOM_HSCALAR) as u16,
+                            y: (self.wacom.last_y as f32 * WACOM_VSCALAR) as u16,
                             pressure: self.wacom.last_pressure,
                             tilt_x: self.wacom.last_xtilt,
                             tilt_y: self.wacom.last_ytilt,
+                            prevy: self.wacom.previous_y,
+                            prevx: self.wacom.previous_x,
                         };
                         self.ringbuffer.write(&[InputEvent::WacomEvent { event }]).unwrap();
                     }
                     0x0 => { // x and y are inverted due to remarkable
                         let val = ev.value as u16;
+                        self.wacom.previous_y = self.wacom.last_y;
                         self.wacom.last_y = mxc_types::WACOMHEIGHT - val;
                     }
                     0x1 => {
+                        self.wacom.previous_x = self.wacom.last_x;
                         self.wacom.last_x = ev.value as u16;
                     }
                     _ => {
