@@ -181,8 +181,8 @@ fn main() {
         on_touch,
     );
 
-    // We could just call `app.clear(true)` but let's invoke via Lua to showcase the API
-    app.execute_lua("fb.clear()");
+    // Alternatively we could have called `app.execute_lua("fb.clear()")`
+    app.clear(true);
 
     // A rudimentary way to declare a scene and layout
     app.draw_elements(&vec![
@@ -220,6 +220,28 @@ fn main() {
     let clock_thread = std::thread::spawn(move || {
         loop_print_time(fb, 100, 100, 65);
     });
+
+    app.execute_lua(r#"
+      function draw_box(y, x, height, width, borderpx, bordercolor)
+        for cy=y,y+height,1 do
+          for cx=x,x+width,1 do
+            if (math.abs(cx-600) < borderpx or math.abs(900-cx) < borderpx) or
+               (math.abs(cy-1200) < borderpx or math.abs(1500-cy) < borderpx) then
+              fb.set_pixel(cy, cx, bordercolor);
+            end
+          end
+        end
+      end
+
+      draw_box(1200, 600, 300, 300, 5, 0);
+
+      -- Draw black text inside the box
+      fb.draw_text(1320, 630, ' Using', 85, 0);
+      fb.draw_text(1420, 630, '  Lua ', 85, 0);
+
+      -- Update the drawn rect w/ `deep_plot=false` and `wait_for_update_complete=true`
+      fb.refresh(1200, 600, 300, 300, false, true);
+    "#);
 
     // Blocking call to process events from digitizer + touchscreen + physical buttons
     app.dispatch_events(8192, 512);

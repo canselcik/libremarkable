@@ -9,11 +9,11 @@ use mxc_types::waveform_mode;
 use mxc_types::dither_mode;
 use mxc_types::update_mode;
 use mxc_types::display_temp;
-use std::time::Duration;
 use rb::RbConsumer;
 use unifiedinput;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::cell::UnsafeCell;
+use std::ops::DerefMut;
 
 use uix_lua;
 use hlua;
@@ -44,23 +44,25 @@ pub enum UIElement {
 }
 
 pub struct ApplicationContext<'a> {
-    framebuffer: UnsafeCell<fb::Framebuffer<'a>>,
+    framebuffer: Box<fb::Framebuffer<'a>>,
     running: AtomicBool,
-    lua: Lua<'a>,
+    lua: UnsafeCell<Lua<'a>>,
     on_button: fn(&mut fb::Framebuffer, unifiedinput::GPIOEvent),
     on_wacom: fn(&mut fb::Framebuffer, unifiedinput::WacomEvent),
     on_touch: fn(&mut fb::Framebuffer, unifiedinput::MultitouchEvent),
 }
 
 impl<'a> ApplicationContext<'a> {
-    pub fn get_framebuffer_ref(&mut self) -> &'a mut fb::Framebuffer<'static> {
+    pub fn get_framebuffer_ref(&mut self) -> &'static mut fb::Framebuffer<'static> {
         unsafe {
-            std::mem::transmute::<_, &'a mut fb::Framebuffer<'static>>(self.framebuffer.get())
+            std::mem::transmute::<_, &'static mut fb::Framebuffer<'static>>(self.framebuffer.deref_mut())
         }
     }
 
-    pub fn get_framebuffer_ptr(&mut self) -> *mut fb::Framebuffer<'a> {
-        self.framebuffer.get()
+    pub fn get_lua_ref(&mut self) -> &'a mut Lua<'static> {
+        unsafe {
+            std::mem::transmute::<_, &'a mut Lua<'static>>(self.lua.get())
+        }
     }
 
     pub fn new(on_button: fn(&mut fb::Framebuffer, unifiedinput::GPIOEvent),
@@ -68,26 +70,47 @@ impl<'a> ApplicationContext<'a> {
                on_touch: fn(&mut fb::Framebuffer, unifiedinput::MultitouchEvent),
     ) -> ApplicationContext<'static> {
         let mut res = ApplicationContext {
-            framebuffer: UnsafeCell::new(fb::Framebuffer::new("/dev/fb0")),
+            framebuffer: Box::new(fb::Framebuffer::new("/dev/fb0")),
             running: AtomicBool::new(false),
-            lua: Lua::new(),
+            lua: UnsafeCell::new(Lua::new()),
             on_button,
             on_wacom,
             on_touch,
         };
-        uix_lua::init(&mut res);
+        let lua = res.get_lua_ref();
+
+        // Enable all std lib
+        lua.openlibs();
+
+        // Reluctantly resort to using a static global to associate the lua context with the
+        // one and only framebuffer that's going to be used
+        unsafe {
+            uix_lua::G_FB = res.framebuffer.deref_mut() as *mut fb::Framebuffer
+        };
+
+        let mut nms = lua.empty_array("fb");
+        // Clears and refreshes the entire screen
+        nms.set("clear", hlua::function0(uix_lua::lua_clear));
+
+        // Refreshes the provided rectangle. Here we are exposing a predefined set of the
+        // flags to the Lua API to simplify its use for building interfaces.
+        nms.set("refresh", hlua::function6(uix_lua::lua_refresh));
+
+        // Draws text with rusttype
+        nms.set("draw_text", hlua::function5(uix_lua::lua_draw_text));
+
+        // Sets the pixel to the u8 color value, does no refresh. Refresh done explicitly via calling `refresh`
+        nms.set("set_pixel", hlua::function3(uix_lua::lua_set_pixel));
+
         return res;
     }
 
-    pub fn get_lua_context(&mut self) -> &mut Lua<'a> {
-        &mut self.lua
-    }
-
     pub fn execute_lua(&mut self, code: &str) {
-        match self.lua.execute::<hlua::AnyLuaValue>(&code) {
-            Ok(value) => println!("{:?}", value),
-            Err(e) => println!("error: {:?}", e),
-        }
+        let lua = self.get_lua_ref();
+        match lua.execute::<hlua::AnyLuaValue>(&code) {
+            Err(e) => println!("Error in Lua Context: {:?}", e),
+            Ok(_) => {},
+        };
     }
 
     pub fn display_text(
@@ -179,10 +202,7 @@ impl<'a> ApplicationContext<'a> {
             dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
             0, 0,
         );
-        match deep {
-            false => framebuffer.wait_refresh_complete(marker),
-            true  => std::thread::sleep(Duration::from_millis(150)),
-        }
+        framebuffer.wait_refresh_complete(marker);
     }
 
     pub fn stop(&mut self) {

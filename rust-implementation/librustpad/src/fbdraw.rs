@@ -194,6 +194,10 @@ impl<'a> fb::Framebuffer<'a> {
                     minx = bbminx;
                 }
                 glyph.draw(|x, y, v| {
+                    /* TODO: We have a small issue with color interpolation here allowing only
+                             black text to be displayed. However this is only due to the code below,
+                             not an inherent limitation.
+                     */
                     self.write_pixel(
                         (y + bounding_box.min.y as u32) as usize,
                         (x + bounding_box.min.x as u32) as usize,
