@@ -16,6 +16,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::cell::UnsafeCell;
 
 use uix_lua;
+use hlua;
 use hlua::Lua;
 
 #[derive(Clone)]
@@ -45,7 +46,7 @@ pub enum UIElement {
 pub struct ApplicationContext<'a> {
     framebuffer: UnsafeCell<fb::Framebuffer<'a>>,
     running: AtomicBool,
-    pub lua: Lua<'a>,
+    lua: Lua<'a>,
     on_button: fn(&mut fb::Framebuffer, unifiedinput::GPIOEvent),
     on_wacom: fn(&mut fb::Framebuffer, unifiedinput::WacomEvent),
     on_touch: fn(&mut fb::Framebuffer, unifiedinput::MultitouchEvent),
@@ -76,6 +77,17 @@ impl<'a> ApplicationContext<'a> {
         };
         uix_lua::init(&mut res);
         return res;
+    }
+
+    pub fn get_lua_context(&mut self) -> &mut Lua<'a> {
+        &mut self.lua
+    }
+
+    pub fn execute_lua(&mut self, code: &str) {
+        match self.lua.execute::<hlua::AnyLuaValue>(&code) {
+            Ok(value) => println!("{:?}", value),
+            Err(e) => println!("error: {:?}", e),
+        }
     }
 
     pub fn display_text(
