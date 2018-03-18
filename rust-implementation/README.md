@@ -1,6 +1,7 @@
-In order to build `librustpad`, `rustspy` and `rust-poc`, you'll need the following configuration after having installed the proper toolchain to your `$PATH`:
+In order to build `librustpad`, `rustspy` and `rust-poc`, you'll need the following configuration after having installed the proper toolchain to your `$PATH`. The installation of `arm-linux-gnueabihf-gcc` toolchain is described on the `README.md` at the repository root. You can then set up your Rust toolchain for cross compilation with: `rustup target add armv7-unknown-linux-gnueabihf`.
+
+Once that's done, you should add the following to your `~/.cargo/config`:
 ```
-➜  rust-poc git:(master) ✗ cat ~/.cargo/config
 [target.armv7-unknown-linux-gnueabihf]
 linker = "arm-linux-gnueabihf-gcc"
 ```
