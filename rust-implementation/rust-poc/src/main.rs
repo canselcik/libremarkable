@@ -186,31 +186,45 @@ fn main() {
 
     // A rudimentary way to declare a scene and layout
     app.draw_elements(&vec![
-        UIElement::Text {
-            text: "Remarkable Tablet".to_owned(),
-            y: 200, x: 100,
-            scale: 100,
-            refresh: UIConstraintRefresh::NoRefresh
-        },
         UIElement::Image {
             img: image::load_from_memory(include_bytes!("../rustlang.bmp")).unwrap(),
             y: 10, x: 900,
-            refresh: UIConstraintRefresh::Refresh },
+            refresh: UIConstraintRefresh::Refresh
+        },
         UIElement::Text {
-            text: "Current Waveform: ".to_owned(),
+            text: "Available at:".to_owned(),
+            y: 650, x: 120,
+            scale: 70,
+            refresh: UIConstraintRefresh::Refresh
+        },
+        UIElement::Text {
+            text: "github.com/canselcik/RemarkableFramebuffer".to_owned(),
+            y: 750, x: 100,
+            scale: 60,
+            refresh: UIConstraintRefresh::Refresh
+        },
+        UIElement::Text {
+            text: "Low Latency eInk Display Partial Refresh API".to_owned(),
             y: 350, x: 120,
-            scale: 65, refresh: UIConstraintRefresh::NoRefresh
+            scale: 55,
+            refresh: UIConstraintRefresh::Refresh
         },
         UIElement::Text {
-            text: "Current Dither Mode: ".to_owned(),
-            y: 410, x: 120,
-            scale: 65,
-            refresh: UIConstraintRefresh::NoRefresh
-        },
-        UIElement::Text {
-            text: "Current Quant: ".to_owned(),
+            text: "Physical Button Support".to_owned(),
             y: 470, x: 120,
-            scale: 65,
+            scale: 55,
+            refresh: UIConstraintRefresh::Refresh
+        },
+        UIElement::Text {
+            text: "Capacitive Multitouch Input Support".to_owned(),
+            y: 410, x: 120,
+            scale: 55,
+            refresh: UIConstraintRefresh::Refresh
+        },
+        UIElement::Text {
+            text: "Wacom Digitizer Support".to_owned(),
+            y: 530, x: 120,
+            scale: 55,
             refresh: UIConstraintRefresh::RefreshAndWait
         },
     ]);
@@ -218,29 +232,35 @@ fn main() {
     // Get a &mut to the framebuffer object, exposing many convenience functions
     let fb = app.get_framebuffer_ref();
     let clock_thread = std::thread::spawn(move || {
-        loop_print_time(fb, 100, 100, 65);
+        loop_print_time(fb, 150, 100, 75);
     });
 
     app.execute_lua(r#"
       function draw_box(y, x, height, width, borderpx, bordercolor)
-        for cy=y,y+height,1 do
-          for cx=x,x+width,1 do
-            if (math.abs(cx-600) < borderpx or math.abs(900-cx) < borderpx) or
-               (math.abs(cy-1200) < borderpx or math.abs(1500-cy) < borderpx) then
+        local maxy = y+height;
+        local maxx = x+width;
+        for cy=y,maxy,1 do
+          for cx=x,maxx,1 do
+            if (math.abs(cx-x) < borderpx or math.abs(maxx-cx) < borderpx) or
+               (math.abs(cy-y) < borderpx or math.abs(maxy-cy) < borderpx) then
               fb.set_pixel(cy, cx, bordercolor);
             end
           end
         end
       end
 
-      draw_box(1200, 600, 300, 300, 5, 0);
+      top = 450;
+      left = 820;
+      width = 420;
+      height = 90;
+      borderpx = 5;
+      draw_box(top, left, height, width, borderpx, 0);
 
-      -- Draw black text inside the box
-      fb.draw_text(1320, 630, ' Using', 85, 0);
-      fb.draw_text(1420, 630, '  Lua ', 85, 0);
+      -- Draw black text inside the box. Notice the text is bottom aligned.
+      fb.draw_text(top+55, left+22, '...also supports Lua', 45, 0);
 
       -- Update the drawn rect w/ `deep_plot=false` and `wait_for_update_complete=true`
-      fb.refresh(1200, 600, 300, 300, false, true);
+      fb.refresh(top, left, width, height, false, true);
     "#);
 
     // Blocking call to process events from digitizer + touchscreen + physical buttons
