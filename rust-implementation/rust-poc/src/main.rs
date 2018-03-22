@@ -172,6 +172,8 @@ fn on_button_press(framebuffer: &mut fb::Framebuffer, input: unifiedinput::GPIOE
 // 1 -> Circles
 // 2 -> Bezier
 static mut DRAW_ON_TOUCH: u32 = 0;
+static mut COUNTER: u32 = 0;
+
 fn main() {
     // Takes callback functions as arguments
     // They are called with the event and the &mut framebuffer
@@ -231,6 +233,14 @@ fn main() {
 
     // Get a &mut to the framebuffer object, exposing many convenience functions
     let fb = app.get_framebuffer_ref();
+
+    app.create_active_region(10, 900, 240, 480, move || {
+        unsafe {
+            COUNTER += 1;
+            println!("Rust logo clicked {0} times", COUNTER);
+        }
+    });
+
     let clock_thread = std::thread::spawn(move || {
         loop_print_time(fb, 150, 100, 75);
     });

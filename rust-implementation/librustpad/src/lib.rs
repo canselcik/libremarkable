@@ -7,7 +7,7 @@ extern crate ioctl_gen;
 extern crate libc;
 extern crate mmap;
 extern crate rusttype;
-
+extern crate aabb_quadtree;
 extern crate hlua;
 
 pub extern crate image;

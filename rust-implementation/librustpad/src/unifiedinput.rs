@@ -224,12 +224,15 @@ impl<'a> UnifiedInputHandler<'a> {
                         let val = ev.value as u16;
                         self.mt.last_y = mxc_types::MTHEIGHT - val;
 
+
+                        let y = (self.mt.last_y as f32 * MT_VSCALAR) as u16;
+                        let x = (self.mt.last_x as f32 * MT_HSCALAR) as u16;
                         let event = MultitouchEvent::Touch {
                             gesture_seq: self.mt.last_touch_id,
                             finger_id: self.mt.last_finger_id,
-                            y: (self.mt.last_y as f32 * MT_VSCALAR) as u16,
-                            x: (self.mt.last_x as f32 * MT_HSCALAR) as u16,
+                            y, x,
                         };
+
                         self.ringbuffer.write(&[InputEvent::MultitouchEvent { event }]).unwrap();
                     }
                     52 | 48 | 58 => {

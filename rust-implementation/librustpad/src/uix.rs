@@ -19,6 +19,9 @@ use uix_lua;
 use hlua;
 use hlua::Lua;
 
+use aabb_quadtree::{QuadTree, geom, ItemId};
+
+
 #[derive(Clone)]
 pub enum UIConstraintRefresh {
     NoRefresh,
@@ -50,6 +53,9 @@ pub struct ApplicationContext<'a> {
     on_button: fn(&mut fb::Framebuffer, unifiedinput::GPIOEvent),
     on_wacom: fn(&mut fb::Framebuffer, unifiedinput::WacomEvent),
     on_touch: fn(&mut fb::Framebuffer, unifiedinput::MultitouchEvent),
+    active_regions: QuadTree<fn()>,
+    yres: u32,
+    xres: u32,
 }
 
 impl<'a> ApplicationContext<'a> {
@@ -65,17 +71,30 @@ impl<'a> ApplicationContext<'a> {
         }
     }
 
+    pub fn get_dimensions(self) -> (u32, u32) {
+        (self.yres, self.xres)
+    }
+
     pub fn new(on_button: fn(&mut fb::Framebuffer, unifiedinput::GPIOEvent),
                on_wacom: fn(&mut fb::Framebuffer, unifiedinput::WacomEvent),
                on_touch: fn(&mut fb::Framebuffer, unifiedinput::MultitouchEvent),
     ) -> ApplicationContext<'static> {
+        let framebuffer = Box::new(fb::Framebuffer::new("/dev/fb0"));
+        let yres = framebuffer.var_screen_info.yres;
+        let xres = framebuffer.var_screen_info.xres;
         let mut res = ApplicationContext {
-            framebuffer: Box::new(fb::Framebuffer::new("/dev/fb0")),
+            framebuffer,
+            xres, yres,
             running: AtomicBool::new(false),
             lua: UnsafeCell::new(Lua::new()),
             on_button,
             on_wacom,
             on_touch,
+            active_regions: QuadTree::default(geom::Rect::from_points(&geom::Point { x: 0.0, y: 0.0 },
+                                                                           &geom::Point {
+                                                                               x: xres as f32,
+                                                                               y: yres as f32
+                                                                           })),
         };
         let lua = res.get_lua_ref();
 
@@ -233,6 +252,8 @@ impl<'a> ApplicationContext<'a> {
         let mut buf = vec![unifiedinput::InputEvent::Unknown {}; event_read_chunksize];
 
         self.running.store(true, Ordering::Relaxed);
+
+        let mut last_active_region_gesture_id : i32 = -1;
         while self.running.load(Ordering::Relaxed) {
             let _read = consumer.read_blocking(&mut buf).unwrap();
             for &ev in buf.iter() {
@@ -241,6 +262,17 @@ impl<'a> ApplicationContext<'a> {
                         (self.on_button)(&mut framebuffer, event);
                     },
                     unifiedinput::InputEvent::MultitouchEvent{event} => {
+                        // Check for and notify clickable active regions for multitouch events
+                        match event {
+                            unifiedinput::MultitouchEvent::Touch {gesture_seq, finger_id: _, y, x} => {
+                                let gseq = gesture_seq as i32;
+                                if last_active_region_gesture_id != gseq {
+                                    self.notify_active_regions(y, x);
+                                    last_active_region_gesture_id = gseq;
+                                }
+                            },
+                            _ => {},
+                        };
                         (self.on_touch)(&mut framebuffer, event);
                     },
                     unifiedinput::InputEvent::WacomEvent{event} => {
@@ -255,5 +287,50 @@ impl<'a> ApplicationContext<'a> {
         gpio_thread.join().unwrap();
         wacom_thread.join().unwrap();
         touch_thread.join().unwrap();
+    }
+
+    fn notify_active_regions(&mut self, y: u16, x: u16) {
+        match self.find_active_region(y, x) {
+            Some((handler, _)) => {
+                (handler)();
+            }
+            _ => {},
+        }
+    }
+
+    fn find_active_region(&mut self, y: u16, x: u16) -> Option<(fn(), ItemId)> {
+        let matches = self.active_regions.query(
+            geom::Rect::centered_with_radius(&geom::Point{ y: y as f32, x: x as f32 }, 2.0)
+        );
+        match matches.len() {
+            0 => None,
+            _ => {
+                let res = matches.first().unwrap();
+                Some((*res.0, res.2.clone()))
+            },
+        }
+    }
+
+    pub fn remove_active_region_at_point(&mut self, y: u16, x: u16) -> bool {
+        match self.find_active_region(y, x) {
+            Some((_, itemid)) => {
+                match self.active_regions.remove(itemid) {
+                    Some(_) => true,
+                    _ => false,
+                }
+            }
+            _ => false,
+        }
+
+    }
+
+    pub fn create_active_region(&mut self, y: u16, x: u16, height: u16, width: u16, handler: fn()) {
+        self.active_regions.insert_with_box(
+            handler,
+            geom::Rect::from_points(
+                &geom::Point { x: x as f32, y: y as f32 },
+                &geom::Point { x: (x+width) as f32, y: (y+height) as f32 }
+            )
+        );
     }
 }
