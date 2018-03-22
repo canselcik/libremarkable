@@ -46,6 +46,8 @@ pub enum UIElement {
     }
 }
 
+pub struct ActiveRegionHandler(fn(&mut fb::Framebuffer));
+
 pub struct ApplicationContext<'a> {
     framebuffer: Box<fb::Framebuffer<'a>>,
     running: AtomicBool,
@@ -53,9 +55,15 @@ pub struct ApplicationContext<'a> {
     on_button: fn(&mut fb::Framebuffer, unifiedinput::GPIOEvent),
     on_wacom: fn(&mut fb::Framebuffer, unifiedinput::WacomEvent),
     on_touch: fn(&mut fb::Framebuffer, unifiedinput::MultitouchEvent),
-    active_regions: QuadTree<fn()>,
+    active_regions: QuadTree<ActiveRegionHandler>,
     yres: u32,
     xres: u32,
+}
+
+impl<'a> std::fmt::Debug for ActiveRegionHandler {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{0:p}", self)
+    }
 }
 
 impl<'a> ApplicationContext<'a> {
@@ -290,15 +298,16 @@ impl<'a> ApplicationContext<'a> {
     }
 
     fn notify_active_regions(&mut self, y: u16, x: u16) {
+        let fb = self.get_framebuffer_ref();
         match self.find_active_region(y, x) {
             Some((handler, _)) => {
-                (handler)();
+                (handler.0)(fb);
             }
             _ => {},
         }
     }
 
-    fn find_active_region(&mut self, y: u16, x: u16) -> Option<(fn(), ItemId)> {
+    fn find_active_region(&mut self, y: u16, x: u16) -> Option<(&ActiveRegionHandler, ItemId)> {
         let matches = self.active_regions.query(
             geom::Rect::centered_with_radius(&geom::Point{ y: y as f32, x: x as f32 }, 2.0)
         );
@@ -306,7 +315,7 @@ impl<'a> ApplicationContext<'a> {
             0 => None,
             _ => {
                 let res = matches.first().unwrap();
-                Some((*res.0, res.2.clone()))
+                Some((res.0, res.2.clone()))
             },
         }
     }
@@ -324,9 +333,9 @@ impl<'a> ApplicationContext<'a> {
 
     }
 
-    pub fn create_active_region(&mut self, y: u16, x: u16, height: u16, width: u16, handler: fn()) {
+    pub fn create_active_region(&mut self, y: u16, x: u16, height: u16, width: u16, handler: fn(&mut fb::Framebuffer)) {
         self.active_regions.insert_with_box(
-            handler,
+            ActiveRegionHandler(handler),
             geom::Rect::from_points(
                 &geom::Point { x: x as f32, y: y as f32 },
                 &geom::Point { x: (x+width) as f32, y: (y+height) as f32 }

@@ -93,7 +93,7 @@ fn on_wacom_input(framebuffer: &mut fb::Framebuffer, input: unifiedinput::WacomE
 }
 
 #[allow(unused_variables)]
-fn on_touch(framebuffer: &mut fb::Framebuffer, input: unifiedinput::MultitouchEvent) {
+fn on_touch_handler(framebuffer: &mut fb::Framebuffer, input: unifiedinput::MultitouchEvent) {
     match input {
         unifiedinput::MultitouchEvent::Touch { gesture_seq, finger_id, y, x } => {
             let rect = match unsafe { DRAW_ON_TOUCH } {
@@ -168,19 +168,47 @@ fn on_button_press(framebuffer: &mut fb::Framebuffer, input: unifiedinput::GPIOE
     );
 }
 
+static mut G_COUNTER: u32 = 0;
+fn on_touch_rustlogo(framebuffer: &mut fb::Framebuffer) {
+    unsafe {
+        // First drawing with GC16_FAST to draw it thoroughly and then
+        // alternating between DU which has more artifacts but is faster.
+        let waveform= if G_COUNTER % 2 == 0 {
+            waveform_mode::WAVEFORM_MODE_GC16_FAST
+        }
+        else {
+            waveform_mode::WAVEFORM_MODE_DU
+        };
+
+        G_COUNTER += 1;
+        let rect = framebuffer.draw_text(
+            240,
+            1140,
+            format!("{0}", G_COUNTER),
+            65,
+            mxc_types::REMARKABLE_DARKEST
+        );
+        let marker = framebuffer.refresh(rect,
+                            update_mode::UPDATE_MODE_PARTIAL,
+                            waveform,
+                            display_temp::TEMP_USE_MAX,
+                            dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                            0, 0);
+        framebuffer.wait_refresh_complete(marker);
+    }
+}
+
 // 0 -> None
 // 1 -> Circles
 // 2 -> Bezier
 static mut DRAW_ON_TOUCH: u32 = 0;
-static mut COUNTER: u32 = 0;
-
 fn main() {
     // Takes callback functions as arguments
     // They are called with the event and the &mut framebuffer
     let mut app = uix::ApplicationContext::new(
         on_button_press,
         on_wacom_input,
-        on_touch,
+        on_touch_handler,
     );
 
     // Alternatively we could have called `app.execute_lua("fb.clear()")`
@@ -231,16 +259,12 @@ fn main() {
         },
     ]);
 
+    // Create a clickable region for multitouch input and associate it with its handler fn
+    app.create_active_region(10, 900, 240, 480, on_touch_rustlogo);
+
+
     // Get a &mut to the framebuffer object, exposing many convenience functions
     let fb = app.get_framebuffer_ref();
-
-    app.create_active_region(10, 900, 240, 480, move || {
-        unsafe {
-            COUNTER += 1;
-            println!("Rust logo clicked {0} times", COUNTER);
-        }
-    });
-
     let clock_thread = std::thread::spawn(move || {
         loop_print_time(fb, 150, 100, 75);
     });
