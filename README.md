@@ -47,7 +47,7 @@ The provided `Makefile` assumes the device is reachable at `10.11.99.1` and that
                    stopping the current instance. This allows discovery of new enums used by
                    official programs in calls to `ioctl`.
 
-#### Further build instructiona for manual builds
+#### Further build instructions for manual builds
 If you choose to skip the `Makefile` and call `cargo` yourself, make sure to include `--release --target=armv7-unknown-linux-gnueabihf` in your arguments like:
 ```
 ➜  rust-poc git:(master) ✗ cargo build --release --target=armv7-unknown-linux-gnueabihf
