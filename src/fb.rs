@@ -54,7 +54,7 @@ impl<'a> Framebuffer<'a> {
         ).unwrap();
 
         // Load the font
-        let font_data = include_bytes!("../DejaVuSans.ttf");
+        let font_data = include_bytes!("../assets/DejaVuSans.ttf");
         let collection = FontCollection::from_bytes(font_data as &[u8]);
 
         var_screen_info.xres = 1872;

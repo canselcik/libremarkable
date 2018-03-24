@@ -217,7 +217,7 @@ fn main() {
     // A rudimentary way to declare a scene and layout
     app.draw_elements(&vec![
         UIElement::Image {
-            img: image::load_from_memory(include_bytes!("../rustlang.bmp")).unwrap(),
+            img: image::load_from_memory(include_bytes!("../assets/rustlang.bmp")).unwrap(),
             y: 10, x: 900,
             refresh: UIConstraintRefresh::Refresh
         },
