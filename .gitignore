@@ -1,6 +1,9 @@
 # Build artifacts
 poc
 evtest
+libremarkable.a
+
+private/
 
 *.iml
 *.iws
