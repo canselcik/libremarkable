@@ -1,0 +1,50 @@
+[package]
+name = "libremarkable"
+version = "0.1.7"
+authors = ["Can Selcik <contact@cselcik.com>"]
+is-it-maintained-issue-resolution = { repository = "https://github.com/canselcik/libremarkable" }
+is-it-maintained-open-issues = { repository = "https://github.com/canselcik/libremarkable" }
+repository = "https://github.com/canselcik/libremarkable"
+maintenance = { status = "actively-developed" }
+license = "MIT"
+description = "The only publicly available Framework for developing applications for the Remarkable Paper Tablet w/ Low Latency Partial Refresh Support"
+readme = "README.md"
+exclude = [ "xochitl-reference/*", "legacy-c-impl/*", "kernel-mxc-epdc-fb-reference/*" ]
+
+[build]
+target= "armv7-unknown-linux-gnueabihf"
+
+[dependencies]
+ioctl-gen = "0.1.0"
+libc = "0.2.37"
+mmap = "0.1.1"
+rusttype = "0.4.1"
+evdev = "0.10.1"
+epoll = "3.1.1"
+image = "0.18.0"
+rb = "0.3.1"
+line_drawing = "0.7.0"
+hlua = "0.4.1"
+aabb-quadtree = "0.1.0"
+
+[profile.release]
+debug = true
+
+[[example]]
+name = "spy"
+path = "examples/spy.rs"
+crate-type = ["dylib"]
+
+[[example]]
+name = "demo"
+path = "examples/demo.rs"
+crate-type = ["bin"]
+
+[dev-dependencies]
+# For spy
+redhook = "0.1.1"
+libc = "0.2.37"
+lazy_static = "1.0.0"
+
+# For demo
+chrono = "0.4.0"
