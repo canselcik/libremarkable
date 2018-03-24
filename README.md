@@ -22,8 +22,8 @@ This repository contains a collection of scripts, code and general information o
 
 (GIF Preview has limited FPS -- click to watch at full framerate)
 
-### Build Instructions
-First, initialize the libfreetype submodules with `git submodule init && git submodule update`.
+### C/C++ Build Instructions
+First, initialize the libfreetype (only needed for the C implementation) submodule with `git submodule init && git submodule update`.
 
 Then, run `make freetype` to generate the `libfreetype` static build with the expected flags.
 

@@ -1,3 +1,7 @@
 [submodule "c-implementation/libfreetype"]
 	path = c-implementation/libfreetype
 	url = git://github.com/ricardoquesada/libfreetype
+
+[submodule "rust-implementation"]
+	path = rust-implementation
+	url = git://github.com/canselcik/libremarkable
