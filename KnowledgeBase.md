@@ -1,20 +1,12 @@
-[![RustPoC](https://i.imgur.com/c9YCAsy.jpg)](https://i.imgur.com/c9YCAsy.jpg)
-
-[![PoC](https://thumbs.gfycat.com/WelltodoImprobableAlligator-size_restricted.gif)](https://gfycat.com/gifs/detail/WelltodoImprobableAlligator)
+## The Undocumented Remarkable Low Latency I/O
 
 Documentation work is now complete. Everything from low latency partial updates to the eInk display to at least minimal multitouch, physical button and Wacom Digitizer input is now understood and can be found one way or another in this repository, either as code or as documentation.
 
-The focus of this repository is now going to be the Rust library for providing these features. Potentially a `piston` backend might be created for `Remarkable`, allowing the use of `conrod` to simplify UI creation.
-
-In cases where Rust implementation seems to contradict with the C implementation, the former can be taken as the source of truth as the `libremarkable` C-implementation was the first-pass that came to being during the exploration stage.
-
-[![https://crates.io/crates/libremarkable](https://img.shields.io/crates/v/libremarkable.svg?style=for-the-badge)](https://crates.io/crates/libremarkable)
-
-The Rust implementation is published on crates.io and can be found at github.com/canselcik/libremarkable.
-
-## Documenting the Undocumented Remarkable Low Latency I/O
-
 This repository contains a collection of scripts, code and general information on what makes Remarkable Paper Tablet tick, focusing on gaining access to the low latency refresh capabilities of the device which are normally not exposed.
+
+[![RustPoC](https://i.imgur.com/c9YCAsy.jpg)](https://i.imgur.com/c9YCAsy.jpg)
+
+[![PoC](https://thumbs.gfycat.com/WelltodoImprobableAlligator-size_restricted.gif)](https://gfycat.com/gifs/detail/WelltodoImprobableAlligator)
 
 [![PoC](https://thumbs.gfycat.com/KindFearlessBigmouthbass-size_restricted.gif)](https://gfycat.com/gifs/detail/KindFearlessBigmouthbass)
 
