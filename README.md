@@ -1,7 +1,6 @@
 ### libremarkable -- Application Development Framework for Remarkable Tablet [![https://crates.io/crates/libremarkable](https://img.shields.io/crates/v/libremarkable.svg?style=for-the-badge)](https://crates.io/crates/libremarkable)
 
-[![RustPoC](https://i.imgur.com/c9YCAsy.jpg)](https://i.imgur.com/c9YCAsy.jpg)
-
+[![RustPoC](https://i.imgur.com/xw8glBk.jpg)](https://i.imgur.com/xw8glBk.jpg)
 [![PoC](https://thumbs.gfycat.com/WelltodoImprobableAlligator-size_restricted.gif)](https://gfycat.com/gifs/detail/WelltodoImprobableAlligator)
 
 Everything from low latency partial updates to the eInk display to at least minimal multitouch, physical button and Wacom Digitizer input is now understood and their minimal to complete implementations can be found in this repository.
@@ -42,8 +41,8 @@ A simple Makefile wrapper is created for convenience. It exposes the following v
 #### Testing libremarkable and the examples on the device
 The provided `Makefile` assumes the device is reachable at `10.11.99.1` and that SSH Key-Based Authentication is set up for SSH so that you won't be prompted a password every time. The following actions are available:
   - `run`: Builds and runs `demo.rs` on the device after stopping `xochitl`
-  - `start-xochitl`: Stops the `demo` instance and starts `xochitl` normally
-  - `spy-xochitl`: Builds and 'spy.rs' and `LD_PRELOAD`s it to a new instance of `xochitl` after
+  - `start-xochitl`: Stops all `xochitl` and `demo` instances and starts `xochitl` normally
+  - `spy-xochitl`: Builds `spy.rs` and `LD_PRELOAD`s it to a new instance of `xochitl` after
                    stopping the current instance. This allows discovery of new enums used by
                    official programs in calls to `ioctl`.
 
