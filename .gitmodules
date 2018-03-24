@@ -4,4 +4,4 @@
 
 [submodule "rust-implementation"]
 	path = rust-implementation
-	url = git://github.com/canselcik/libremarkable
+	url = https://github.com/canselcik/libremarkable
