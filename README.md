@@ -11,6 +11,8 @@ In cases where Rust implementation seems to contradict with the C implementation
 
 For further documentation see the [Knowledge Base](https://github.com/canselcik/libremarkable/wiki/The-Undocumented-Remarkable-Low-Latency-I-O).
 
+https://github.com/canselcik/RemarkableFramebuffer redirects to this repository for historical purposes.
+
 ### Build Instructions
 
 #### Setting up the toolchain
