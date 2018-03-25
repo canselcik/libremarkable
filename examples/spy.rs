@@ -15,6 +15,7 @@ extern crate redhook;
 extern crate libremarkable;
 
 use libremarkable::mxc_types;
+use libremarkable::mxc_types::NativeWidthType;
 
 lazy_static! {
   static ref DIST_DITHER: Mutex<HashMap<u32, u32>> = {
@@ -43,7 +44,7 @@ lazy_static! {
 #[repr(C)]
 struct ioctl_intercept_event {
     fd: libc::c_int,
-    request: u32,
+    request: NativeWidthType,
     p1: intptr_t,
     p2: intptr_t,
     p3: intptr_t,
@@ -95,7 +96,7 @@ fn handle_wait_update_complete(event: ioctl_intercept_event) {
 }
 
 hook! {
-  unsafe fn ioctl(fd: c_int, request: u32, p1: intptr_t, p2: intptr_t, p3: intptr_t, p4: intptr_t) -> c_int => ioctl_hook {
+  unsafe fn ioctl(fd: c_int, request: NativeWidthType, p1: intptr_t, p2: intptr_t, p3: intptr_t, p4: intptr_t) -> c_int => ioctl_hook {
     if request == mxc_types::FBIOPUT_VSCREENINFO {
         let info = p1 as *mut mxc_types::VarScreeninfo;
         println!("fb_var_screeninfo before FBIOPUT_VSCREENINFO is called: {0:#?}", *info);

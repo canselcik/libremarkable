@@ -11,7 +11,7 @@ use std::fs::{OpenOptions, File};
 
 use mxc_types;
 use mxc_types::{VarScreeninfo, FixScreeninfo, FBIOGET_FSCREENINFO, FBIOGET_VSCREENINFO,
-                FBIOPUT_VSCREENINFO};
+                FBIOPUT_VSCREENINFO, MXCFB_ENABLE_EPDC_ACCESS, MXCFB_DISABLE_EPDC_ACCESS};
 
 use rusttype::{Font, FontCollection};
 
@@ -26,12 +26,23 @@ pub struct Framebuffer<'a> {
     pub fix_screen_info: FixScreeninfo,
 }
 
+// Not mockable on purpose
+pub trait FramebufferBase<'a> {
+    fn new(path_to_device: &str) -> Framebuffer;
+    fn set_epdc_access(&mut self, state: bool);
+    fn set_autoupdate_mode(&mut self, mode: u32);
+    fn set_update_scheme(&mut self, scheme: u32);
+    fn get_fix_screeninfo(device: &File) -> FixScreeninfo;
+    fn get_var_screeninfo(device: &File) -> VarScreeninfo;
+    fn put_var_screeninfo(&mut self) -> bool;
+}
+
 unsafe impl<'a> Send for Framebuffer<'a> {}
 unsafe impl<'a> Sync for Framebuffer<'a> {}
 
-impl<'a> Framebuffer<'a> {
+impl<'a> FramebufferBase<'a> for Framebuffer<'a> {
     /// Creates a new instance of Framebuffer
-    pub fn new(path_to_device: &str) -> Framebuffer {
+    fn new(path_to_device: &str) -> Framebuffer {
         let device = OpenOptions::new()
             .read(true)
             .write(true)
@@ -87,9 +98,7 @@ impl<'a> Framebuffer<'a> {
     }
 
     /// Toggles the EPD Controller (see https://wiki.mobileread.com/wiki/EPD_controller)
-    pub fn set_epdc_access(&mut self, state: bool) {
-        const MXCFB_DISABLE_EPDC_ACCESS: u32 = io!(b'F', 0x35);
-        const MXCFB_ENABLE_EPDC_ACCESS: u32 = io!(b'F', 0x36);
+    fn set_epdc_access(&mut self, state: bool) {
         unsafe {
             libc::ioctl(
                 self.device.as_raw_fd(),
@@ -103,29 +112,29 @@ impl<'a> Framebuffer<'a> {
     }
 
     /// Toggles autoupdate mode
-    pub fn set_autoupdate_mode(&mut self, mut mode: u32) {
+    fn set_autoupdate_mode(&mut self, mode: u32) {
         unsafe {
             libc::ioctl(
                 self.device.as_raw_fd(),
                 mxc_types::MXCFB_SET_AUTO_UPDATE_MODE,
-                &mut mode,
+                &mut mode.clone(),
             );
         };
     }
 
     /// Toggles update scheme
-    pub fn set_update_scheme(&mut self, mut scheme: u32) {
+    fn set_update_scheme(&mut self, scheme: u32) {
         unsafe {
             libc::ioctl(
                 self.device.as_raw_fd(),
                 mxc_types::MXCFB_SET_UPDATE_SCHEME,
-                &mut scheme,
+                &mut scheme.clone(),
             );
         };
     }
 
     /// Creates a FixScreeninfo struct and fills it using ioctl
-    pub fn get_fix_screeninfo(device: &File) -> FixScreeninfo {
+    fn get_fix_screeninfo(device: &File) -> FixScreeninfo {
         let mut info: FixScreeninfo = Default::default();
         let result = unsafe { ioctl(device.as_raw_fd(), FBIOGET_FSCREENINFO, &mut info) };
         if result != 0 {
@@ -135,7 +144,7 @@ impl<'a> Framebuffer<'a> {
     }
 
     /// Creates a VarScreeninfo struct and fills it using ioctl
-    pub fn get_var_screeninfo(device: &File) -> VarScreeninfo {
+    fn get_var_screeninfo(device: &File) -> VarScreeninfo {
         let mut info: VarScreeninfo = Default::default();
         let result = unsafe { ioctl(device.as_raw_fd(), FBIOGET_VSCREENINFO, &mut info) };
         if result != 0 {
@@ -147,7 +156,7 @@ impl<'a> Framebuffer<'a> {
     /// Makes the proper ioctl call to set the VarScreenInfo.
     /// You must first update the contents of self.var_screen_info
     /// and then call this function.
-    pub fn put_var_screeninfo(&mut self) -> bool {
+    fn put_var_screeninfo(&mut self) -> bool {
         let result = unsafe {
             ioctl(
                 self.device.as_raw_fd(),

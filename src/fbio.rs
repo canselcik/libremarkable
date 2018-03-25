@@ -1,10 +1,19 @@
 #![allow(dead_code)]
 
 use fb;
+use mock_derive::mock;
 
-impl<'a> fb::Framebuffer<'a> {
+#[mock]
+pub trait FramebufferIO {
+    fn write_frame(&mut self, frame: &[u8]);
+    fn write_pixel(&mut self, y: usize, x: usize, v: u8);
+    fn read_pixel(&mut self, y: usize, x: usize) -> u8;
+    fn read_offset(&mut self, ofst: isize) -> u8;
+}
+
+impl<'a> FramebufferIO for fb::Framebuffer<'a> {
     /// Writes an arbitrary length frame into the framebuffer
-    pub fn write_frame(&mut self, frame: &[u8]) {
+    fn write_frame(&mut self, frame: &[u8]) {
         unsafe {
             let begin = self.frame.data() as *mut u8;
             for (i, elem) in frame.iter().enumerate() {
@@ -14,7 +23,7 @@ impl<'a> fb::Framebuffer<'a> {
     }
 
     /// Writes a single pixel at `(y, x)` with value `v`
-    pub fn write_pixel(&mut self, y: usize, x: usize, v: u8) {
+    fn write_pixel(&mut self, y: usize, x: usize, v: u8) {
         let w = self.var_screen_info.xres as usize;
         let h = self.var_screen_info.yres as usize;
         if y >= h || x >= w {
@@ -34,7 +43,7 @@ impl<'a> fb::Framebuffer<'a> {
     }
 
     /// Reads the value of the pixel at `(y, x)`
-    pub fn read_pixel(&mut self, y: usize, x: usize) -> u8 {
+    fn read_pixel(&mut self, y: usize, x: usize) -> u8 {
         let w = self.var_screen_info.xres as usize;
         let h = self.var_screen_info.yres as usize;
         if y >= h || x >= w {
@@ -47,7 +56,7 @@ impl<'a> fb::Framebuffer<'a> {
     }
 
     /// Reads the value at offset `ofst` from the mmapp'ed framebuffer region
-    pub fn read_offset(&mut self, ofst: isize) -> u8 {
+     fn read_offset(&mut self, ofst: isize) -> u8 {
         unsafe {
             let begin = self.frame.data() as *mut u8;
             return *(begin.offset(ofst));

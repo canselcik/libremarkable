@@ -7,10 +7,28 @@ use fb;
 use mxc_types;
 use mxc_types::{mxcfb_update_marker_data, mxcfb_update_data};
 
-impl<'a> fb::Framebuffer<'a> {
-    pub fn refresh(
+use mock_derive::mock;
+
+#[mock]
+pub trait FramebufferRefresh {
+    fn refresh(
         &mut self,
-        mut update_region: mxc_types::mxcfb_rect,
+        region: &mxc_types::mxcfb_rect,
+        update_mode: mxc_types::update_mode,
+        waveform_mode: mxc_types::waveform_mode,
+        temperature: mxc_types::display_temp,
+        dither_mode: mxc_types::dither_mode,
+        quant_bit: i32,
+        flags: u32,
+    ) -> u32;
+
+    fn wait_refresh_complete(&mut self, marker: u32);
+}
+
+impl<'a> FramebufferRefresh for fb::Framebuffer<'a> {
+    fn refresh(
+        &mut self,
+        region: &mxc_types::mxcfb_rect,
         update_mode: mxc_types::update_mode,
         waveform_mode: mxc_types::waveform_mode,
         temperature: mxc_types::display_temp,
@@ -18,6 +36,8 @@ impl<'a> fb::Framebuffer<'a> {
         quant_bit: i32,
         flags: u32,
     ) -> u32 {
+        let mut update_region = region.clone();
+
         // No accounting for this, out of bounds, entirely ignored
         if update_region.left >= mxc_types::DISPLAYWIDTH as u32 ||
             update_region.top >= mxc_types::DISPLAYHEIGHT as u32
@@ -59,7 +79,7 @@ impl<'a> fb::Framebuffer<'a> {
         return whole.update_marker;
     }
 
-    pub fn wait_refresh_complete(&mut self, marker: u32) {
+    fn wait_refresh_complete(&mut self, marker: u32) {
         let mut markerdata = mxcfb_update_marker_data {
             update_marker: marker,
             collision_test: 0,

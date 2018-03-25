@@ -19,7 +19,8 @@ use libremarkable::uix;
 use libremarkable::uix::UIConstraintRefresh;
 use libremarkable::uix::UIElement;
 
-
+use libremarkable::fbdraw::FramebufferDraw;
+use libremarkable::refresh::FramebufferRefresh;
 
 
 fn loop_print_time(framebuffer: &mut fb::Framebuffer, y: usize, x: usize, scale: usize) {
@@ -49,7 +50,7 @@ fn loop_print_time(framebuffer: &mut fb::Framebuffer, y: usize, x: usize, scale:
         match draw_area {
             Some(area) => {
                 let marker = framebuffer.refresh(
-                    area,
+                    &area,
                     update_mode::UPDATE_MODE_PARTIAL,
                     waveform_mode::WAVEFORM_MODE_DU,
                     display_temp::TEMP_USE_REMARKABLE_DRAW,
@@ -76,7 +77,7 @@ fn on_wacom_input(framebuffer: &mut fb::Framebuffer, input: unifiedinput::WacomE
                 rad as usize, mxc_types::REMARKABLE_DARKEST);
 
             framebuffer.refresh(
-                rect,
+                &rect,
                 update_mode::UPDATE_MODE_PARTIAL,
                 waveform_mode::WAVEFORM_MODE_DU,
                 display_temp::TEMP_USE_REMARKABLE_DRAW,
@@ -111,7 +112,7 @@ fn on_touch_handler(framebuffer: &mut fb::Framebuffer, input: unifiedinput::Mult
                _ => return,
             };
             framebuffer.refresh(
-                rect,
+                &rect,
                 update_mode::UPDATE_MODE_PARTIAL,
                 waveform_mode::WAVEFORM_MODE_DU,
                 display_temp::TEMP_USE_REMARKABLE_DRAW,
@@ -156,7 +157,7 @@ fn on_button_press(framebuffer: &mut fb::Framebuffer, input: unifiedinput::GPIOE
 
     framebuffer.fill_rect(1500, x_offset, 125, 125, color);
     framebuffer.refresh(
-        mxc_types::mxcfb_rect {
+        &mxc_types::mxcfb_rect {
             top: 1500,
             left: x_offset as u32,
             height: 125,
@@ -191,7 +192,7 @@ fn on_touch_rustlogo(framebuffer: &mut fb::Framebuffer) {
             65,
             mxc_types::REMARKABLE_DARKEST
         );
-        let marker = framebuffer.refresh(rect,
+        let marker = framebuffer.refresh(&rect,
                             update_mode::UPDATE_MODE_PARTIAL,
                             waveform,
                             display_temp::TEMP_USE_MAX,

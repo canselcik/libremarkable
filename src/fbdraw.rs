@@ -5,8 +5,10 @@ use mxc_types::mxcfb_rect;
 use rusttype::{Scale, point};
 use libc;
 use line_drawing;
-
+use mock_derive::mock;
 use image::GenericImage;
+
+use fbio::FramebufferIO;
 
 macro_rules! min {
         ($x: expr) => ($x);
@@ -18,9 +20,50 @@ macro_rules! max {
         ($x: expr, $($z: expr),+) => (::std::cmp::max($x, max!($($z),*)));
 }
 
-impl<'a> fb::Framebuffer<'a> {
+#[mock]
+pub trait FramebufferDraw {
+    fn draw_image(&mut self, img: &DynamicImage, top: usize, left: usize) -> mxcfb_rect;
+    fn draw_line(&mut self, y0: i32, x0: i32, y1: i32, x1: i32, color: u8) -> mxcfb_rect;
+    fn draw_circle(&mut self, y: usize, x: usize, rad: usize, color: u8) -> mxcfb_rect;
+    fn fill_circle(&mut self, y: usize, x: usize, rad: usize, color: u8) -> mxcfb_rect;
+    fn draw_bezier(&mut self, startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32), color: u8) -> mxcfb_rect;
+    fn draw_text(
+        &mut self,
+        y: usize,
+        x: usize,
+        text: String,
+        size: usize,
+        color: u8,
+    ) -> mxcfb_rect;
+    fn fill_rect(&mut self, y: usize, x: usize, height: usize, width: usize, color: u8);
+    fn clear(&mut self);
+}
+
+/// Helper function to sample pixels on the bezier curve.
+fn sample_bezier(startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32)) -> Vec<(f32, f32)> {
+    let mut points = Vec::new();
+    let mut lastpt = (-100, -100);
+    for i in 0..1000 {
+        let t = (i as f32) / 1000.0;
+        let precisept = (
+            (1.0 - t).powf(2.0) * startpt.0 + 2.0 * (1.0 - t) * t * ctrlpt.0
+                + t.powf(2.0) * endpt.0,
+            (1.0 - t).powf(2.0) * startpt.1 + 2.0 * (1.0 - t) * t * ctrlpt.1
+                + t.powf(2.0) * endpt.1,
+        );
+        let pt = (precisept.0 as i32, precisept.1 as i32);
+        // prevent oversampling
+        if pt != lastpt {
+            points.push(precisept);
+            lastpt = pt;
+        }
+    }
+    return points;
+}
+
+impl<'a> FramebufferDraw for fb::Framebuffer<'a> {
     /// Draws `img` at y=top, x=left coordinates with 1:1 scaling
-    pub fn draw_image(&mut self, img: &DynamicImage, top: usize, left: usize) -> mxcfb_rect {
+    fn draw_image(&mut self, img: &DynamicImage, top: usize, left: usize) -> mxcfb_rect {
         for (x, y, pixel) in img.to_luma().enumerate_pixels() {
             self.write_pixel(top + y as usize, left + x as usize, pixel.data[0]);
         }
@@ -33,7 +76,7 @@ impl<'a> fb::Framebuffer<'a> {
     }
 
     /// Draws a straight line
-    pub fn draw_line(&mut self, y0: i32, x0: i32, y1: i32, x1: i32, color: u8) -> mxcfb_rect {
+    fn draw_line(&mut self, y0: i32, x0: i32, y1: i32, x1: i32, color: u8) -> mxcfb_rect {
         // Create local variables for moving start point
         let mut x0 = x0;
         let mut y0 = y0;
@@ -88,7 +131,7 @@ impl<'a> fb::Framebuffer<'a> {
     }
 
     /// Draws a circle using Bresenham circle algorithm
-    pub fn draw_circle(&mut self, y: usize, x: usize, rad: usize, color: u8) -> mxcfb_rect {
+    fn draw_circle(&mut self, y: usize, x: usize, rad: usize, color: u8) -> mxcfb_rect {
         for (x, y) in line_drawing::BresenhamCircle::new(x as i32, y as i32, rad as i32) {
             self.write_pixel(y as usize, x as usize, color);
         }
@@ -101,7 +144,7 @@ impl<'a> fb::Framebuffer<'a> {
     }
 
     /// Fills a circle
-    pub fn fill_circle(&mut self, y: usize, x: usize, rad: usize, color: u8) -> mxcfb_rect {
+    fn fill_circle(&mut self, y: usize, x: usize, rad: usize, color: u8) -> mxcfb_rect {
         for current in { 1..rad + 1 } {
             for (x, y) in line_drawing::BresenhamCircle::new(x as i32, y as i32, current as i32) {
                 self.write_pixel(y as usize, x as usize, color);
@@ -116,10 +159,10 @@ impl<'a> fb::Framebuffer<'a> {
     }
 
     /// Draws a bezier curve begining at `startpt`, with control point `ctrlpt`, ending at `endpt` with `color`
-    pub fn draw_bezier(&mut self, startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32), color: u8) -> mxcfb_rect {
+    fn draw_bezier(&mut self, startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32), color: u8) -> mxcfb_rect {
         let mut upperleft: (usize, usize) = (0, 0);
         let mut lowerright: (usize, usize) = (0, 0);
-        for pt in self.sample_bezier(startpt, ctrlpt, endpt) {
+        for pt in sample_bezier(startpt, ctrlpt, endpt) {
             let approx = (pt.0 as usize, pt.1 as usize);
             upperleft.1 = min!(upperleft.1, approx.1);
             upperleft.0 = min!(upperleft.0, approx.0);
@@ -135,30 +178,8 @@ impl<'a> fb::Framebuffer<'a> {
         };
     }
 
-    /// Helper function to sample pixels on the bezier curve.
-    fn sample_bezier(&mut self, startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32)) -> Vec<(f32, f32)> {
-        let mut points = Vec::new();
-        let mut lastpt = (-100, -100);
-        for i in 0..1000 {
-            let t = (i as f32) / 1000.0;
-            let precisept = (
-                (1.0 - t).powf(2.0) * startpt.0 + 2.0 * (1.0 - t) * t * ctrlpt.0
-                    + t.powf(2.0) * endpt.0,
-                (1.0 - t).powf(2.0) * startpt.1 + 2.0 * (1.0 - t) * t * ctrlpt.1
-                    + t.powf(2.0) * endpt.1,
-            );
-            let pt = (precisept.0 as i32, precisept.1 as i32);
-            // prevent oversampling
-            if pt != lastpt {
-                points.push(precisept);
-                lastpt = pt;
-            }
-        }
-        return points;
-    }
-
     /// Draws `text` at `(y, x)` with `color` using `scale`
-    pub fn draw_text(
+    fn draw_text(
         &mut self,
         y: usize,
         x: usize,
@@ -224,7 +245,7 @@ impl<'a> fb::Framebuffer<'a> {
     }
 
     /// Fills rectangle of `height` and `width` at `(y, x)`
-    pub fn fill_rect(&mut self, y: usize, x: usize, height: usize, width: usize, color: u8) {
+    fn fill_rect(&mut self, y: usize, x: usize, height: usize, width: usize, color: u8) {
         for ypos in y..y + height {
             for xpos in x..x + width {
                 self.write_pixel(ypos, xpos, color);
@@ -233,7 +254,7 @@ impl<'a> fb::Framebuffer<'a> {
     }
 
     /// Clears the framebuffer however does not perform a refresh
-    pub fn clear(&mut self) {
+    fn clear(&mut self) {
         let h = self.var_screen_info.yres as usize;
         let line_length = self.fix_screen_info.line_length as usize;
         unsafe {

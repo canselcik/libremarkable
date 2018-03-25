@@ -1,26 +1,35 @@
 use std;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::cell::UnsafeCell;
+use std::ops::DerefMut;
+
 use image;
-use fb;
+
 use ev;
+
 use rb;
 use rb::RB;
+use rb::RbConsumer;
+
 use mxc_types;
 use mxc_types::waveform_mode;
 use mxc_types::dither_mode;
 use mxc_types::update_mode;
 use mxc_types::display_temp;
-use rb::RbConsumer;
+
 use unifiedinput;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::cell::UnsafeCell;
-use std::ops::DerefMut;
 
 use uix_lua;
+
 use hlua;
 use hlua::Lua;
 
 use aabb_quadtree::{QuadTree, geom, ItemId};
 
+use fb;
+use fb::FramebufferBase;
+use fbdraw::FramebufferDraw;
+use refresh::FramebufferRefresh;
 
 #[derive(Clone)]
 pub struct ActiveRegionHandler(pub fn(&mut fb::Framebuffer));
@@ -157,7 +166,7 @@ impl<'a> ApplicationContext<'a> {
                                                                      mxc_types::REMARKABLE_DARKEST);
         let marker = match refresh {
             UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer.refresh(
-                draw_area,
+                &draw_area,
                 update_mode::UPDATE_MODE_PARTIAL,
                 waveform_mode::WAVEFORM_MODE_GC16_FAST,
                 display_temp::TEMP_USE_REMARKABLE_DRAW,
@@ -196,7 +205,7 @@ impl<'a> ApplicationContext<'a> {
         let rect = framebuffer.draw_image(&img, y, x);
         let marker = match refresh {
             UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer.refresh(
-                rect,
+                &rect,
                 update_mode::UPDATE_MODE_PARTIAL,
                 waveform_mode::WAVEFORM_MODE_GC16_FAST,
                 display_temp::TEMP_USE_REMARKABLE_DRAW,
@@ -251,7 +260,7 @@ impl<'a> ApplicationContext<'a> {
         };
 
         let marker = framebuffer.refresh(
-            mxc_types::mxcfb_rect {
+            &mxc_types::mxcfb_rect {
                 top: 0,
                 left: 0,
                 height: yres,

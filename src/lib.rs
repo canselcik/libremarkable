@@ -1,6 +1,9 @@
 #![feature(integer_atomics)]
 #![feature(const_size_of)]
 
+#![feature(proc_macro)]
+extern crate mock_derive;
+
 #[macro_use]
 extern crate ioctl_gen;
 

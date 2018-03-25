@@ -1,5 +1,10 @@
 use hlua;
 use fb;
+
+use fbdraw::FramebufferDraw;
+use fbio::FramebufferIO;
+use refresh::FramebufferRefresh;
+
 use std;
 use mxc_types::{waveform_mode,display_temp,dither_mode,update_mode,mxcfb_rect,DRAWING_QUANT_BIT};
 
@@ -20,14 +25,20 @@ pub fn lua_refresh(y: hlua::AnyLuaValue, x: hlua::AnyLuaValue, height: hlua::Any
     let framebuffer = get_current_framebuffer!();
     match (y, x, height, width, deep, wait) {
         (hlua::AnyLuaValue::LuaNumber(ny),
-            hlua::AnyLuaValue::LuaNumber(nx),
-            hlua::AnyLuaValue::LuaNumber(nheight),
-            hlua::AnyLuaValue::LuaNumber(nwidth),
-            hlua::AnyLuaValue::LuaBoolean(bdeep),
-            hlua::AnyLuaValue::LuaBoolean(bwait)) => {
+         hlua::AnyLuaValue::LuaNumber(nx),
+         hlua::AnyLuaValue::LuaNumber(nheight),
+         hlua::AnyLuaValue::LuaNumber(nwidth),
+         hlua::AnyLuaValue::LuaBoolean(bdeep),
+         hlua::AnyLuaValue::LuaBoolean(bwait)) => {
+            let rect = mxcfb_rect {
+                top: ny as u32,
+                left: nx as u32,
+                height: nheight as u32,
+                width: nwidth as u32,
+            };
             let marker = match bdeep {
                 false => framebuffer.refresh(
-                    mxcfb_rect { top: ny as u32, left: nx as u32, height: nheight as u32, width: nwidth as u32 },
+                    &rect,
                     update_mode::UPDATE_MODE_PARTIAL,
                     waveform_mode::WAVEFORM_MODE_DU,
                     display_temp::TEMP_USE_REMARKABLE_DRAW,
@@ -36,7 +47,7 @@ pub fn lua_refresh(y: hlua::AnyLuaValue, x: hlua::AnyLuaValue, height: hlua::Any
                     0,
                 ),
                 true => framebuffer.refresh(
-                    mxcfb_rect { top: ny as u32, left: nx as u32, height: nheight as u32, width: nwidth as u32 },
+                    &rect,
                     update_mode::UPDATE_MODE_PARTIAL,
                     waveform_mode::WAVEFORM_MODE_GC16_FAST,
                     display_temp::TEMP_USE_PAPYRUS,
@@ -94,7 +105,7 @@ pub fn lua_clear() {
     framebuffer.clear();
 
     let marker = framebuffer.refresh(
-        mxcfb_rect {
+        &mxcfb_rect {
             top: 0,
             left: 0,
             height: yres,

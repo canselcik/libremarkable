@@ -6,6 +6,12 @@ use libc::intptr_t;
 
 use std;
 
+// This is to allow tests to run on systems with 64bit pointer types.
+// It doesn't make a difference since we will be mocking the ioctl calls.
+#[cfg(target_pointer_width = "64")]
+pub type NativeWidthType = u64;
+#[cfg(target_pointer_width = "32")]
+pub type NativeWidthType = u32;
 
 pub const DISPLAYWIDTH: u16 = 1404;
 pub const DISPLAYHEIGHT: u16 = 1872;
@@ -16,18 +22,26 @@ pub const MTHEIGHT: u16 = 1023;
 pub const WACOMWIDTH: u16 = 15725;
 pub const WACOMHEIGHT: u16 = 20967;
 
-pub const MXCFB_SET_AUTO_UPDATE_MODE: u32 = iow!(b'F', 0x2D, std::mem::size_of::<u32>());
-pub const MXCFB_SET_UPDATE_SCHEME: u32 = iow!(b'F', 0x32, std::mem::size_of::<u32>());
-pub const MXCFB_SEND_UPDATE: u32 = iow!(b'F', 0x2E, std::mem::size_of::<mxcfb_update_data>());
-pub const MXCFB_WAIT_FOR_UPDATE_COMPLETE: u32 =
-    iowr!(b'F', 0x2F, std::mem::size_of::<mxcfb_update_marker_data>());
-pub const FBIOPUT_VSCREENINFO: u32 = 0x4601;
-pub const FBIOGET_VSCREENINFO: u32 = 0x4600;
-pub const FBIOGET_FSCREENINFO: u32 = 0x4602;
-pub const FBIOGETCMAP: u32 = 0x4604;
-pub const FBIOPUTCMAP: u32 = 0x4605;
-pub const FBIOPAN_DISPLAY: u32 = 0x4606;
-pub const FBIO_CURSOR: u32 = 0x4608;
+pub const MXCFB_SET_AUTO_UPDATE_MODE: NativeWidthType =
+    iow!(b'F', 0x2D, std::mem::size_of::<u32>()) as NativeWidthType;
+pub const MXCFB_SET_UPDATE_SCHEME: NativeWidthType =
+    iow!(b'F', 0x32, std::mem::size_of::<u32>()) as NativeWidthType;
+pub const MXCFB_SEND_UPDATE: NativeWidthType =
+    iow!(b'F', 0x2E, std::mem::size_of::<mxcfb_update_data>()) as NativeWidthType;
+pub const MXCFB_WAIT_FOR_UPDATE_COMPLETE: NativeWidthType =
+    iowr!(b'F', 0x2F, std::mem::size_of::<mxcfb_update_marker_data>()) as NativeWidthType;
+pub const MXCFB_DISABLE_EPDC_ACCESS: NativeWidthType =
+    io!(b'F', 0x35) as NativeWidthType;
+pub const MXCFB_ENABLE_EPDC_ACCESS: NativeWidthType =
+    io!(b'F', 0x36) as NativeWidthType;
+
+pub const FBIOPUT_VSCREENINFO: NativeWidthType = 0x4601;
+pub const FBIOGET_VSCREENINFO: NativeWidthType = 0x4600;
+pub const FBIOGET_FSCREENINFO: NativeWidthType = 0x4602;
+pub const FBIOGETCMAP: NativeWidthType = 0x4604;
+pub const FBIOPUTCMAP: NativeWidthType = 0x4605;
+pub const FBIOPAN_DISPLAY: NativeWidthType = 0x4606;
+pub const FBIO_CURSOR: NativeWidthType = 0x4608;
 
 ///Bitfield which is a part of VarScreeninfo.
 #[repr(C)]
