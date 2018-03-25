@@ -19,6 +19,9 @@ use libremarkable::uix;
 use libremarkable::uix::UIConstraintRefresh;
 use libremarkable::uix::UIElement;
 
+
+
+
 fn loop_print_time(framebuffer: &mut fb::Framebuffer, y: usize, x: usize, scale: usize) {
     let mut draw_area: Option<mxc_types::mxcfb_rect> = None;
     loop {
@@ -228,7 +231,7 @@ fn main() {
             refresh: UIConstraintRefresh::Refresh
         },
         UIElement::Text {
-            text: "github.com/canselcik/RemarkableFramebuffer".to_owned(),
+            text: "github.com/canselcik/libremarkable".to_owned(),
             y: 750, x: 100,
             scale: 60,
             refresh: UIConstraintRefresh::Refresh
