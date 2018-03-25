@@ -222,49 +222,57 @@ fn main() {
         UIElement::Image {
             img: image::load_from_memory(include_bytes!("../assets/rustlang.bmp")).unwrap(),
             y: 10, x: 900,
-            refresh: UIConstraintRefresh::Refresh
+            refresh: UIConstraintRefresh::Refresh,
+
+            /* We could have alternatively done this:
+               // Create a clickable region for multitouch input and associate it with its handler fn
+               app.create_active_region(10, 900, 240, 480, on_touch_rustlogo);
+            */
+            onclick: Some(uix::ActiveRegionHandler(on_touch_rustlogo)),
         },
         UIElement::Text {
             text: "Available at:".to_owned(),
             y: 650, x: 120,
             scale: 70,
+            onclick: None,
             refresh: UIConstraintRefresh::Refresh
         },
         UIElement::Text {
             text: "github.com/canselcik/libremarkable".to_owned(),
             y: 750, x: 100,
             scale: 60,
+            onclick: None,
             refresh: UIConstraintRefresh::Refresh
         },
         UIElement::Text {
             text: "Low Latency eInk Display Partial Refresh API".to_owned(),
             y: 350, x: 120,
             scale: 55,
+            onclick: None,
             refresh: UIConstraintRefresh::Refresh
         },
         UIElement::Text {
             text: "Physical Button Support".to_owned(),
             y: 470, x: 120,
             scale: 55,
+            onclick: None,
             refresh: UIConstraintRefresh::Refresh
         },
         UIElement::Text {
             text: "Capacitive Multitouch Input Support".to_owned(),
             y: 410, x: 120,
             scale: 55,
+            onclick: None,
             refresh: UIConstraintRefresh::Refresh
         },
         UIElement::Text {
             text: "Wacom Digitizer Support".to_owned(),
             y: 530, x: 120,
             scale: 55,
+            onclick: None,
             refresh: UIConstraintRefresh::RefreshAndWait
         },
     ]);
-
-    // Create a clickable region for multitouch input and associate it with its handler fn
-    app.create_active_region(10, 900, 240, 480, on_touch_rustlogo);
-
 
     // Get a &mut to the framebuffer object, exposing many convenience functions
     let fb = app.get_framebuffer_ref();

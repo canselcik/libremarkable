@@ -23,6 +23,9 @@ use aabb_quadtree::{QuadTree, geom, ItemId};
 
 
 #[derive(Clone)]
+pub struct ActiveRegionHandler(pub fn(&mut fb::Framebuffer));
+
+#[derive(Clone)]
 pub enum UIConstraintRefresh {
     NoRefresh,
     Refresh,
@@ -37,16 +40,16 @@ pub enum UIElement {
         y: usize,
         x: usize,
         refresh: UIConstraintRefresh,
+        onclick: Option<ActiveRegionHandler>,
     },
     Image {
         img: image::DynamicImage,
         y: usize,
         x: usize,
         refresh: UIConstraintRefresh,
+        onclick: Option<ActiveRegionHandler>,
     }
 }
-
-pub struct ActiveRegionHandler(fn(&mut fb::Framebuffer));
 
 pub struct ApplicationContext<'a> {
     framebuffer: Box<fb::Framebuffer<'a>>,
@@ -147,10 +150,10 @@ impl<'a> ApplicationContext<'a> {
         scale: usize,
         text: String,
         refresh: UIConstraintRefresh,
+        onclick: &Option<ActiveRegionHandler>,
     ) {
         let framebuffer = self.get_framebuffer_ref();
-        let draw_area: mxc_types::mxcfb_rect = framebuffer.draw_text(y, x,
-                                                                     text, scale,
+        let draw_area: mxc_types::mxcfb_rect = framebuffer.draw_text(y, x, text, scale,
                                                                      mxc_types::REMARKABLE_DARKEST);
         let marker = match refresh {
             UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer.refresh(
@@ -164,14 +167,33 @@ impl<'a> ApplicationContext<'a> {
             ),
             _ => return,
         };
+        match onclick {
+            &Some(ref handler) => {
+                if self.find_active_region(y as u16, x as u16).is_none() {
+                    self.create_active_region(draw_area.top as u16,
+                                              draw_area.left as u16,
+                                              draw_area.height as u16,
+                                              draw_area.width as u16,
+                                              handler.0);
+                }
+            },
+            &None => {},
+        }
         match refresh {
             UIConstraintRefresh::RefreshAndWait => framebuffer.wait_refresh_complete(marker),
             _ => {},
         };
     }
 
-    pub fn display_image(&mut self, img: &image::DynamicImage, y: usize, x: usize, refresh: UIConstraintRefresh) {
-        let framebuffer = self.get_framebuffer_ref();        let rect = framebuffer.draw_image(&img, y, x);
+    pub fn display_image(&mut self,
+                         img: &image::DynamicImage,
+                         y: usize,
+                         x: usize,
+                         refresh: UIConstraintRefresh,
+                         onclick: &Option<ActiveRegionHandler>,
+    ) {
+        let framebuffer = self.get_framebuffer_ref();
+        let rect = framebuffer.draw_image(&img, y, x);
         let marker = match refresh {
             UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer.refresh(
                 rect,
@@ -184,6 +206,18 @@ impl<'a> ApplicationContext<'a> {
             ),
             _ => return,
         };
+        match onclick {
+            &Some(ref handler) => {
+                if self.find_active_region(y as u16, x as u16).is_none() {
+                    self.create_active_region(rect.top as u16,
+                                              rect.left as u16,
+                                              rect.height as u16,
+                                              rect.width as u16,
+                                              handler.0);
+                }
+            },
+            &None => {},
+        }
         match refresh {
             UIConstraintRefresh::RefreshAndWait => framebuffer.wait_refresh_complete(marker),
             _ => {},
@@ -193,11 +227,11 @@ impl<'a> ApplicationContext<'a> {
     pub fn draw_elements(&mut self, elements: &Vec<UIElement>) {
         for element in elements.iter() {
             match element {
-                &UIElement::Text{ref text, y, x, scale, ref refresh} => {
-                    self.display_text(y, x, scale, text.to_string(), refresh.clone())
+                &UIElement::Text{ref text, y, x, scale, ref refresh, ref onclick} => {
+                    self.display_text(y, x, scale, text.to_string(), refresh.clone(), onclick)
                 },
-                &UIElement::Image{ref img, y, x, ref refresh} => {
-                    self.display_image(&img, y, x, refresh.clone())
+                &UIElement::Image{ref img, y, x, ref refresh, ref onclick} => {
+                    self.display_image(&img, y, x, refresh.clone(), onclick)
                 },
             }
         }
