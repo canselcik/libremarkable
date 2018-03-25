@@ -23,7 +23,7 @@ use libremarkable::fbdraw::FramebufferDraw;
 use libremarkable::refresh::FramebufferRefresh;
 
 
-fn loop_print_time(framebuffer: &mut fb::Framebuffer, y: usize, x: usize, scale: usize) {
+fn loop_print_time(framebuffer: &mut fb::Framebuffer, y: usize, x: usize, scale: usize, millis: u64) {
     let mut draw_area: Option<mxc_types::mxcfb_rect> = None;
     loop {
         let dt: DateTime<Local> = Local::now();
@@ -62,7 +62,7 @@ fn loop_print_time(framebuffer: &mut fb::Framebuffer, y: usize, x: usize, scale:
             }
             _ => {}
         }
-        sleep(Duration::from_millis(400));
+        sleep(Duration::from_millis(millis));
     }
 }
 
@@ -278,7 +278,7 @@ fn main() {
     // Get a &mut to the framebuffer object, exposing many convenience functions
     let fb = app.get_framebuffer_ref();
     let clock_thread = std::thread::spawn(move || {
-        loop_print_time(fb, 150, 100, 75);
+        loop_print_time(fb, 150, 100, 75, 10000);
     });
 
     app.execute_lua(r#"
