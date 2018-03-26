@@ -85,7 +85,6 @@ pub struct UnifiedInputHandler<'a> {
     wacom: WacomState,
     gpio: GPIOState,
     mt: MultitouchState,
-    verbose: bool,
     ringbuffer: &'a rb::Producer<InputEvent>,
 }
 
@@ -104,7 +103,7 @@ impl Default for InputEvent {
 }
 
 impl<'a> UnifiedInputHandler<'a> {
-    pub fn new(verbose: bool, ringbuffer: &rb::Producer<InputEvent>) -> UnifiedInputHandler {
+    pub fn new(ringbuffer: &rb::Producer<InputEvent>) -> UnifiedInputHandler {
         return UnifiedInputHandler {
             gpio: GPIOState {
                 states: [false; 3],
@@ -128,7 +127,6 @@ impl<'a> UnifiedInputHandler<'a> {
                 currently_touching: false,
             },
             ringbuffer,
-            verbose,
         };
     }
 
@@ -144,7 +142,7 @@ impl<'a> UnifiedInputHandler<'a> {
                     };
                     self.ringbuffer.write(&[InputEvent::WacomEvent { event }]).unwrap();
                 } else {
-                    println!("Unknown key event code for Wacom [type: {0} code: {1} value: {2}]",
+                    warn!("Unknown key event code for Wacom [type: {0} code: {1} value: {2}]",
                              ev._type, ev.code, ev.value);
                 }
             }
@@ -191,18 +189,14 @@ impl<'a> UnifiedInputHandler<'a> {
                         self.wacom.last_x = ev.value as u16;
                     }
                     _ => {
-                        if self.verbose {
-                            println!("Unknown absolute event code for Wacom [type: {0} code: {1} value: {2}]",
-                                     ev._type, ev.code, ev.value);
-                        }
+                        warn!("Unknown absolute event code for Wacom [type: {0} code: {1} value: {2}]",
+                                 ev._type, ev.code, ev.value);
                     }
                 }
             }
             _ => {
-                if self.verbose {
-                    println!("Unknown event TYPE for Wacom [type: {0} code: {1} value: {2}]",
-                             ev._type, ev.code, ev.value);
-                }
+                warn!("Unknown event TYPE for Wacom [type: {0} code: {1} value: {2}]",
+                         ev._type, ev.code, ev.value);
             }
         }
     }
@@ -235,9 +229,8 @@ impl<'a> UnifiedInputHandler<'a> {
 
                         self.ringbuffer.write(&[InputEvent::MultitouchEvent { event }]).unwrap();
                     }
-                    52 | 48 | 58 => {
-                        // println!("unknown_absolute_touch_event(code={0}, value={1})", ev.code, ev.value);
-                    }
+                    52 | 48 | 58 =>
+                        debug!("unknown_absolute_touch_event(code={0}, value={1})", ev.code, ev.value),
                     49 => {
                         // potentially incorrect
                         self.mt.last_touch_size = ev.value as u8;
@@ -254,21 +247,13 @@ impl<'a> UnifiedInputHandler<'a> {
                         }
                     }
                     // very unlikely
-                    _ => {
-                        if self.verbose {
-                            println!("Unknown event code for multitouch [type: {0} code: {1} value: {2}]",
-                                     ev._type, ev.code, ev.value)
-                        }
-                    }
+                    _ => warn!("Unknown event code for multitouch [type: {0} code: {1} value: {2}]",
+                                 ev._type, ev.code, ev.value),
                 }
             }
-            _ => {
-                // very unlikely
-                if self.verbose {
-                    println!("Unknown event type for [type: {0} code: {1} value: {2}]",
-                             ev._type, ev.code, ev.value);
-                }
-            }
+            _ =>
+                warn!("Unknown event type for [type: {0} code: {1} value: {2}]",
+                     ev._type, ev.code, ev.value),
         }
     }
 
@@ -313,7 +298,7 @@ impl<'a> UnifiedInputHandler<'a> {
             }
             _ => {
                 // Shouldn't happen
-                println!("[WARN] Unknown event on PhysicalButtonHandler (type: {0})", ev._type);
+                error!("Unknown event on PhysicalButtonHandler (type: {0})", ev._type);
             }
         }
     }
@@ -321,7 +306,7 @@ impl<'a> UnifiedInputHandler<'a> {
 
 impl<'a> ev::EvdevHandler for UnifiedInputHandler<'a> {
     fn on_init(&mut self, name: String, _device: &mut Device) {
-        println!("INFO: '{0}' input device EPOLL initialized", name);
+        info!("'{0}' input device EPOLL initialized", name);
     }
 
     fn on_event(&mut self, device: &String, ev: input_event) {

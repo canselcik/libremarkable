@@ -5,6 +5,9 @@
 extern crate mock_derive;
 
 #[macro_use]
+extern crate log;
+
+#[macro_use]
 extern crate ioctl_gen;
 
 extern crate libc;

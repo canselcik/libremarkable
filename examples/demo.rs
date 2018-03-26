@@ -1,3 +1,7 @@
+#[macro_use]
+extern crate log;
+extern crate env_logger;
+
 extern crate libremarkable;
 extern crate chrono;
 
@@ -87,10 +91,10 @@ fn on_wacom_input(framebuffer: &mut fb::Framebuffer, input: unifiedinput::WacomE
             );
         }
         unifiedinput::WacomEvent::InstrumentChange { pen, state } => {
-            // println!("WacomInstrumentChanged(inst: {0}, state: {1})", pen as u16, state);
+             debug!("WacomInstrumentChanged(inst: {0}, state: {1})", pen as u16, state);
         }
         unifiedinput::WacomEvent::Hover { y, x, distance, tilt_x, tilt_y } => {
-            // println!("WacomHover(y: {0}, x: {1}, distance: {2})", y, x, distance);
+             debug!("WacomHover(y: {0}, x: {1}, distance: {2})", y, x, distance);
         }
         _ => {}
     };
@@ -207,6 +211,8 @@ fn on_touch_rustlogo(framebuffer: &mut fb::Framebuffer) {
 // 2 -> Bezier
 static mut DRAW_ON_TOUCH: u32 = 0;
 fn main() {
+    env_logger::init();
+
     // Takes callback functions as arguments
     // They are called with the event and the &mut framebuffer
     let mut app = uix::ApplicationContext::new(

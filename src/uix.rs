@@ -147,7 +147,7 @@ impl<'a> ApplicationContext<'a> {
     pub fn execute_lua(&mut self, code: &str) {
         let lua = self.get_lua_ref();
         match lua.execute::<hlua::AnyLuaValue>(&code) {
-            Err(e) => println!("Error in Lua Context: {:?}", e),
+            Err(e) => warn!("Error in Lua Context: {:?}", e),
             Ok(_) => {},
         };
     }
@@ -286,7 +286,7 @@ impl<'a> ApplicationContext<'a> {
         let producer = ringbuffer.producer();
         let unified =  unsafe {
             std::mem::transmute::<unifiedinput::UnifiedInputHandler, unifiedinput::UnifiedInputHandler<'static>>
-             (unifiedinput::UnifiedInputHandler::new(false, &producer))
+             (unifiedinput::UnifiedInputHandler::new(&producer))
         };
 
         let w: &mut unifiedinput::UnifiedInputHandler = unsafe { std::mem::transmute_copy(&&unified) };

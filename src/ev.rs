@@ -20,8 +20,7 @@ pub fn start_evdev<H: EvdevHandler + Send>(path: String, handler: &'static mut H
 
         let mut v = vec![
             epoll::Event {
-                events: (epoll::Events::EPOLLET | epoll::Events::EPOLLIN | epoll::Events::EPOLLPRI)
-                    .bits(),
+                events: (epoll::Events::EPOLLET | epoll::Events::EPOLLIN | epoll::Events::EPOLLPRI).bits(),
                 data: 0,
             },
         ];
@@ -36,7 +35,7 @@ pub fn start_evdev<H: EvdevHandler + Send>(path: String, handler: &'static mut H
             // -1 indefinite wait but it is okay because our EPOLL FD is watching on ALL input devices at once
             let res = epoll::wait(epfd, -1, &mut v[0..1]).unwrap();
             if res != 1 {
-                println!("WARN: epoll_wait returned {0}", res);
+                warn!("epoll_wait returned {0}", res);
             }
 
             for ev in dev.events_no_sync().unwrap() {
