@@ -141,6 +141,9 @@ fn on_button_press(framebuffer: &mut fb::Framebuffer, input: unifiedinput::GPIOE
         true => mxc_types::REMARKABLE_DARKEST,
     };
 
+    let (yres, xres) = (framebuffer.var_screen_info.yres, framebuffer.var_screen_info.xres);
+    let offset = 45 * yres / 100;
+    let height = yres - offset;
     let x_offset = match btn {
         unifiedinput::PhysicalButton::LEFT => {
             if new_state {
@@ -152,7 +155,27 @@ fn on_button_press(framebuffer: &mut fb::Framebuffer, input: unifiedinput::GPIOE
         },
         unifiedinput::PhysicalButton::MIDDLE => {
             if new_state {
-                framebuffer.clear();
+                framebuffer.fill_rect(
+                    offset as usize,
+                    0,
+                    height as usize,
+                    xres as usize,
+                    mxc_types::REMARKABLE_BRIGHTEST
+                );
+                let rect = mxc_types::mxcfb_rect {
+                    top: offset,
+                    left: 0,
+                    height,
+                    width: xres,
+                };
+                framebuffer.refresh(
+                    &rect,
+                    update_mode::UPDATE_MODE_FULL,
+                    waveform_mode::WAVEFORM_MODE_INIT,
+                    display_temp::TEMP_USE_AMBIENT,
+                    dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                    0, 0,
+                );
             }
             return;
         }
