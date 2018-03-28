@@ -307,7 +307,7 @@ fn main() {
     // Get a &mut to the framebuffer object, exposing many convenience functions
     let fb = app.get_framebuffer_ref();
     let clock_thread = std::thread::spawn(move || {
-        loop_print_time(fb, 150, 100, 75, 10000);
+        loop_print_time(fb, 150, 100, 75, 30 * 1000);
     });
 
     app.execute_lua(r#"
