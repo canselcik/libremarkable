@@ -8,7 +8,7 @@ The focus of this repository is now going to be the Rust library for providing t
 
 In cases where Rust implementation seems to contradict with the C implementation, the former can be taken as the source of truth as the `libremarkable` C implementation was the first-pass that came to being during the exploration stage.
 
-For further documentation see the [wiki](https://github.com/canselcik/libremarkable/wiki).
+For further documentation see the [wiki](https://github.com/canselcik/libremarkable/wiki) on this repository.
 
 https://github.com/canselcik/RemarkableFramebuffer redirects to this repository for historical purposes.
 
