@@ -5,7 +5,6 @@ use mxc_types::mxcfb_rect;
 use rusttype::{Scale, point};
 use libc;
 use line_drawing;
-use mock_derive::mock;
 use image::GenericImage;
 
 use fbio::FramebufferIO;
@@ -20,7 +19,6 @@ macro_rules! max {
         ($x: expr, $($z: expr),+) => (::std::cmp::max($x, max!($($z),*)));
 }
 
-#[mock]
 pub trait FramebufferDraw {
     fn draw_image(&mut self, img: &DynamicImage, top: usize, left: usize) -> mxcfb_rect;
     fn draw_line(&mut self, y0: i32, x0: i32, y1: i32, x1: i32, color: u8) -> mxcfb_rect;

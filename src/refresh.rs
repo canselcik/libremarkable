@@ -7,9 +7,6 @@ use fb;
 use mxc_types;
 use mxc_types::{mxcfb_update_marker_data, mxcfb_update_data};
 
-use mock_derive::mock;
-
-#[mock]
 pub trait FramebufferRefresh {
     fn refresh(
         &mut self,

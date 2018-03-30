@@ -1,6 +1,3 @@
-#![feature(proc_macro)]
-extern crate mock_derive;
-
 //extern crate libremarkable;
 //use libremarkable::fb::{Framebuffer,FramebufferBase};
 //use libremarkable::fbdraw::FramebufferDraw;

@@ -17,7 +17,6 @@ target= "armv7-unknown-linux-gnueabihf"
 [dependencies]
 log = "0.4.1"
 env_logger = "0.5.6"
-mock_derive = "0.7.0"
 ioctl-gen = "0.1.0"
 libc = "0.2.37"
 mmap = "0.1.1"

@@ -1,9 +1,6 @@
 #![allow(dead_code)]
-
 use fb;
-use mock_derive::mock;
 
-#[mock]
 pub trait FramebufferIO {
     fn write_frame(&mut self, frame: &[u8]);
     fn write_pixel(&mut self, y: usize, x: usize, v: u8);
