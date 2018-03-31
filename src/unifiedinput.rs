@@ -7,6 +7,7 @@ use mxc_types;
 use rb;
 
 use rb::RbProducer;
+use std::sync::atomic::{AtomicU16, Ordering};
 
 const WACOM_HSCALAR: f32 = (mxc_types::DISPLAYWIDTH as f32) / (mxc_types::WACOMWIDTH as f32);
 const WACOM_VSCALAR: f32 = (mxc_types::DISPLAYHEIGHT as f32) / (mxc_types::WACOMHEIGHT as f32);
@@ -19,14 +20,12 @@ unsafe impl<'a> Send for UnifiedInputHandler<'a> {}
 unsafe impl<'a> Sync for UnifiedInputHandler<'a> {}
 
 pub struct WacomState {
-    last_x: u16,
-    last_y: u16,
-    last_xtilt: u16,
-    last_ytilt: u16,
-    last_dist: u16,
-    last_pressure: u16,
-    previous_x: u16,
-    previous_y: u16,
+    last_x: AtomicU16,
+    last_y: AtomicU16,
+    last_xtilt: AtomicU16,
+    last_ytilt: AtomicU16,
+    last_dist: AtomicU16,
+    last_pressure: AtomicU16,
 }
 
 #[repr(u16)]
@@ -43,7 +42,7 @@ pub enum WacomPen {
 pub enum WacomEvent {
     InstrumentChange { pen: WacomPen, state: bool },
     Hover { y: u16, x: u16, distance: u16, tilt_x: u16, tilt_y: u16 },
-    Draw { y: u16, x: u16, pressure: u16, tilt_x: u16, tilt_y: u16, prevy: u16, prevx: u16 },
+    Draw { y: u16, x: u16, pressure: u16, tilt_x: u16, tilt_y: u16 },
     Unknown,
 }
 
@@ -109,14 +108,12 @@ impl<'a> UnifiedInputHandler<'a> {
                 states: [false; 3],
             },
             wacom: WacomState {
-                last_x: 0,
-                last_y: 0,
-                last_xtilt: 0,
-                last_ytilt: 0,
-                last_dist: 0,
-                last_pressure: 0,
-                previous_x: 0,
-                previous_y: 0,
+                last_x: AtomicU16::new(0),
+                last_y: AtomicU16::new(0),
+                last_xtilt: AtomicU16::new(0),
+                last_ytilt: AtomicU16::new(0),
+                last_dist: AtomicU16::new(0),
+                last_pressure: AtomicU16::new(0),
             },
             mt: MultitouchState {
                 last_touch_size: 0,
@@ -142,7 +139,7 @@ impl<'a> UnifiedInputHandler<'a> {
                     };
                     self.ringbuffer.write(&[InputEvent::WacomEvent { event }]).unwrap();
                 } else {
-                    warn!("Unknown key event code for Wacom [type: {0} code: {1} value: {2}]",
+                    error!("Unknown key event code for Wacom [type: {0} code: {1} value: {2}]",
                              ev._type, ev.code, ev.value);
                 }
             }
@@ -150,52 +147,62 @@ impl<'a> UnifiedInputHandler<'a> {
                 // Absolute
                 match ev.code {
                     25 => { // distance up to 255
-                        self.wacom.last_dist = ev.value as u16;
-                        let event = WacomEvent::Hover {
-                            y: (self.wacom.last_y as f32 * WACOM_VSCALAR) as u16,
-                            x: (self.wacom.last_x as f32 * WACOM_HSCALAR) as u16,
-                            distance: self.wacom.last_dist,
-                            tilt_x: self.wacom.last_xtilt,
-                            tilt_y: self.wacom.last_ytilt,
+                        // So we have an interesting behavior here.
+                        // When the tip is pressed to the point where last_pressure is 4095,
+                        // the last_dist supplants to that current max.
+                        self.wacom.last_dist.store(ev.value as u16, Ordering::Relaxed);
+                        let last_pressure = self.wacom.last_pressure.load(Ordering::Relaxed);
+                        let event = if last_pressure == 0 {
+                            WacomEvent::Hover {
+                                y: (self.wacom.last_y.load(Ordering::Relaxed) as f32 * WACOM_VSCALAR) as u16,
+                                x: (self.wacom.last_x.load(Ordering::Relaxed) as f32 * WACOM_HSCALAR) as u16,
+                                distance: ev.value as u16,
+                                tilt_x: self.wacom.last_xtilt.load(Ordering::Relaxed),
+                                tilt_y: self.wacom.last_ytilt.load(Ordering::Relaxed),
+                            }
+                        } else {
+                            WacomEvent::Draw {
+                                x: (self.wacom.last_x.load(Ordering::Relaxed) as f32 * WACOM_HSCALAR) as u16,
+                                y: (self.wacom.last_y.load(Ordering::Relaxed) as f32 * WACOM_VSCALAR) as u16,
+                                pressure: last_pressure + (ev.value as u16),
+                                tilt_x: self.wacom.last_xtilt.load(Ordering::Relaxed),
+                                tilt_y: self.wacom.last_ytilt.load(Ordering::Relaxed),
+                            }
                         };
                         self.ringbuffer.write(&[InputEvent::WacomEvent { event }]).unwrap();
                     }
                     26 => { // xtilt -9000 to 9000
-                        self.wacom.last_xtilt = ev.value as u16;
+                        self.wacom.last_xtilt.store(ev.value as u16, Ordering::Relaxed);
                     }
                     27 => { // ytilt -9000 to 9000
-                        self.wacom.last_ytilt = ev.value as u16;
+                        self.wacom.last_ytilt.store(ev.value as u16, Ordering::Relaxed);
                     }
                     24 => { // contact made with pressure val up to 4095
-                        self.wacom.last_pressure = ev.value as u16;
+                        self.wacom.last_pressure.store(ev.value as u16, Ordering::Relaxed);
                         let event = WacomEvent::Draw {
-                            x: (self.wacom.last_x as f32 * WACOM_HSCALAR) as u16,
-                            y: (self.wacom.last_y as f32 * WACOM_VSCALAR) as u16,
-                            pressure: self.wacom.last_pressure,
-                            tilt_x: self.wacom.last_xtilt,
-                            tilt_y: self.wacom.last_ytilt,
-                            prevy: self.wacom.previous_y,
-                            prevx: self.wacom.previous_x,
+                            x: (self.wacom.last_x.load(Ordering::Relaxed) as f32 * WACOM_HSCALAR) as u16,
+                            y: (self.wacom.last_y.load(Ordering::Relaxed) as f32 * WACOM_VSCALAR) as u16,
+                            pressure: self.wacom.last_pressure.load(Ordering::Relaxed) ,
+                            tilt_x: self.wacom.last_xtilt.load(Ordering::Relaxed) ,
+                            tilt_y: self.wacom.last_ytilt.load(Ordering::Relaxed) ,
                         };
                         self.ringbuffer.write(&[InputEvent::WacomEvent { event }]).unwrap();
                     }
                     0x0 => { // x and y are inverted due to remarkable
                         let val = ev.value as u16;
-                        self.wacom.previous_y = self.wacom.last_y;
-                        self.wacom.last_y = mxc_types::WACOMHEIGHT - val;
+                        self.wacom.last_y.store(mxc_types::WACOMHEIGHT - val, Ordering::Relaxed);
                     }
                     0x1 => {
-                        self.wacom.previous_x = self.wacom.last_x;
-                        self.wacom.last_x = ev.value as u16;
+                        self.wacom.last_x.store(ev.value as u16, Ordering::Relaxed);
                     }
                     _ => {
-                        warn!("Unknown absolute event code for Wacom [type: {0} code: {1} value: {2}]",
+                        debug!("Unknown absolute event code for Wacom [type: {0} code: {1} value: {2}]",
                                  ev._type, ev.code, ev.value);
                     }
                 }
             }
             _ => {
-                warn!("Unknown event TYPE for Wacom [type: {0} code: {1} value: {2}]",
+                debug!("Unknown event TYPE for Wacom [type: {0} code: {1} value: {2}]",
                          ev._type, ev.code, ev.value);
             }
         }

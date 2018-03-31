@@ -21,7 +21,7 @@ macro_rules! max {
 
 pub trait FramebufferDraw {
     fn draw_image(&mut self, img: &DynamicImage, top: usize, left: usize) -> mxcfb_rect;
-    fn draw_line(&mut self, y0: i32, x0: i32, y1: i32, x1: i32, color: u8) -> mxcfb_rect;
+    fn draw_line(&mut self, y0: i32, x0: i32, y1: i32, x1: i32, width: usize, color: u8) -> mxcfb_rect;
     fn draw_circle(&mut self, y: usize, x: usize, rad: usize, color: u8) -> mxcfb_rect;
     fn fill_circle(&mut self, y: usize, x: usize, rad: usize, color: u8) -> mxcfb_rect;
     fn draw_bezier(&mut self, startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32), color: u8) -> mxcfb_rect;
@@ -74,7 +74,7 @@ impl<'a> FramebufferDraw for fb::Framebuffer<'a> {
     }
 
     /// Draws a straight line
-    fn draw_line(&mut self, y0: i32, x0: i32, y1: i32, x1: i32, color: u8) -> mxcfb_rect {
+    fn draw_line(&mut self, y0: i32, x0: i32, y1: i32, x1: i32, width: usize, color: u8) -> mxcfb_rect {
         // Create local variables for moving start point
         let mut x0 = x0;
         let mut y0 = y0;
@@ -97,7 +97,11 @@ impl<'a> FramebufferDraw for fb::Framebuffer<'a> {
         let mut maxy = 0;
         loop {
             // Set pixel
-            self.write_pixel(y0 as usize, x0 as usize, color);
+            match width {
+                1 => self.write_pixel(y0 as usize, x0 as usize, color),
+                _ => self.fill_rect((y0 - (width / 2) as i32) as usize, (x0 - (width / 2) as i32) as usize, width, width, color),
+            }
+
             maxy = max!(maxy, y0);
             miny = min!(miny, y0);
             minx = min!(minx, x0);

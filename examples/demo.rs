@@ -1,4 +1,7 @@
 #[macro_use]
+extern crate lazy_static;
+
+#[macro_use]
 extern crate log;
 extern crate env_logger;
 
@@ -10,6 +13,8 @@ use chrono::{Local, DateTime};
 use std::option::Option;
 use std::time::Duration;
 use std::thread::sleep;
+use std::sync::Mutex;
+use std::sync::Arc;
 
 use libremarkable::image;
 use libremarkable::fb;
@@ -70,31 +75,39 @@ fn loop_print_time(framebuffer: &mut fb::Framebuffer, y: usize, x: usize, scale:
     }
 }
 
-#[allow(unused_variables)]
 fn on_wacom_input(framebuffer: &mut fb::Framebuffer, input: unifiedinput::WacomEvent) {
+    let mut prev = PREV_WACOM.lock().unwrap();
     match input {
-        unifiedinput::WacomEvent::Draw { y, x, pressure, tilt_x, tilt_y, prevy, prevx} => {
+        unifiedinput::WacomEvent::Draw { y, x, pressure, tilt_x: _, tilt_y: _ } => {
             let mut rad = 3.8 * (pressure as f32) / 4096.;
-
-            let rect = framebuffer.fill_circle(
-                y as usize, x as usize,
-                rad as usize, mxc_types::REMARKABLE_DARKEST);
-
-            framebuffer.refresh(
-                &rect,
-                update_mode::UPDATE_MODE_PARTIAL,
-                waveform_mode::WAVEFORM_MODE_DU,
-                display_temp::TEMP_USE_REMARKABLE_DRAW,
-                dither_mode::EPDC_FLAG_EXP1,
-                mxc_types::DRAWING_QUANT_BIT,
-                0,
-            );
+            if prev.0 >= 0 && prev.1 >= 0 {
+                let rect = framebuffer.draw_line(
+                    y as i32, x as i32,prev.0, prev.1,
+                    rad.ceil() as usize,mxc_types::REMARKABLE_DARKEST
+                );
+                framebuffer.refresh(
+                    &rect,
+                    update_mode::UPDATE_MODE_PARTIAL,
+                    waveform_mode::WAVEFORM_MODE_DU,
+                    display_temp::TEMP_USE_REMARKABLE_DRAW,
+                    dither_mode::EPDC_FLAG_EXP1,
+                    mxc_types::DRAWING_QUANT_BIT,
+                    0,
+                );
+            }
+            *prev = (y as i32, x as i32);
         }
-        unifiedinput::WacomEvent::InstrumentChange { pen, state } => {
-             debug!("WacomInstrumentChanged(inst: {0}, state: {1})", pen as u16, state);
+        unifiedinput::WacomEvent::InstrumentChange { pen: _, state } => {
+            // Stop drawing when instrument has left the vicinity of the screen
+            if !state {
+                *prev = (-1, -1);
+            }
         }
-        unifiedinput::WacomEvent::Hover { y, x, distance, tilt_x, tilt_y } => {
-             debug!("WacomHover(y: {0}, x: {1}, distance: {2})", y, x, distance);
+        unifiedinput::WacomEvent::Hover { y: _, x: _, distance, tilt_x: _, tilt_y: _ } => {
+            // If the pen is hovering, don't record its coordinates as the origin of the next line
+            if distance > 1 {
+                *prev = (-1, -1);
+            }
         }
         _ => {}
     };
@@ -104,7 +117,8 @@ fn on_wacom_input(framebuffer: &mut fb::Framebuffer, input: unifiedinput::WacomE
 fn on_touch_handler(framebuffer: &mut fb::Framebuffer, input: unifiedinput::MultitouchEvent) {
     match input {
         unifiedinput::MultitouchEvent::Touch { gesture_seq, finger_id, y, x } => {
-            let rect = match unsafe { DRAW_ON_TOUCH } {
+            let action = { DRAW_ON_TOUCH.lock().unwrap().clone() };
+            let rect = match action {
                1 => framebuffer.draw_bezier((x as f32, y as f32),
                                             ((x + 155) as f32, (y + 14) as f32),
                                             ((x + 200) as f32, (y + 200) as f32),
@@ -147,9 +161,8 @@ fn on_button_press(framebuffer: &mut fb::Framebuffer, input: unifiedinput::GPIOE
     let x_offset = match btn {
         unifiedinput::PhysicalButton::LEFT => {
             if new_state {
-                unsafe {
-                    DRAW_ON_TOUCH = (DRAW_ON_TOUCH + 1) % 3;
-                }
+                let mut data = DRAW_ON_TOUCH.lock().unwrap();
+                *data = (*data + 1) % 3;
             }
             return; // 50
         },
@@ -229,10 +242,13 @@ fn on_touch_rustlogo(framebuffer: &mut fb::Framebuffer) {
     }
 }
 
-// 0 -> None
-// 1 -> Circles
-// 2 -> Bezier
-static mut DRAW_ON_TOUCH: u32 = 0;
+lazy_static! {
+    // 0 -> None
+    // 1 -> Circles
+    // 2 -> Bezier
+    static ref DRAW_ON_TOUCH: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
+    static ref PREV_WACOM: Arc<Mutex<(i32, i32)>> = Arc::new(Mutex::new((-1, -1)));
+}
 fn main() {
     env_logger::init();
 
@@ -338,7 +354,9 @@ fn main() {
       fb.refresh(top, left, width, height, false, true);
     "#);
 
+    info!("Init complete. Beginning event dispatch...");
+
     // Blocking call to process events from digitizer + touchscreen + physical buttons
-    app.dispatch_events(8192, 512);
+    app.dispatch_events(8192, 1);
     clock_thread.join().unwrap();
 }
