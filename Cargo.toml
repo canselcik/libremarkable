@@ -1,6 +1,6 @@
 [package]
 name = "libremarkable"
-version = "0.1.12"
+version = "0.1.13"
 authors = ["Can Selcik <contact@cselcik.com>"]
 is-it-maintained-issue-resolution = { repository = "https://github.com/canselcik/libremarkable" }
 is-it-maintained-open-issues = { repository = "https://github.com/canselcik/libremarkable" }

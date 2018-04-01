@@ -7,6 +7,11 @@ use fb;
 use mxc_types;
 use mxc_types::{mxcfb_update_marker_data, mxcfb_update_data};
 
+macro_rules! max {
+        ($x: expr) => ($x);
+        ($x: expr, $($z: expr),+) => (::std::cmp::max($x, max!($($z),*)));
+}
+
 pub trait FramebufferRefresh {
     fn refresh(
         &mut self,
@@ -23,6 +28,22 @@ pub trait FramebufferRefresh {
 }
 
 impl<'a> FramebufferRefresh for fb::Framebuffer<'a> {
+    ///    1) PxP must process 8x8 pixel blocks, and all pixels in each block
+    ///    are considered for auto-waveform mode selection. If the
+    ///    update region is not 8x8 aligned, additional unwanted pixels
+    ///    will be considered in auto-waveform mode selection.
+    ///
+    ///    2) PxP input must be 32-bit aligned, so any update
+    ///    address not 32-bit aligned must be shifted to meet the
+    ///    32-bit alignment.  The PxP will thus end up processing pixels
+    ///    outside of the update region to satisfy this alignment restriction,
+    ///    which can affect auto-waveform mode selection.
+    ///
+    ///    3) If input fails 32-bit alignment, and the resulting expansion
+    ///    of the processed region would add at least 8 pixels more per
+    ///    line than the original update line width, the EPDC would
+    ///    cause screen artifacts by incorrectly handling the 8+ pixels
+    ///    at the end of each line.
     fn refresh(
         &mut self,
         region: &mxc_types::mxcfb_rect,
@@ -37,23 +58,23 @@ impl<'a> FramebufferRefresh for fb::Framebuffer<'a> {
 
         // No accounting for this, out of bounds, entirely ignored
         if update_region.left >= mxc_types::DISPLAYWIDTH as u32 ||
-            update_region.top >= mxc_types::DISPLAYHEIGHT as u32
-            {
-                return 0;
-            }
+           update_region.top >= mxc_types::DISPLAYHEIGHT as u32 {
+            return 0;
+        }
+
+        update_region.width = max!(update_region.width, 8);
+        update_region.height = max!(update_region.height, 8);
 
         // Dont try to refresh OOB horizontally
         let max_x = update_region.left + update_region.width;
-        let x_overflow = max_x - mxc_types::DISPLAYWIDTH as u32;
-        if x_overflow > 0 {
-            update_region.width -= x_overflow;
+        if max_x > mxc_types::DISPLAYWIDTH as u32 {
+            update_region.width -= max_x - (mxc_types::DISPLAYWIDTH as u32);
         }
 
         // Dont try to refresh OOB vertically
         let max_y = update_region.top + update_region.height;
-        let y_overflow = max_y - mxc_types::DISPLAYHEIGHT as u32;
-        if y_overflow > 0 {
-            update_region.height -= y_overflow;
+        if max_y > mxc_types::DISPLAYHEIGHT as u32 {
+            update_region.height -= max_y - (mxc_types::DISPLAYHEIGHT as u32);
         }
 
         let whole = mxcfb_update_data {

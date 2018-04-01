@@ -351,7 +351,7 @@ fn main() {
       fb.draw_text(top+55, left+22, '...also supports Lua', 45, 0);
 
       -- Update the drawn rect w/ `deep_plot=false` and `wait_for_update_complete=true`
-      fb.refresh(top, left, width, height, false, true);
+      fb.refresh(top, left, height, width, false, true);
     "#);
 
     info!("Init complete. Beginning event dispatch...");

@@ -91,10 +91,7 @@ impl<'a> FramebufferDraw for fb::Framebuffer<'a> {
         let mut err = if dx > dy { dx } else { -dy } / 2;
         let mut err2;
 
-        let mut minx = 0;
-        let mut miny = 0;
-        let mut maxx = 0;
-        let mut maxy = 0;
+        let (mut min_x, mut max_x, mut min_y, mut max_y) = (x0, x0, y0, y0);
         loop {
             // Set pixel
             match width {
@@ -102,10 +99,10 @@ impl<'a> FramebufferDraw for fb::Framebuffer<'a> {
                 _ => self.fill_rect((y0 - (width / 2) as i32) as usize, (x0 - (width / 2) as i32) as usize, width, width, color),
             }
 
-            maxy = max!(maxy, y0);
-            miny = min!(miny, y0);
-            minx = min!(minx, x0);
-            maxx = max!(maxx, x0);
+            max_y = max!(max_y, y0);
+            min_y = min!(min_y, y0);
+            min_x = min!(min_x, x0);
+            max_x = max!(max_x, x0);
 
             // Check end condition
             if x0 == x1 && y0 == y1 { break; };
@@ -125,10 +122,10 @@ impl<'a> FramebufferDraw for fb::Framebuffer<'a> {
         }
 
         return mxcfb_rect {
-            top: miny as u32,
-            left: minx as u32,
-            width: (maxx - minx) as u32,
-            height: (maxy - miny) as u32,
+            top: min_y as u32,
+            left: min_x as u32,
+            width: (max_x - min_x) as u32,
+            height: (max_y - min_y) as u32,
         };
     }
 
@@ -199,30 +196,30 @@ impl<'a> FramebufferDraw for fb::Framebuffer<'a> {
 
         let dfont = &mut self.default_font.clone();
 
-        let mut miny = y;
-        let mut maxy = y;
-        let mut minx = x;
-        let mut maxx = x;
+        let mut min_y = y;
+        let mut max_y = y;
+        let mut min_x = x;
+        let mut max_x = x;
 
         // Loop through the glyphs in the text, positing each one on a line
         for glyph in dfont.layout(&text, scale, start) {
             if let Some(bounding_box) = glyph.pixel_bounding_box() {
                 // Draw the glyph into the image per-pixel by using the draw closure
-                let bbmaxy = bounding_box.max.y as usize;
-                let bbmaxx = bounding_box.max.x as usize;
-                let bbminy = bounding_box.min.y as usize;
-                let bbminx = bounding_box.min.x as usize;
-                if bbmaxy > maxy {
-                    maxy = bbmaxy;
+                let bbmax_y = bounding_box.max.y as usize;
+                let bbmax_x = bounding_box.max.x as usize;
+                let bbmin_y = bounding_box.min.y as usize;
+                let bbmin_x = bounding_box.min.x as usize;
+                if bbmax_y > max_y {
+                    max_y = bbmax_y;
                 }
-                if bbmaxx > maxx {
-                    maxx = bbmaxx;
+                if bbmax_x > max_x {
+                    max_x = bbmax_x;
                 }
-                if bbminy < miny {
-                    miny = bbminy;
+                if bbmin_y < min_y {
+                    min_y = bbmin_y;
                 }
-                if bbminx < minx {
-                    minx = bbminx;
+                if bbmin_x < min_x {
+                    min_x = bbmin_x;
                 }
                 glyph.draw(|x, y, v| {
                     /* TODO: We have a small issue with color interpolation here allowing only
@@ -239,10 +236,10 @@ impl<'a> FramebufferDraw for fb::Framebuffer<'a> {
         }
         // return the height and width of the drawn text so that refresh can be called on it
         return mxcfb_rect {
-            top: miny as u32,
-            left: minx as u32,
-            height: (maxy - miny) as u32,
-            width: (maxx - minx) as u32,
+            top: min_y as u32,
+            left: min_x as u32,
+            height: (max_y - min_y) as u32,
+            width: (max_x - min_x) as u32,
         };
     }
 
