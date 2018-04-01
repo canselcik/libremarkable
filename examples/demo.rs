@@ -68,9 +68,9 @@ fn loop_update_topbar(framebuffer: &mut fb::Framebuffer, y: usize, x: usize, sca
         ));
         battery_draw_area = Some(framebuffer.draw_text(
             y + 65, x,
-            format!("{0} — {1}%",
+            format!("{0:<128}", format!("{0} — {1}%",
                     battery::human_readable_charging_status().unwrap(),
-                    battery::percentage().unwrap()),
+                    battery::percentage().unwrap())),
             2 * scale / 3, mxc_types::REMARKABLE_DARKEST
         ));
 

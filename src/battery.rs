@@ -1,6 +1,8 @@
 use std::fs::File;
 use std::io::Read;
 
+// TODO: Implement API to allow callbacks backed via uevent / inotify
+
 fn read_attribute(attr: &str) -> Result<String, String> {
     let mut data = String::new();
     match File::open(format!("/sys/class/power_supply/bq27441/{0}", attr)) {
