@@ -1,4 +1,6 @@
-### libremarkable -- Application Development Framework for Remarkable Tablet [![https://crates.io/crates/libremarkable](https://img.shields.io/crates/v/libremarkable.svg?style=for-the-badge)](https://crates.io/crates/libremarkable)
+
+
+## [![https://crates.io/crates/libremarkable](https://img.shields.io/crates/v/libremarkable.svg?style=for-the-badge)](https://crates.io/crates/libremarkable) libremarkable - A Framework for Remarkable Tablet
 
 [![PoC](https://thumbs.gfycat.com/CornyHugeIndianrhinoceros-size_restricted.gif)](https://gfycat.com/CornyHugeIndianRhinoceros)
 
@@ -10,7 +12,7 @@ In cases where Rust implementation seems to contradict with the C implementation
 
 For further documentation see the [wiki](https://github.com/canselcik/libremarkable/wiki) on this repository.
 
-https://github.com/canselcik/RemarkableFramebuffer redirects to this repository for historical purposes.
+`https://github.com/canselcik/RemarkableFramebuffer` redirects to this repository for historical purposes.
 
 ### Build Instructions
 
