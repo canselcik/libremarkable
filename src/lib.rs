@@ -31,3 +31,4 @@ pub mod unifiedinput;
 mod uix_lua;
 pub mod uix;
 
+pub mod battery;

@@ -1,6 +1,6 @@
 ### libremarkable -- Application Development Framework for Remarkable Tablet [![https://crates.io/crates/libremarkable](https://img.shields.io/crates/v/libremarkable.svg?style=for-the-badge)](https://crates.io/crates/libremarkable)
 
-[![PoC](https://thumbs.gfycat.com/ConsciousJaggedClam-size_restricted.gif)](https://gfycat.com/gifs/detail/ConsciousJaggedClam)
+[![PoC](https://thumbs.gfycat.com/CornyHugeIndianrhinoceros-size_restricted.gif)](https://gfycat.com/CornyHugeIndianRhinoceros)
 
 Everything from low latency partial updates to the eInk display to at least minimal multitouch, physical button and Wacom Digitizer input is now understood and their minimal to complete implementations can be found in this repository.
 

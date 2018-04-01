@@ -30,47 +30,77 @@ use libremarkable::uix::UIElement;
 
 use libremarkable::fbdraw::FramebufferDraw;
 use libremarkable::refresh::FramebufferRefresh;
+use libremarkable::battery;
 
-
-fn loop_print_time(framebuffer: &mut fb::Framebuffer, y: usize, x: usize, scale: usize, millis: u64) {
-    let mut draw_area: Option<mxc_types::mxcfb_rect> = None;
+fn loop_update_topbar(framebuffer: &mut fb::Framebuffer, y: usize, x: usize, scale: usize, millis: u64) {
+    let mut time_draw_area: Option<mxc_types::mxcfb_rect> = None;
+    let mut battery_draw_area: Option<mxc_types::mxcfb_rect> = None;
     loop {
+        // Get the datetime
         let dt: DateTime<Local> = Local::now();
-        match draw_area {
-            Some(area) => {
+
+        // Skip the fill background step upon first pass
+        match (time_draw_area, battery_draw_area) {
+            (Some(ref time_area), Some(ref battery_area)) => {
                 framebuffer.fill_rect(
-                    area.top as usize,
-                    area.left as usize,
-                    area.height as usize,
-                    area.width as usize,
+                    time_area.top as usize,
+                    time_area.left as usize,
+                    time_area.height as usize,
+                    time_area.width as usize,
+                    mxc_types::REMARKABLE_BRIGHTEST,
+                );
+                framebuffer.fill_rect(
+                    battery_area.top as usize,
+                    battery_area.left as usize,
+                    battery_area.height as usize,
+                    battery_area.width as usize,
                     mxc_types::REMARKABLE_BRIGHTEST,
                 )
-            }
-            _ => {}
-        }
+            },
+            _ => {},
+        };
 
-        draw_area = Some(framebuffer.draw_text(
-            y,
-            x,
+        // Create the draw_areas
+        time_draw_area = Some(framebuffer.draw_text(y, x,
             format!("{}", dt.format("%F %r")),
             scale,
             mxc_types::REMARKABLE_DARKEST,
         ));
-        match draw_area {
-            Some(area) => {
-                let marker = framebuffer.refresh(
-                    &area,
+        battery_draw_area = Some(framebuffer.draw_text(
+            y + 65, x,
+            format!("{0} — {1}%",
+                    battery::human_readable_charging_status().unwrap(),
+                    battery::percentage().unwrap()),
+            2 * scale / 3, mxc_types::REMARKABLE_DARKEST
+        ));
+
+        // Now refresh the regions
+        match (time_draw_area, battery_draw_area) {
+            (Some(ref time_area), Some(ref battery_area)) => {
+                framebuffer.refresh(
+                    time_area,
                     update_mode::UPDATE_MODE_PARTIAL,
-                    waveform_mode::WAVEFORM_MODE_DU,
-                    display_temp::TEMP_USE_REMARKABLE_DRAW,
-                    dither_mode::EPDC_FLAG_USE_DITHERING_Y1,
+                    waveform_mode::WAVEFORM_MODE_GC16_FAST,
+                    display_temp::TEMP_USE_AMBIENT,
+                    dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                    0,
+                    0,
+                );
+                // Refresh the battery status region on the screen
+                let marker = framebuffer.refresh(
+                    battery_area,
+                    update_mode::UPDATE_MODE_PARTIAL,
+                    waveform_mode::WAVEFORM_MODE_GC16_FAST,
+                    display_temp::TEMP_USE_AMBIENT,
+                    dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
                     0,
                     0,
                 );
                 framebuffer.wait_refresh_complete(marker);
-            }
-            _ => {}
+            },
+            _ => {},
         }
+
         sleep(Duration::from_millis(millis));
     }
 }
@@ -323,7 +353,7 @@ fn main() {
     // Get a &mut to the framebuffer object, exposing many convenience functions
     let fb = app.get_framebuffer_ref();
     let clock_thread = std::thread::spawn(move || {
-        loop_print_time(fb, 150, 100, 75, 30 * 1000);
+        loop_update_topbar(fb, 150, 100, 75, 30 * 1000);
     });
 
     app.execute_lua(r#"
