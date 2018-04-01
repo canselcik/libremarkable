@@ -35,6 +35,8 @@ Once that's done, you should add the following to your `~/.cargo/config`:
 linker = "arm-linux-gnueabihf-gcc"
 ```
 
+If you have further questions, feel free to ask in Issues or take a look at [this comment](https://github.com/canselcik/libremarkable/issues/5#issuecomment-377592830) on one of the issues under this repo.
+
 #### Building libremarkable and the examples
 A simple Makefile wrapper is created for convenience. It exposes the following verbs:
   - `examples`: Builds examples
