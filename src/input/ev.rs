@@ -1,16 +1,11 @@
 use evdev;
 use epoll;
 use std;
-
-/// Trait to implement to be dispatched evdev events by the `start_evdev` function
-pub trait EvdevHandler {
-    fn on_init(&mut self, name: String, device: &mut evdev::Device);
-    fn on_event(&mut self, device: &String, event: evdev::raw::input_event);
-}
+use input;
 
 /// Non-blocking function that will open the provided path and wait for more data with epoll.
 /// `handler` must implement the `EvDevHandler` trait so that it can get callbacks `on_init` and `on_event`.
-pub fn start_evdev<H: EvdevHandler + Send>(path: String, handler: &'static mut H) -> std::thread::JoinHandle<()> {
+pub fn start_evdev<H: input::EvdevHandler + Send>(path: String, handler: &'static mut H) -> std::thread::JoinHandle<()> {
     std::thread::spawn(move || {
         let mut dev = evdev::Device::open(&path).unwrap();
         let devn = unsafe {

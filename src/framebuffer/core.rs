@@ -9,9 +9,15 @@ use std::os::unix::io::AsRawFd;
 use std::sync::atomic::AtomicU32;
 use std::fs::{OpenOptions, File};
 
-use mxc_types;
-use mxc_types::{VarScreeninfo, FixScreeninfo, FBIOGET_FSCREENINFO, FBIOGET_VSCREENINFO,
-                FBIOPUT_VSCREENINFO, MXCFB_ENABLE_EPDC_ACCESS, MXCFB_DISABLE_EPDC_ACCESS};
+use framebuffer;
+use framebuffer::screeninfo::{FixScreeninfo,VarScreeninfo};
+use framebuffer::common::{FBIOGET_FSCREENINFO,
+                          FBIOGET_VSCREENINFO,
+                          FBIOPUT_VSCREENINFO,
+                          MXCFB_SET_AUTO_UPDATE_MODE,
+                          MXCFB_SET_UPDATE_SCHEME,
+                          MXCFB_ENABLE_EPDC_ACCESS,
+                          MXCFB_DISABLE_EPDC_ACCESS};
 
 use rusttype::{Font, FontCollection};
 
@@ -26,21 +32,10 @@ pub struct Framebuffer<'a> {
     pub fix_screen_info: FixScreeninfo,
 }
 
-// Not mockable on purpose
-pub trait FramebufferBase<'a> {
-    fn new(path_to_device: &str) -> Framebuffer;
-    fn set_epdc_access(&mut self, state: bool);
-    fn set_autoupdate_mode(&mut self, mode: u32);
-    fn set_update_scheme(&mut self, scheme: u32);
-    fn get_fix_screeninfo(device: &File) -> FixScreeninfo;
-    fn get_var_screeninfo(device: &File) -> VarScreeninfo;
-    fn put_var_screeninfo(&mut self) -> bool;
-}
-
 unsafe impl<'a> Send for Framebuffer<'a> {}
 unsafe impl<'a> Sync for Framebuffer<'a> {}
 
-impl<'a> FramebufferBase<'a> for Framebuffer<'a> {
+impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
     /// Creates a new instance of Framebuffer
     fn new(path_to_device: &str) -> Framebuffer {
         let device = OpenOptions::new()
@@ -65,7 +60,7 @@ impl<'a> FramebufferBase<'a> for Framebuffer<'a> {
         ).unwrap();
 
         // Load the font
-        let font_data = include_bytes!("../assets/DejaVuSans.ttf");
+        let font_data = include_bytes!("../../assets/DejaVuSans.ttf");
         let collection = FontCollection::from_bytes(font_data as &[u8]);
 
         var_screen_info.xres = 1872;
@@ -116,7 +111,7 @@ impl<'a> FramebufferBase<'a> for Framebuffer<'a> {
         unsafe {
             libc::ioctl(
                 self.device.as_raw_fd(),
-                mxc_types::MXCFB_SET_AUTO_UPDATE_MODE,
+                MXCFB_SET_AUTO_UPDATE_MODE,
                 &mut mode.clone(),
             );
         };
@@ -127,7 +122,7 @@ impl<'a> FramebufferBase<'a> for Framebuffer<'a> {
         unsafe {
             libc::ioctl(
                 self.device.as_raw_fd(),
-                mxc_types::MXCFB_SET_UPDATE_SCHEME,
+                MXCFB_SET_UPDATE_SCHEME,
                 &mut scheme.clone(),
             );
         };

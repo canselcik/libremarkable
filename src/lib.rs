@@ -19,16 +19,19 @@ pub extern crate rb;
 pub extern crate evdev;
 pub extern crate line_drawing;
 
-pub mod mxc_types;
-pub mod fb;
-pub mod fbio;
-pub mod fbdraw;
-pub mod refresh;
-pub mod ev;
+/// One of the core components, allowing output and refresh of the EInk display
+pub mod framebuffer;
 
-pub mod unifiedinput;
+/// The other core component, allowing decoding of the three input devices present on the tablet
+pub mod input;
 
-mod uix_lua;
-pub mod uix;
-
+/// Simply battery and charging status provider
 pub mod battery;
+
+/// Contains the `ApplicationContext`, which is a general framework that can be used to either build
+/// your application or design your I/O code after. It uses UI rudimentary UI elements and adds them
+/// to a scene after wrapping them in `UIElementWrapper`. None of these are mandatory to be used.
+/// You can choose to entirely ignore the `ApplicationContext` and `ui_extensions` and choose to
+/// interact with the `framebuffer` and `input` devices directly.
+pub mod appctx;
+pub mod ui_extensions;

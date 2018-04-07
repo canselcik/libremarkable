@@ -1,14 +1,7 @@
 #![allow(dead_code)]
-use fb;
+use framebuffer;
 
-pub trait FramebufferIO {
-    fn write_frame(&mut self, frame: &[u8]);
-    fn write_pixel(&mut self, y: usize, x: usize, v: u8);
-    fn read_pixel(&mut self, y: usize, x: usize) -> u8;
-    fn read_offset(&mut self, ofst: isize) -> u8;
-}
-
-impl<'a> FramebufferIO for fb::Framebuffer<'a> {
+impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
     /// Writes an arbitrary length frame into the framebuffer
     fn write_frame(&mut self, frame: &[u8]) {
         unsafe {

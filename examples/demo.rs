@@ -17,26 +17,20 @@ use std::sync::Mutex;
 use std::sync::Arc;
 
 use libremarkable::image;
-use libremarkable::fb;
-use libremarkable::mxc_types;
-use libremarkable::mxc_types::display_temp;
-use libremarkable::mxc_types::dither_mode;
-use libremarkable::mxc_types::update_mode;
-use libremarkable::mxc_types::waveform_mode;
-use libremarkable::unifiedinput;
-use libremarkable::uix;
-use libremarkable::uix::UIConstraintRefresh;
-use libremarkable::uix::UIElement;
-use libremarkable::uix::UIElementWrapper;
+use libremarkable::framebuffer::core;
+use libremarkable::framebuffer::common::*;
 
-use libremarkable::fbdraw::FramebufferDraw;
-use libremarkable::refresh::FramebufferRefresh;
+use libremarkable::appctx;
+use libremarkable::ui_extensions::element::{UIElement,UIElementWrapper,UIConstraintRefresh,RwLockedU32};
+
+use libremarkable::framebuffer::FramebufferDraw;
+use libremarkable::framebuffer::FramebufferRefresh;
+use libremarkable::input::{wacom,gpio,multitouch};
 use libremarkable::battery;
 
-
-fn loop_update_topbar(framebuffer: &mut fb::Framebuffer, y: usize, x: usize, scale: usize, millis: u64) {
-    let mut time_draw_area: Option<mxc_types::mxcfb_rect> = None;
-    let mut battery_draw_area: Option<mxc_types::mxcfb_rect> = None;
+fn loop_update_topbar(framebuffer: &mut core::Framebuffer, y: usize, x: usize, scale: usize, millis: u64) {
+    let mut time_draw_area: Option<mxcfb_rect> = None;
+    let mut battery_draw_area: Option<mxcfb_rect> = None;
     loop {
         // Get the datetime
         let dt: DateTime<Local> = Local::now();
@@ -49,14 +43,14 @@ fn loop_update_topbar(framebuffer: &mut fb::Framebuffer, y: usize, x: usize, sca
                     time_area.left as usize,
                     time_area.height as usize,
                     time_area.width as usize,
-                    mxc_types::REMARKABLE_BRIGHTEST,
+                    REMARKABLE_BRIGHTEST,
                 );
                 framebuffer.fill_rect(
                     battery_area.top as usize,
                     battery_area.left as usize,
                     battery_area.height as usize,
                     battery_area.width as usize,
-                    mxc_types::REMARKABLE_BRIGHTEST,
+                    REMARKABLE_BRIGHTEST,
                 )
             },
             _ => {},
@@ -66,14 +60,14 @@ fn loop_update_topbar(framebuffer: &mut fb::Framebuffer, y: usize, x: usize, sca
         time_draw_area = Some(framebuffer.draw_text(y, x,
             format!("{}", dt.format("%F %r")),
             scale,
-            mxc_types::REMARKABLE_DARKEST,
+            REMARKABLE_DARKEST,
         ));
         battery_draw_area = Some(framebuffer.draw_text(
             y + 65, x,
             format!("{0:<128}", format!("{0} — {1}%",
                     battery::human_readable_charging_status().unwrap(),
                     battery::percentage().unwrap())),
-            2 * scale / 3, mxc_types::REMARKABLE_DARKEST
+            2 * scale / 3, REMARKABLE_DARKEST
         ));
 
         // Now refresh the regions
@@ -107,15 +101,15 @@ fn loop_update_topbar(framebuffer: &mut fb::Framebuffer, y: usize, x: usize, sca
     }
 }
 
-fn on_wacom_input(framebuffer: &mut fb::Framebuffer, input: unifiedinput::WacomEvent) {
+fn on_wacom_input(framebuffer: &mut core::Framebuffer, input: wacom::WacomEvent) {
     let mut prev = PREV_WACOM.lock().unwrap();
     match input {
-        unifiedinput::WacomEvent::Draw { y, x, pressure, tilt_x: _, tilt_y: _ } => {
+        wacom::WacomEvent::Draw { y, x, pressure, tilt_x: _, tilt_y: _ } => {
             let mut rad = 3.8 * (pressure as f32) / 4096.;
             if prev.0 >= 0 && prev.1 >= 0 {
                 let rect = framebuffer.draw_line(
                     y as i32, x as i32,prev.0, prev.1,
-                    rad.ceil() as usize,mxc_types::REMARKABLE_DARKEST
+                    rad.ceil() as usize,REMARKABLE_DARKEST
                 );
                 framebuffer.refresh(
                     &rect,
@@ -123,19 +117,19 @@ fn on_wacom_input(framebuffer: &mut fb::Framebuffer, input: unifiedinput::WacomE
                     waveform_mode::WAVEFORM_MODE_DU,
                     display_temp::TEMP_USE_REMARKABLE_DRAW,
                     dither_mode::EPDC_FLAG_EXP1,
-                    mxc_types::DRAWING_QUANT_BIT,
+                    DRAWING_QUANT_BIT,
                     0,
                 );
             }
             *prev = (y as i32, x as i32);
         }
-        unifiedinput::WacomEvent::InstrumentChange { pen: _, state } => {
+        wacom::WacomEvent::InstrumentChange { pen: _, state } => {
             // Stop drawing when instrument has left the vicinity of the screen
             if !state {
                 *prev = (-1, -1);
             }
         }
-        unifiedinput::WacomEvent::Hover { y: _, x: _, distance, tilt_x: _, tilt_y: _ } => {
+        wacom::WacomEvent::Hover { y: _, x: _, distance, tilt_x: _, tilt_y: _ } => {
             // If the pen is hovering, don't record its coordinates as the origin of the next line
             if distance > 1 {
                 *prev = (-1, -1);
@@ -146,19 +140,19 @@ fn on_wacom_input(framebuffer: &mut fb::Framebuffer, input: unifiedinput::WacomE
 }
 
 #[allow(unused_variables)]
-fn on_touch_handler(framebuffer: &mut fb::Framebuffer, input: unifiedinput::MultitouchEvent) {
+fn on_touch_handler(framebuffer: &mut core::Framebuffer, input: multitouch::MultitouchEvent) {
     match input {
-        unifiedinput::MultitouchEvent::Touch { gesture_seq, finger_id, y, x } => {
+        multitouch::MultitouchEvent::Touch { gesture_seq, finger_id, y, x } => {
             let action = { DRAW_ON_TOUCH.lock().unwrap().clone() };
             let rect = match action {
                1 => framebuffer.draw_bezier((x as f32, y as f32),
                                             ((x + 155) as f32, (y + 14) as f32),
                                             ((x + 200) as f32, (y + 200) as f32),
-                                            mxc_types::REMARKABLE_DARKEST),
+                                            REMARKABLE_DARKEST),
                2 => framebuffer.draw_circle(y as usize,
                                             x as usize,
                                             20,
-                                            mxc_types::REMARKABLE_DARKEST),
+                                            REMARKABLE_DARKEST),
                _ => return,
             };
             framebuffer.refresh(
@@ -167,7 +161,7 @@ fn on_touch_handler(framebuffer: &mut fb::Framebuffer, input: unifiedinput::Mult
                 waveform_mode::WAVEFORM_MODE_DU,
                 display_temp::TEMP_USE_REMARKABLE_DRAW,
                 dither_mode::EPDC_FLAG_USE_DITHERING_ALPHA,
-                mxc_types::DRAWING_QUANT_BIT,
+                DRAWING_QUANT_BIT,
                 0,
             );
         }
@@ -175,39 +169,39 @@ fn on_touch_handler(framebuffer: &mut fb::Framebuffer, input: unifiedinput::Mult
     }
 }
 
-fn on_button_press(framebuffer: &mut fb::Framebuffer, input: unifiedinput::GPIOEvent) {
+fn on_button_press(framebuffer: &mut core::Framebuffer, input: gpio::GPIOEvent) {
     let (btn, new_state) = match input {
-        unifiedinput::GPIOEvent::Press { button } => (button, true),
-        unifiedinput::GPIOEvent::Unpress { button } => (button, false),
+        gpio::GPIOEvent::Press { button } => (button, true),
+        gpio::GPIOEvent::Unpress { button } => (button, false),
         _ => return,
     };
 
     let color = match new_state {
-        false => mxc_types::REMARKABLE_BRIGHTEST,
-        true => mxc_types::REMARKABLE_DARKEST,
+        false => REMARKABLE_BRIGHTEST,
+        true => REMARKABLE_DARKEST,
     };
 
     let (yres, xres) = (framebuffer.var_screen_info.yres, framebuffer.var_screen_info.xres);
     let offset = 45 * yres / 100;
     let height = yres - offset;
     let x_offset = match btn {
-        unifiedinput::PhysicalButton::LEFT => {
+        gpio::PhysicalButton::LEFT => {
             if new_state {
                 let mut data = DRAW_ON_TOUCH.lock().unwrap();
                 *data = (*data + 1) % 3;
             }
             return; // 50
         },
-        unifiedinput::PhysicalButton::MIDDLE => {
+        gpio::PhysicalButton::MIDDLE => {
             if new_state {
                 framebuffer.fill_rect(
                     offset as usize,
                     0,
                     height as usize,
                     xres as usize,
-                    mxc_types::REMARKABLE_BRIGHTEST
+                    REMARKABLE_BRIGHTEST
                 );
-                let rect = mxc_types::mxcfb_rect {
+                let rect = mxcfb_rect {
                     top: offset,
                     left: 0,
                     height,
@@ -224,12 +218,12 @@ fn on_button_press(framebuffer: &mut fb::Framebuffer, input: unifiedinput::GPIOE
             }
             return;
         }
-        unifiedinput::PhysicalButton::RIGHT => 1250,
+        gpio::PhysicalButton::RIGHT => 1250,
     };
 
     framebuffer.fill_rect(1500, x_offset, 125, 125, color);
     framebuffer.refresh(
-        &mxc_types::mxcfb_rect {
+        &mxcfb_rect {
             top: 1500,
             left: x_offset as u32,
             height: 125,
@@ -244,7 +238,7 @@ fn on_button_press(framebuffer: &mut fb::Framebuffer, input: unifiedinput::GPIOE
     );
 }
 
-fn on_touch_rustlogo(framebuffer: &mut fb::Framebuffer,
+fn on_touch_rustlogo(framebuffer: &mut core::Framebuffer,
                      element: Arc<UIElementWrapper>) {
     let new_press_count = {
         match element.userdata {
@@ -270,7 +264,7 @@ fn on_touch_rustlogo(framebuffer: &mut fb::Framebuffer,
         1140,
         format!("{0}", new_press_count),
         65,
-        mxc_types::REMARKABLE_DARKEST
+        REMARKABLE_DARKEST
     );
     let marker = framebuffer.refresh(&rect,
                                      update_mode::UPDATE_MODE_PARTIAL,
@@ -294,7 +288,7 @@ fn main() {
 
     // Takes callback functions as arguments
     // They are called with the event and the &mut framebuffer
-    let mut app : uix::ApplicationContext = uix::ApplicationContext::new(
+    let mut app : appctx::ApplicationContext = appctx::ApplicationContext::new(
         on_button_press,
         on_wacom_input,
         on_touch_handler,
@@ -314,7 +308,7 @@ fn main() {
            app.create_active_region(10, 900, 240, 480, on_touch_rustlogo);
         */
         onclick: Some(on_touch_rustlogo),
-        userdata: Some(uix::RwLockedU32::new(0)),
+        userdata: Some(RwLockedU32::new(0)),
         inner: UIElement::Image {
             img: image::load_from_memory(include_bytes!("../assets/rustlang.bmp")).unwrap(),
         },

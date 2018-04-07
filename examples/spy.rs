@@ -14,8 +14,9 @@ extern crate redhook;
 
 extern crate libremarkable;
 
-use libremarkable::mxc_types;
-use libremarkable::mxc_types::NativeWidthType;
+use libremarkable::framebuffer::common::*;
+use libremarkable::framebuffer::mxcfb::*;
+use libremarkable::framebuffer::screeninfo::VarScreeninfo;
 
 lazy_static! {
   static ref DIST_DITHER: Mutex<HashMap<u32, u32>> = {
@@ -70,7 +71,7 @@ fn handle_send_update(event: ioctl_intercept_event) {
     let mut distflags = DIST_FLAGS.lock().unwrap();
     let mut disttemp = DIST_TEMP.lock().unwrap();
 
-    let update_data = event.p1 as *mut mxc_types::mxcfb_update_data;
+    let update_data = event.p1 as *mut mxcfb_update_data;
 
     println!("===WAVEFORM DISTRIBUTION===");
     add_entry(&mut distwave, unsafe { (*update_data).waveform_mode });
@@ -90,15 +91,15 @@ fn handle_send_update(event: ioctl_intercept_event) {
 
 fn handle_wait_update_complete(event: ioctl_intercept_event) {
     unsafe {
-        let update_data = event.p1 as *mut mxc_types::mxcfb_update_marker_data;
+        let update_data = event.p1 as *mut mxcfb_update_marker_data;
         println!("mxcfb_wait_update_complete(fd: {0}, updateData: {1:#?}) = {2}", event.fd, *update_data, event.ret);
     }
 }
 
 hook! {
   unsafe fn ioctl(fd: c_int, request: NativeWidthType, p1: intptr_t, p2: intptr_t, p3: intptr_t, p4: intptr_t) -> c_int => ioctl_hook {
-    if request == mxc_types::FBIOPUT_VSCREENINFO {
-        let info = p1 as *mut mxc_types::VarScreeninfo;
+    if request == FBIOPUT_VSCREENINFO {
+        let info = p1 as *mut VarScreeninfo;
         println!("fb_var_screeninfo before FBIOPUT_VSCREENINFO is called: {0:#?}", *info);
     }
 
@@ -119,15 +120,15 @@ hook! {
     }
 
     match request {
-        mxc_types::FBIOGETCMAP => println!("FBIOGETCMAP({0:#?})", event),
-        mxc_types::FBIOPUTCMAP => println!("FBIOPUTCMAP({0:#?})", event),
-        mxc_types::FBIO_CURSOR => println!("FBIO_CURSOR({0:#?})", event),
-        mxc_types::FBIOPAN_DISPLAY => println!("FBIOPAN_DISPLAY({0:#?})", event),
-        mxc_types::FBIOPUT_VSCREENINFO => println!("FBIOPUT_VSCREENINFO(after: {0:#?}) = {1}", *(p1 as *mut mxc_types::VarScreeninfo), res),
-        mxc_types::FBIOGET_VSCREENINFO => println!("FBIOGET_VSCREENINFO(out: {0:#?})", p1 as *mut mxc_types::VarScreeninfo),
-        mxc_types::FBIOGET_FSCREENINFO => println!("FBIOGET_FSCREENINFO(out: {0:#?})", event),
-        mxc_types::MXCFB_WAIT_FOR_UPDATE_COMPLETE => handle_wait_update_complete(event),
-        mxc_types::MXCFB_SEND_UPDATE => handle_send_update(event),
+        FBIOGETCMAP => println!("FBIOGETCMAP({0:#?})", event),
+        FBIOPUTCMAP => println!("FBIOPUTCMAP({0:#?})", event),
+        FBIO_CURSOR => println!("FBIO_CURSOR({0:#?})", event),
+        FBIOPAN_DISPLAY => println!("FBIOPAN_DISPLAY({0:#?})", event),
+        FBIOPUT_VSCREENINFO => println!("FBIOPUT_VSCREENINFO(after: {0:#?}) = {1}", *(p1 as *mut VarScreeninfo), res),
+        FBIOGET_VSCREENINFO => println!("FBIOGET_VSCREENINFO(out: {0:#?})", p1 as *mut VarScreeninfo),
+        FBIOGET_FSCREENINFO => println!("FBIOGET_FSCREENINFO(out: {0:#?})", event),
+        MXCFB_WAIT_FOR_UPDATE_COMPLETE => handle_wait_update_complete(event),
+        MXCFB_SEND_UPDATE => handle_send_update(event),
         _ => println!("unknown_ioctl({0:#?})", event),
     }
     return res;

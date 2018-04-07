@@ -1,13 +1,15 @@
 use std;
-use fb;
-use image::DynamicImage;
-use mxc_types::mxcfb_rect;
-use rusttype::{Scale, point};
+
 use libc;
+use image::DynamicImage;
+use rusttype::{Scale, point};
 use line_drawing;
 use image::GenericImage;
 
-use fbio::FramebufferIO;
+use framebuffer;
+use framebuffer::FramebufferIO;
+use framebuffer::common::*;
+use framebuffer::core;
 
 macro_rules! min {
         ($x: expr) => ($x);
@@ -17,24 +19,6 @@ macro_rules! min {
 macro_rules! max {
         ($x: expr) => ($x);
         ($x: expr, $($z: expr),+) => (::std::cmp::max($x, max!($($z),*)));
-}
-
-pub trait FramebufferDraw {
-    fn draw_image(&mut self, img: &DynamicImage, top: usize, left: usize) -> mxcfb_rect;
-    fn draw_line(&mut self, y0: i32, x0: i32, y1: i32, x1: i32, width: usize, color: u8) -> mxcfb_rect;
-    fn draw_circle(&mut self, y: usize, x: usize, rad: usize, color: u8) -> mxcfb_rect;
-    fn fill_circle(&mut self, y: usize, x: usize, rad: usize, color: u8) -> mxcfb_rect;
-    fn draw_bezier(&mut self, startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32), color: u8) -> mxcfb_rect;
-    fn draw_text(
-        &mut self,
-        y: usize,
-        x: usize,
-        text: String,
-        size: usize,
-        color: u8,
-    ) -> mxcfb_rect;
-    fn fill_rect(&mut self, y: usize, x: usize, height: usize, width: usize, color: u8);
-    fn clear(&mut self);
 }
 
 /// Helper function to sample pixels on the bezier curve.
@@ -59,7 +43,7 @@ fn sample_bezier(startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32)) -> 
     return points;
 }
 
-impl<'a> FramebufferDraw for fb::Framebuffer<'a> {
+impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
     /// Draws `img` at y=top, x=left coordinates with 1:1 scaling
     fn draw_image(&mut self, img: &DynamicImage, top: usize, left: usize) -> mxcfb_rect {
         for (x, y, pixel) in img.to_luma().enumerate_pixels() {

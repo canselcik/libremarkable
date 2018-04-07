@@ -1,142 +1,58 @@
 use std;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::cell::UnsafeCell;
 use std::ops::DerefMut;
 
+use std::collections::HashSet;
+
 use image;
 
-use ev;
+use input;
+use input::ev;
 
 use rb;
 use rb::RB;
 use rb::RbConsumer;
 
-use mxc_types;
-use mxc_types::waveform_mode;
-use mxc_types::dither_mode;
-use mxc_types::update_mode;
-use mxc_types::display_temp;
+use framebuffer::common::*;
 
-use unifiedinput;
-
-use uix_lua;
-
+use ui_extensions::luaext;
+use ui_extensions::element::{UIElementWrapper, UIElement,
+                             UIConstraintRefresh, ActiveRegionFunction,
+                             ActiveRegionHandler};
 use hlua;
 use hlua::Lua;
 
 use aabb_quadtree::{QuadTree, geom, ItemId};
 
-use fb;
-use fb::FramebufferBase;
-use fbdraw::FramebufferDraw;
-use refresh::FramebufferRefresh;
+use framebuffer::core;
+use framebuffer::FramebufferBase;
+use framebuffer::FramebufferDraw;
+use framebuffer::FramebufferRefresh;
 
-use std::sync::Arc;
-use std::sync::RwLock;
-use std::collections::HashSet;
-
-pub type ActiveRegionFunction = fn(&mut fb::Framebuffer, Arc<UIElementWrapper>);
-
-#[derive(Clone)]
-struct ActiveRegionHandler {
-    handler: ActiveRegionFunction,
-    element: Arc<UIElementWrapper>,
-}
-
-#[derive(Clone)]
-pub enum UIConstraintRefresh {
-    NoRefresh,
-    Refresh,
-    RefreshAndWait
-}
-
-pub struct RwLockedU32(pub RwLock<u32>);
-impl Clone for RwLockedU32 {
-    fn clone(&self) -> Self {
-        let val = self.0.read().unwrap();
-        RwLockedU32(std::sync::RwLock::new(*val))
-    }
-}
-
-impl RwLockedU32 {
-    pub fn new(init: u32) -> RwLockedU32 {
-        RwLockedU32(std::sync::RwLock::new(init))
-    }
-}
-
-impl Default for UIConstraintRefresh {
-    fn default() -> UIConstraintRefresh { UIConstraintRefresh::Refresh }
-}
-
-use std::hash::{Hash, Hasher};
-impl Hash for UIElementWrapper {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.x.hash(state);
-        self.y.hash(state);
-        self.name.hash(state);
-    }
-}
-
-impl PartialEq for UIElementWrapper {
-    fn eq(&self, other: &UIElementWrapper) -> bool {
-        self.x == other.x &&
-            self.y == other.y &&
-            self.name == other.name
-    }
-}
-
-impl Eq for UIElementWrapper {}
-
-#[derive(Clone, Default)]
-pub struct UIElementWrapper {
-    pub name: String,
-    pub y: usize,
-    pub x: usize,
-    pub refresh: UIConstraintRefresh,
-    pub onclick: Option<ActiveRegionFunction>,
-    pub userdata: Option<RwLockedU32>,
-    pub inner: UIElement,
-}
-
-#[derive(Clone)]
-pub enum UIElement {
-    Text {
-        text: String,
-        scale: usize,
-    },
-    Image {
-        img: image::DynamicImage,
-    },
-    Unspecified,
-}
-
-impl Default for UIElement {
-    fn default() -> UIElement { UIElement::Unspecified }
-}
+use input::InputEvent;
+use input::wacom::WacomEvent;
+use input::gpio::GPIOEvent;
+use input::multitouch::MultitouchEvent;
 
 pub struct ApplicationContext<'a> {
-    framebuffer: Box<fb::Framebuffer<'a>>,
+    framebuffer: Box<core::Framebuffer<'a>>,
     running: AtomicBool,
     lua: UnsafeCell<Lua<'a>>,
-    on_button: fn(&mut fb::Framebuffer, unifiedinput::GPIOEvent),
-    on_wacom: fn(&mut fb::Framebuffer, unifiedinput::WacomEvent),
-    on_touch: fn(&mut fb::Framebuffer, unifiedinput::MultitouchEvent),
+    on_button: fn(&mut core::Framebuffer, GPIOEvent),
+    on_wacom: fn(&mut core::Framebuffer, WacomEvent),
+    on_touch: fn(&mut core::Framebuffer, MultitouchEvent),
     active_regions: QuadTree<ActiveRegionHandler>,
     ui_elements: HashSet<Arc<UIElementWrapper>>,
     yres: u32,
     xres: u32,
 }
 
-impl<'a> std::fmt::Debug for ActiveRegionHandler {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{0:p}", self)
-    }
-}
-
 impl<'a> ApplicationContext<'a> {
-    pub fn get_framebuffer_ref(&mut self) -> &'static mut fb::Framebuffer<'static> {
+    pub fn get_framebuffer_ref(&mut self) -> &'static mut core::Framebuffer<'static> {
         unsafe {
-            std::mem::transmute::<_, &'static mut fb::Framebuffer<'static>>(self.framebuffer.deref_mut())
+            std::mem::transmute::<_, &'static mut core::Framebuffer<'static>>(self.framebuffer.deref_mut())
         }
     }
 
@@ -150,11 +66,11 @@ impl<'a> ApplicationContext<'a> {
         (self.yres, self.xres)
     }
 
-    pub fn new(on_button: fn(&mut fb::Framebuffer, unifiedinput::GPIOEvent),
-               on_wacom: fn(&mut fb::Framebuffer, unifiedinput::WacomEvent),
-               on_touch: fn(&mut fb::Framebuffer, unifiedinput::MultitouchEvent),
+    pub fn new(on_button: fn(&mut core::Framebuffer, GPIOEvent),
+               on_wacom: fn(&mut core::Framebuffer, WacomEvent),
+               on_touch: fn(&mut core::Framebuffer, MultitouchEvent),
     ) -> ApplicationContext<'static> {
-        let framebuffer = Box::new(fb::Framebuffer::new("/dev/fb0"));
+        let framebuffer = Box::new(core::Framebuffer::new("/dev/fb0"));
         let yres = framebuffer.var_screen_info.yres;
         let xres = framebuffer.var_screen_info.xres;
         let mut res = ApplicationContext {
@@ -180,22 +96,22 @@ impl<'a> ApplicationContext<'a> {
         // Reluctantly resort to using a static global to associate the lua context with the
         // one and only framebuffer that's going to be used
         unsafe {
-            uix_lua::G_FB = res.framebuffer.deref_mut() as *mut fb::Framebuffer
+            luaext::G_FB = res.framebuffer.deref_mut() as *mut core::Framebuffer
         };
 
         let mut nms = lua.empty_array("fb");
         // Clears and refreshes the entire screen
-        nms.set("clear", hlua::function0(uix_lua::lua_clear));
+        nms.set("clear", hlua::function0(luaext::lua_clear));
 
         // Refreshes the provided rectangle. Here we are exposing a predefined set of the
         // flags to the Lua API to simplify its use for building interfaces.
-        nms.set("refresh", hlua::function6(uix_lua::lua_refresh));
+        nms.set("refresh", hlua::function6(luaext::lua_refresh));
 
         // Draws text with rusttype
-        nms.set("draw_text", hlua::function5(uix_lua::lua_draw_text));
+        nms.set("draw_text", hlua::function5(luaext::lua_draw_text));
 
         // Sets the pixel to the u8 color value, does no refresh. Refresh done explicitly via calling `refresh`
-        nms.set("set_pixel", hlua::function3(uix_lua::lua_set_pixel));
+        nms.set("set_pixel", hlua::function3(luaext::lua_set_pixel));
 
         return res;
     }
@@ -218,8 +134,7 @@ impl<'a> ApplicationContext<'a> {
         onclick: &Option<ActiveRegionHandler>,
     ) {
         let framebuffer = self.get_framebuffer_ref();
-        let draw_area: mxc_types::mxcfb_rect = framebuffer.draw_text(y, x, text, scale,
-                                                                     mxc_types::REMARKABLE_DARKEST);
+        let draw_area: mxcfb_rect = framebuffer.draw_text(y, x, text, scale, REMARKABLE_DARKEST);
         let marker = match refresh {
             UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer.refresh(
                 &draw_area,
@@ -343,7 +258,7 @@ impl<'a> ApplicationContext<'a> {
         };
 
         let marker = framebuffer.refresh(
-            &mxc_types::mxcfb_rect {
+            &mxcfb_rect {
                 top: 0,
                 left: 0,
                 height: yres,
@@ -368,22 +283,22 @@ impl<'a> ApplicationContext<'a> {
         let ringbuffer= rb::SpscRb::new(ringbuffer_size);
         let producer = ringbuffer.producer();
         let unified =  unsafe {
-            std::mem::transmute::<unifiedinput::UnifiedInputHandler, unifiedinput::UnifiedInputHandler<'static>>
-             (unifiedinput::UnifiedInputHandler::new(&producer))
+            std::mem::transmute::<input::UnifiedInputHandler, input::UnifiedInputHandler<'static>>
+             (input::UnifiedInputHandler::new(&producer))
         };
 
-        let w: &mut unifiedinput::UnifiedInputHandler = unsafe { std::mem::transmute_copy(&&unified) };
+        let w: &mut input::UnifiedInputHandler = unsafe { std::mem::transmute_copy(&&unified) };
         let wacom_thread = ev::start_evdev("/dev/input/event0".to_owned(), w);
 
-        let t: &mut unifiedinput::UnifiedInputHandler = unsafe { std::mem::transmute_copy(&&unified) };
+        let t: &mut input::UnifiedInputHandler = unsafe { std::mem::transmute_copy(&&unified) };
         let touch_thread = ev::start_evdev("/dev/input/event1".to_owned(), t);
 
-        let g: &mut unifiedinput::UnifiedInputHandler = unsafe { std::mem::transmute_copy(&&unified) };
+        let g: &mut input::UnifiedInputHandler = unsafe { std::mem::transmute_copy(&&unified) };
         let gpio_thread = ev::start_evdev("/dev/input/event2".to_owned(), g);
 
         // Now we consume the input events;
         let consumer = ringbuffer.consumer();
-        let mut buf = vec![unifiedinput::InputEvent::Unknown {}; event_read_chunksize];
+        let mut buf = vec![InputEvent::Unknown {}; event_read_chunksize];
 
         self.running.store(true, Ordering::Relaxed);
 
@@ -392,13 +307,13 @@ impl<'a> ApplicationContext<'a> {
             let _read = consumer.read_blocking(&mut buf).unwrap();
             for &ev in buf.iter() {
                 match ev {
-                    unifiedinput::InputEvent::GPIO{event} => {
+                    InputEvent::GPIO{event} => {
                         (self.on_button)(&mut framebuffer, event);
                     },
-                    unifiedinput::InputEvent::MultitouchEvent{event} => {
+                    InputEvent::MultitouchEvent{event} => {
                         // Check for and notify clickable active regions for multitouch events
                         match event {
-                            unifiedinput::MultitouchEvent::Touch {gesture_seq, finger_id: _, y, x} => {
+                            MultitouchEvent::Touch {gesture_seq, finger_id: _, y, x} => {
                                 let gseq = gesture_seq as i32;
                                 if last_active_region_gesture_id != gseq {
                                     match self.find_active_region(y, x) {
@@ -414,7 +329,7 @@ impl<'a> ApplicationContext<'a> {
                         };
                         (self.on_touch)(&mut framebuffer, event);
                     },
-                    unifiedinput::InputEvent::WacomEvent{event} => {
+                    InputEvent::WacomEvent{event} => {
                         (self.on_wacom)(&mut framebuffer, event);
                     },
                     _ => {},

@@ -1,21 +1,22 @@
-use hlua;
-use fb;
-
-use fbdraw::FramebufferDraw;
-use fbio::FramebufferIO;
-use refresh::FramebufferRefresh;
-
 use std;
-use mxc_types::{waveform_mode,display_temp,dither_mode,update_mode,mxcfb_rect,DRAWING_QUANT_BIT};
+use hlua;
 
-// We reluctantly resort to a static global here to associate the lua context
-// with the only active framebuffer we will have
-pub static mut G_FB: *mut fb::Framebuffer = std::ptr::null_mut();
+use framebuffer::common::*;
+use framebuffer::core;
 
+use framebuffer::FramebufferRefresh;
+use framebuffer::FramebufferIO;
+use framebuffer::FramebufferDraw;
+
+/// We reluctantly resort to a static global here to associate the lua context
+/// with the only active framebuffer we will have
+pub static mut G_FB: *mut core::Framebuffer = std::ptr::null_mut();
+
+/// A macro to utilize this static global only inside this file.
 macro_rules! get_current_framebuffer {
     () => (
         unsafe {
-            std::mem::transmute::<* mut fb::Framebuffer, &mut fb::Framebuffer>(G_FB)
+            std::mem::transmute::<* mut core::Framebuffer, &mut core::Framebuffer>(G_FB)
         }
     )
 }
@@ -83,9 +84,7 @@ pub fn lua_draw_text(y: hlua::AnyLuaValue, x: hlua::AnyLuaValue, text: hlua::Any
     };
 }
 
-pub fn lua_set_pixel(y: hlua::AnyLuaValue,
-                 x: hlua::AnyLuaValue,
-                 color: hlua::AnyLuaValue) {
+pub fn lua_set_pixel(y: hlua::AnyLuaValue, x: hlua::AnyLuaValue, color: hlua::AnyLuaValue) {
     let framebuffer = get_current_framebuffer!();
     match (y, x, color) {
         (hlua::AnyLuaValue::LuaNumber(ny),
