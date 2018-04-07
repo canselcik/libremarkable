@@ -27,6 +27,7 @@ use libremarkable::unifiedinput;
 use libremarkable::uix;
 use libremarkable::uix::UIConstraintRefresh;
 use libremarkable::uix::UIElement;
+use libremarkable::uix::UIElementWrapper;
 
 use libremarkable::fbdraw::FramebufferDraw;
 use libremarkable::refresh::FramebufferRefresh;
@@ -295,8 +296,7 @@ fn main() {
 
     // A rudimentary way to declare a scene and layout
     app.draw_elements(&vec![
-        UIElement::Image {
-            img: image::load_from_memory(include_bytes!("../assets/rustlang.bmp")).unwrap(),
+        UIElementWrapper {
             y: 10, x: 900,
             refresh: UIConstraintRefresh::Refresh,
 
@@ -305,48 +305,64 @@ fn main() {
                app.create_active_region(10, 900, 240, 480, on_touch_rustlogo);
             */
             onclick: Some(uix::ActiveRegionHandler(on_touch_rustlogo)),
+            inner: UIElement::Image {
+                img: image::load_from_memory(include_bytes!("../assets/rustlang.bmp")).unwrap(),
+            },
         },
-        UIElement::Text {
-            text: "Available at:".to_owned(),
+        UIElementWrapper {
             y: 650, x: 120,
-            scale: 70,
             onclick: None,
-            refresh: UIConstraintRefresh::Refresh
+            refresh: UIConstraintRefresh::Refresh,
+            inner: UIElement::Text {
+                text: "Available at:".to_owned(),
+                scale: 70,
+            }
         },
-        UIElement::Text {
-            text: "github.com/canselcik/libremarkable".to_owned(),
-            y: 750, x: 100,
-            scale: 60,
+        UIElementWrapper {
+            y: 750,
+            x: 100,
             onclick: None,
-            refresh: UIConstraintRefresh::Refresh
+            refresh: UIConstraintRefresh::Refresh,
+            inner: UIElement::Text {
+                text: "github.com/canselcik/libremarkable".to_owned(),
+                scale: 60,
+            },
         },
-        UIElement::Text {
-            text: "Low Latency eInk Display Partial Refresh API".to_owned(),
+        UIElementWrapper {
             y: 350, x: 120,
-            scale: 55,
             onclick: None,
-            refresh: UIConstraintRefresh::Refresh
+            refresh: UIConstraintRefresh::Refresh,
+            inner: UIElement::Text {
+                text: "Low Latency eInk Display Partial Refresh API".to_owned(),
+                scale: 55,
+            },
         },
-        UIElement::Text {
-            text: "Physical Button Support".to_owned(),
+        UIElementWrapper {
             y: 470, x: 120,
-            scale: 55,
             onclick: None,
-            refresh: UIConstraintRefresh::Refresh
+            refresh: UIConstraintRefresh::Refresh,
+            inner: UIElement::Text {
+                text: "Physical Button Support".to_owned(),
+                scale: 55,
+            },
         },
-        UIElement::Text {
-            text: "Capacitive Multitouch Input Support".to_owned(),
+        UIElementWrapper {
             y: 410, x: 120,
-            scale: 55,
             onclick: None,
-            refresh: UIConstraintRefresh::Refresh
+            refresh: UIConstraintRefresh::Refresh,
+            inner: UIElement::Text {
+                text: "Capacitive Multitouch Input Support".to_owned(),
+                scale: 55,
+            },
         },
-        UIElement::Text {
-            text: "Wacom Digitizer Support".to_owned(),
+        UIElementWrapper {
             y: 530, x: 120,
-            scale: 55,
             onclick: None,
-            refresh: UIConstraintRefresh::RefreshAndWait
+            refresh: UIConstraintRefresh::RefreshAndWait,
+            inner: UIElement::Text {
+                text: "Wacom Digitizer Support".to_owned(),
+                scale: 55,
+            },
         },
     ]);
 

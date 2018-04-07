@@ -42,22 +42,23 @@ pub enum UIConstraintRefresh {
 }
 
 #[derive(Clone)]
+pub struct UIElementWrapper {
+    pub y: usize,
+    pub x: usize,
+    pub refresh: UIConstraintRefresh,
+    pub onclick: Option<ActiveRegionHandler>,
+    pub inner: UIElement,
+}
+
+#[derive(Clone)]
 pub enum UIElement {
     Text {
         text: String,
         scale: usize,
-        y: usize,
-        x: usize,
-        refresh: UIConstraintRefresh,
-        onclick: Option<ActiveRegionHandler>,
     },
     Image {
         img: image::DynamicImage,
-        y: usize,
-        x: usize,
-        refresh: UIConstraintRefresh,
-        onclick: Option<ActiveRegionHandler>,
-    }
+    },
 }
 
 pub struct ApplicationContext<'a> {
@@ -233,14 +234,16 @@ impl<'a> ApplicationContext<'a> {
         };
     }
 
-    pub fn draw_elements(&mut self, elements: &Vec<UIElement>) {
+    pub fn draw_elements(&mut self, elements: &Vec<UIElementWrapper>) {
         for element in elements.iter() {
-            match element {
-                &UIElement::Text{ref text, y, x, scale, ref refresh, ref onclick} => {
-                    self.display_text(y, x, scale, text.to_string(), refresh.clone(), onclick)
+            let (x, y) = (element.x, element.y);
+            let refresh = element.refresh.clone();
+            match element.inner {
+                UIElement::Text{ref text, scale} => {
+                    self.display_text(y, x, scale, text.to_string(), refresh, &element.onclick);
                 },
-                &UIElement::Image{ref img, y, x, ref refresh, ref onclick} => {
-                    self.display_image(&img, y, x, refresh.clone(), onclick)
+                UIElement::Image{ref img} => {
+                    self.display_image(&img, y, x, refresh, &element.onclick)
                 },
             }
         }
