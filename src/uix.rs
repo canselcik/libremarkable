@@ -31,8 +31,16 @@ use fb::FramebufferBase;
 use fbdraw::FramebufferDraw;
 use refresh::FramebufferRefresh;
 
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::collections::HashSet;
+use std::collections::HashMap;
+
 #[derive(Clone)]
-pub struct ActiveRegionHandler(pub fn(&mut fb::Framebuffer));
+struct ActiveRegionHandler<StateType> {
+    handler: ActiveRegionFunction<StateType>,
+    element: Arc<UIElementWrapper<StateType>>,
+}
 
 #[derive(Clone)]
 pub enum UIConstraintRefresh {
@@ -41,12 +49,32 @@ pub enum UIConstraintRefresh {
     RefreshAndWait
 }
 
+use std::hash::{Hash, Hasher};
+impl<StateType> Hash for UIElementWrapper<StateType> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.x.hash(state);
+        self.y.hash(state);
+        self.name.hash(state);
+    }
+}
+
+impl<StateType> PartialEq for UIElementWrapper<StateType> {
+    fn eq(&self, other: &UIElementWrapper<StateType>) -> bool {
+        self.x == other.x &&
+            self.y == other.y &&
+            self.name == other.name
+    }
+}
+
+impl<StateType> Eq for UIElementWrapper<StateType> {}
+
 #[derive(Clone)]
-pub struct UIElementWrapper {
+pub struct UIElementWrapper<StateType> {
+    pub name: String,
     pub y: usize,
     pub x: usize,
     pub refresh: UIConstraintRefresh,
-    pub onclick: Option<ActiveRegionHandler>,
+    pub onclick: Option<ActiveRegionFunction<StateType>>,
     pub inner: UIElement,
 }
 
@@ -61,25 +89,30 @@ pub enum UIElement {
     },
 }
 
-pub struct ApplicationContext<'a> {
+pub type ActiveRegionFunction<StateType> = fn(&mut fb::Framebuffer, Arc<UIElementWrapper<StateType>>, &Mutex<HashMap<String, StateType>>);
+
+
+pub struct ApplicationContext<'a, StateType> {
     framebuffer: Box<fb::Framebuffer<'a>>,
     running: AtomicBool,
     lua: UnsafeCell<Lua<'a>>,
     on_button: fn(&mut fb::Framebuffer, unifiedinput::GPIOEvent),
     on_wacom: fn(&mut fb::Framebuffer, unifiedinput::WacomEvent),
     on_touch: fn(&mut fb::Framebuffer, unifiedinput::MultitouchEvent),
-    active_regions: QuadTree<ActiveRegionHandler>,
+    active_regions: QuadTree<ActiveRegionHandler<StateType>>,
+    ui_elements: HashSet<Arc<UIElementWrapper<StateType>>>,
+    ui_state: Mutex<HashMap<String, StateType>>,
     yres: u32,
     xres: u32,
 }
 
-impl<'a> std::fmt::Debug for ActiveRegionHandler {
+impl<'a, StateType> std::fmt::Debug for ActiveRegionHandler<StateType> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{0:p}", self)
     }
 }
 
-impl<'a> ApplicationContext<'a> {
+impl<'a, StateType> ApplicationContext<'a, StateType> {
     pub fn get_framebuffer_ref(&mut self) -> &'static mut fb::Framebuffer<'static> {
         unsafe {
             std::mem::transmute::<_, &'static mut fb::Framebuffer<'static>>(self.framebuffer.deref_mut())
@@ -99,7 +132,7 @@ impl<'a> ApplicationContext<'a> {
     pub fn new(on_button: fn(&mut fb::Framebuffer, unifiedinput::GPIOEvent),
                on_wacom: fn(&mut fb::Framebuffer, unifiedinput::WacomEvent),
                on_touch: fn(&mut fb::Framebuffer, unifiedinput::MultitouchEvent),
-    ) -> ApplicationContext<'static> {
+    ) -> ApplicationContext<'static, StateType> {
         let framebuffer = Box::new(fb::Framebuffer::new("/dev/fb0"));
         let yres = framebuffer.var_screen_info.yres;
         let xres = framebuffer.var_screen_info.xres;
@@ -111,6 +144,8 @@ impl<'a> ApplicationContext<'a> {
             on_button,
             on_wacom,
             on_touch,
+            ui_elements: HashSet::new(),
+            ui_state: Mutex::new(HashMap::new()),
             active_regions: QuadTree::default(geom::Rect::from_points(&geom::Point { x: 0.0, y: 0.0 },
                                                                            &geom::Point {
                                                                                x: xres as f32,
@@ -153,18 +188,60 @@ impl<'a> ApplicationContext<'a> {
         };
     }
 
-    pub fn display_text(
+    fn display_text(
         &mut self,
         y: usize,
         x: usize,
         scale: usize,
         text: String,
         refresh: UIConstraintRefresh,
-        onclick: &Option<ActiveRegionHandler>,
+        onclick: &Option<ActiveRegionHandler<StateType>>,
     ) {
         let framebuffer = self.get_framebuffer_ref();
         let draw_area: mxc_types::mxcfb_rect = framebuffer.draw_text(y, x, text, scale,
                                                                      mxc_types::REMARKABLE_DARKEST);
+        let marker = match refresh {
+            UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer.refresh(
+                &draw_area,
+                update_mode::UPDATE_MODE_PARTIAL,
+                waveform_mode::WAVEFORM_MODE_GC16_FAST,
+                display_temp::TEMP_USE_REMARKABLE_DRAW,
+                dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                0,
+                0,
+            ),
+            _ => return,
+        };
+
+        // We need to wait until now because we don't know the size of the active region before we
+        // actually go ahead and draw it.
+        match onclick {
+            &Some(ref handler) => {
+                if self.find_active_region(y as u16, x as u16).is_none() {
+                    self.create_active_region(draw_area.top as u16,
+                                              draw_area.left as u16,
+                                              draw_area.height as u16,
+                                              draw_area.width as u16,
+                                              handler.handler, Arc::clone(&handler.element));
+                }
+            },
+            &None => {},
+        }
+        match refresh {
+            UIConstraintRefresh::RefreshAndWait => framebuffer.wait_refresh_complete(marker),
+            _ => {},
+        };
+    }
+
+    fn display_image(&mut self,
+                         img: &image::DynamicImage,
+                         y: usize,
+                         x: usize,
+                         refresh: UIConstraintRefresh,
+                         onclick: &Option<ActiveRegionHandler<StateType>>,
+    ) {
+        let framebuffer = self.get_framebuffer_ref();
+        let draw_area = framebuffer.draw_image(&img, y, x);
         let marker = match refresh {
             UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer.refresh(
                 &draw_area,
@@ -184,7 +261,7 @@ impl<'a> ApplicationContext<'a> {
                                               draw_area.left as u16,
                                               draw_area.height as u16,
                                               draw_area.width as u16,
-                                              handler.0);
+                                              handler.handler, Arc::clone(&handler.element));
                 }
             },
             &None => {},
@@ -195,55 +272,37 @@ impl<'a> ApplicationContext<'a> {
         };
     }
 
-    pub fn display_image(&mut self,
-                         img: &image::DynamicImage,
-                         y: usize,
-                         x: usize,
-                         refresh: UIConstraintRefresh,
-                         onclick: &Option<ActiveRegionHandler>,
-    ) {
-        let framebuffer = self.get_framebuffer_ref();
-        let rect = framebuffer.draw_image(&img, y, x);
-        let marker = match refresh {
-            UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer.refresh(
-                &rect,
-                update_mode::UPDATE_MODE_PARTIAL,
-                waveform_mode::WAVEFORM_MODE_GC16_FAST,
-                display_temp::TEMP_USE_REMARKABLE_DRAW,
-                dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                0,
-                0,
-            ),
-            _ => return,
-        };
-        match onclick {
-            &Some(ref handler) => {
-                if self.find_active_region(y as u16, x as u16).is_none() {
-                    self.create_active_region(rect.top as u16,
-                                              rect.left as u16,
-                                              rect.height as u16,
-                                              rect.width as u16,
-                                              handler.0);
-                }
-            },
-            &None => {},
-        }
-        match refresh {
-            UIConstraintRefresh::RefreshAndWait => framebuffer.wait_refresh_complete(marker),
-            _ => {},
-        };
+    pub fn add_element(&mut self, element: Arc<UIElementWrapper<StateType>>) -> bool {
+        // Insert already checks if this is already present in the hashset
+        self.ui_elements.insert(element)
     }
 
-    pub fn draw_elements(&mut self, elements: &Vec<UIElementWrapper>) {
-        for element in elements.iter() {
+    pub fn remove_element(&mut self, element: Arc<UIElementWrapper<StateType>>) -> bool {
+        // If there is an active region, remove it.
+        if element.onclick.is_some() {
+            self.remove_active_region_at_point(element.y as u16, element.x as u16);
+        }
+        // Remove the element itself
+        self.ui_elements.remove(&element)
+    }
+
+    pub fn draw_elements(&mut self) {
+        // Cloning here shouldn't be all that costly since it is just a hashset of Arc
+        let elems = self.ui_elements.clone();
+        for element in elems.iter() {
             let (x, y) = (element.x, element.y);
             let refresh = element.refresh.clone();
+            let handler = match element.onclick {
+                Some(handler) => Some(ActiveRegionHandler { handler, element: Arc::clone(element) }),
+                _ => None,
+            };
+
             match element.inner {
                 UIElement::Text{ref text, scale} => {
-                    self.display_text(y, x, scale, text.to_string(), refresh, &element.onclick);
+                    self.display_text(y, x, scale, text.to_string(), refresh, &handler);
                 },
                 UIElement::Image{ref img} => {
-                    self.display_image(&img, y, x, refresh, &element.onclick)
+                    self.display_image(&img, y, x, refresh, &handler);
                 },
             }
         }
@@ -321,7 +380,13 @@ impl<'a> ApplicationContext<'a> {
                             unifiedinput::MultitouchEvent::Touch {gesture_seq, finger_id: _, y, x} => {
                                 let gseq = gesture_seq as i32;
                                 if last_active_region_gesture_id != gseq {
-                                    self.notify_active_regions(y, x);
+                                    let state = &self.ui_state;
+                                    match self.find_active_region(y, x) {
+                                        Some((h, _)) => {
+                                            (h.handler)(framebuffer, Arc::clone(&h.element), state);
+                                        }
+                                        _ => {},
+                                    };
                                     last_active_region_gesture_id = gseq;
                                 }
                             },
@@ -343,17 +408,7 @@ impl<'a> ApplicationContext<'a> {
         touch_thread.join().unwrap();
     }
 
-    fn notify_active_regions(&mut self, y: u16, x: u16) {
-        let fb = self.get_framebuffer_ref();
-        match self.find_active_region(y, x) {
-            Some((handler, _)) => {
-                (handler.0)(fb);
-            }
-            _ => {},
-        }
-    }
-
-    fn find_active_region(&mut self, y: u16, x: u16) -> Option<(&ActiveRegionHandler, ItemId)> {
+    fn find_active_region(&self, y: u16, x: u16) -> Option<(&ActiveRegionHandler<StateType>, ItemId)> {
         let matches = self.active_regions.query(
             geom::Rect::centered_with_radius(&geom::Point{ y: y as f32, x: x as f32 }, 2.0)
         );
@@ -379,9 +434,13 @@ impl<'a> ApplicationContext<'a> {
 
     }
 
-    pub fn create_active_region(&mut self, y: u16, x: u16, height: u16, width: u16, handler: fn(&mut fb::Framebuffer)) {
+    pub fn create_active_region(&mut self, y: u16, x: u16, height: u16, width: u16,
+                                handler: ActiveRegionFunction<StateType>,
+                                element: Arc<UIElementWrapper<StateType>>) {
         self.active_regions.insert_with_box(
-            ActiveRegionHandler(handler),
+            ActiveRegionHandler {
+                handler, element,
+            },
             geom::Rect::from_points(
                 &geom::Point { x: x as f32, y: y as f32 },
                 &geom::Point { x: (x+width) as f32, y: (y+height) as f32 }

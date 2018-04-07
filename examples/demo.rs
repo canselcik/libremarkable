@@ -33,6 +33,9 @@ use libremarkable::fbdraw::FramebufferDraw;
 use libremarkable::refresh::FramebufferRefresh;
 use libremarkable::battery;
 
+use std::collections::HashMap;
+
+
 fn loop_update_topbar(framebuffer: &mut fb::Framebuffer, y: usize, x: usize, scale: usize, millis: u64) {
     let mut time_draw_area: Option<mxc_types::mxcfb_rect> = None;
     let mut battery_draw_area: Option<mxc_types::mxcfb_rect> = None;
@@ -243,34 +246,44 @@ fn on_button_press(framebuffer: &mut fb::Framebuffer, input: unifiedinput::GPIOE
     );
 }
 
-static mut G_COUNTER: u32 = 0;
-fn on_touch_rustlogo(framebuffer: &mut fb::Framebuffer) {
-    unsafe {
-        // First drawing with GC16_FAST to draw it thoroughly and then
-        // alternating between DU which has more artifacts but is faster.
-        let waveform= if G_COUNTER % 2 == 0 {
-            waveform_mode::WAVEFORM_MODE_GC16_FAST
+fn on_touch_rustlogo(framebuffer: &mut fb::Framebuffer, _element: Arc<UIElementWrapper<u32>>, ui_state: &Mutex<HashMap<String, u32>>) {
+    let new_press_count = {
+        let mut state = ui_state.lock().unwrap();
+        match state.contains_key("clickCount") {
+            true => {
+                let mut val = state.get_mut("clickCount").unwrap();
+                *val += 1;
+                *val
+            },
+            false => {
+                state.insert("clickCount".to_owned(), 1);
+                1
+            },
         }
-        else {
-            waveform_mode::WAVEFORM_MODE_DU
-        };
+    };
 
-        G_COUNTER += 1;
-        let rect = framebuffer.draw_text(
-            240,
-            1140,
-            format!("{0}", G_COUNTER),
-            65,
-            mxc_types::REMARKABLE_DARKEST
-        );
-        let marker = framebuffer.refresh(&rect,
-                            update_mode::UPDATE_MODE_PARTIAL,
-                            waveform,
-                            display_temp::TEMP_USE_MAX,
-                            dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                            0, 0);
-        framebuffer.wait_refresh_complete(marker);
-    }
+    // First drawing with GC16_FAST to draw it thoroughly and then
+    // alternating between DU which has more artifacts but is faster.
+    let waveform = if new_press_count % 2 == 0 {
+        waveform_mode::WAVEFORM_MODE_DU
+    } else {
+        waveform_mode::WAVEFORM_MODE_GC16_FAST
+    };
+
+    let rect = framebuffer.draw_text(
+        240,
+        1140,
+        format!("{0}", new_press_count),
+        65,
+        mxc_types::REMARKABLE_DARKEST
+    );
+    let marker = framebuffer.refresh(&rect,
+                                     update_mode::UPDATE_MODE_PARTIAL,
+                                     waveform,
+                                     display_temp::TEMP_USE_MAX,
+                                     dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                                     0, 0);
+    framebuffer.wait_refresh_complete(marker);
 }
 
 lazy_static! {
@@ -295,76 +308,86 @@ fn main() {
     app.clear(true);
 
     // A rudimentary way to declare a scene and layout
-    app.draw_elements(&vec![
-        UIElementWrapper {
-            y: 10, x: 900,
-            refresh: UIConstraintRefresh::Refresh,
+    app.add_element(Arc::new(UIElementWrapper {
+        name: "logo".to_owned(),
+        y: 10, x: 900,
+        refresh: UIConstraintRefresh::Refresh,
 
-            /* We could have alternatively done this:
-               // Create a clickable region for multitouch input and associate it with its handler fn
-               app.create_active_region(10, 900, 240, 480, on_touch_rustlogo);
-            */
-            onclick: Some(uix::ActiveRegionHandler(on_touch_rustlogo)),
-            inner: UIElement::Image {
-                img: image::load_from_memory(include_bytes!("../assets/rustlang.bmp")).unwrap(),
-            },
+        /* We could have alternatively done this:
+           // Create a clickable region for multitouch input and associate it with its handler fn
+           app.create_active_region(10, 900, 240, 480, on_touch_rustlogo);
+        */
+        onclick: Some(on_touch_rustlogo),
+        inner: UIElement::Image {
+            img: image::load_from_memory(include_bytes!("../assets/rustlang.bmp")).unwrap(),
         },
-        UIElementWrapper {
-            y: 650, x: 120,
-            onclick: None,
-            refresh: UIConstraintRefresh::Refresh,
-            inner: UIElement::Text {
-                text: "Available at:".to_owned(),
-                scale: 70,
-            }
+    }));
+    app.add_element(Arc::new(UIElementWrapper {
+        name: "availAt".to_owned(),
+        y: 650, x: 120,
+        onclick: None,
+        refresh: UIConstraintRefresh::Refresh,
+        inner: UIElement::Text {
+            text: "Available at:".to_owned(),
+            scale: 70,
         },
-        UIElementWrapper {
-            y: 750,
-            x: 100,
-            onclick: None,
-            refresh: UIConstraintRefresh::Refresh,
-            inner: UIElement::Text {
-                text: "github.com/canselcik/libremarkable".to_owned(),
-                scale: 60,
-            },
+    }));
+    app.add_element(Arc::new(UIElementWrapper {
+        name: "github".to_owned(),
+        y: 750,
+        x: 100,
+        onclick: None,
+        refresh: UIConstraintRefresh::Refresh,
+        inner: UIElement::Text {
+            text: "github.com/canselcik/libremarkable".to_owned(),
+            scale: 60,
         },
-        UIElementWrapper {
-            y: 350, x: 120,
-            onclick: None,
-            refresh: UIConstraintRefresh::Refresh,
-            inner: UIElement::Text {
-                text: "Low Latency eInk Display Partial Refresh API".to_owned(),
-                scale: 55,
-            },
+    }));
+    app.add_element(Arc::new(UIElementWrapper {
+        name: "l1".to_owned(),
+        y: 350,
+        x: 120,
+        onclick: None,
+        refresh: UIConstraintRefresh::Refresh,
+        inner: UIElement::Text {
+            text: "Low Latency eInk Display Partial Refresh API".to_owned(),
+            scale: 55,
         },
-        UIElementWrapper {
-            y: 470, x: 120,
-            onclick: None,
-            refresh: UIConstraintRefresh::Refresh,
-            inner: UIElement::Text {
-                text: "Physical Button Support".to_owned(),
-                scale: 55,
-            },
+    }));
+    app.add_element(Arc::new(UIElementWrapper {
+        name: "l2".to_owned(),
+        y: 470,
+        x: 120,
+        onclick: None,
+        refresh: UIConstraintRefresh::Refresh,
+        inner: UIElement::Text {
+            text: "Physical Button Support".to_owned(),
+            scale: 55,
         },
-        UIElementWrapper {
-            y: 410, x: 120,
-            onclick: None,
-            refresh: UIConstraintRefresh::Refresh,
-            inner: UIElement::Text {
-                text: "Capacitive Multitouch Input Support".to_owned(),
-                scale: 55,
-            },
+    }));
+    app.add_element(Arc::new(UIElementWrapper {
+        name: "l3".to_owned(),
+        y: 410,
+        x: 120,
+        onclick: None,
+        refresh: UIConstraintRefresh::Refresh,
+        inner: UIElement::Text {
+            text: "Capacitive Multitouch Input Support".to_owned(),
+            scale: 55,
         },
-        UIElementWrapper {
-            y: 530, x: 120,
-            onclick: None,
-            refresh: UIConstraintRefresh::RefreshAndWait,
-            inner: UIElement::Text {
-                text: "Wacom Digitizer Support".to_owned(),
-                scale: 55,
-            },
+    }));
+    app.add_element(Arc::new(UIElementWrapper {
+        name: "l4".to_owned(),
+        y: 530,
+        x: 120,
+        onclick: None,
+        refresh: UIConstraintRefresh::RefreshAndWait,
+        inner: UIElement::Text {
+            text: "Wacom Digitizer Support".to_owned(),
+            scale: 55,
         },
-    ]);
+    }));
+    app.draw_elements();
 
     // Get a &mut to the framebuffer object, exposing many convenience functions
     let fb = app.get_framebuffer_ref();
