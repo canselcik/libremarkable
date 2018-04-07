@@ -33,8 +33,6 @@ use libremarkable::fbdraw::FramebufferDraw;
 use libremarkable::refresh::FramebufferRefresh;
 use libremarkable::battery;
 
-use std::collections::HashMap;
-
 
 fn loop_update_topbar(framebuffer: &mut fb::Framebuffer, y: usize, x: usize, scale: usize, millis: u64) {
     let mut time_draw_area: Option<mxc_types::mxcfb_rect> = None;
@@ -246,19 +244,16 @@ fn on_button_press(framebuffer: &mut fb::Framebuffer, input: unifiedinput::GPIOE
     );
 }
 
-fn on_touch_rustlogo(framebuffer: &mut fb::Framebuffer, _element: Arc<UIElementWrapper<u32>>, ui_state: &Mutex<HashMap<String, u32>>) {
+fn on_touch_rustlogo(framebuffer: &mut fb::Framebuffer,
+                     element: Arc<UIElementWrapper>) {
     let new_press_count = {
-        let mut state = ui_state.lock().unwrap();
-        match state.contains_key("clickCount") {
-            true => {
-                let mut val = state.get_mut("clickCount").unwrap();
-                *val += 1;
-                *val
-            },
-            false => {
-                state.insert("clickCount".to_owned(), 1);
-                1
-            },
+        match element.userdata {
+            Some(ref lock) => {
+                let mut v = lock.0.write().unwrap();
+                *v += 1;
+                (*v).clone()
+            }
+            _ => return,
         }
     };
 
@@ -293,12 +288,13 @@ lazy_static! {
     static ref DRAW_ON_TOUCH: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
     static ref PREV_WACOM: Arc<Mutex<(i32, i32)>> = Arc::new(Mutex::new((-1, -1)));
 }
+
 fn main() {
     env_logger::init();
 
     // Takes callback functions as arguments
     // They are called with the event and the &mut framebuffer
-    let mut app = uix::ApplicationContext::new(
+    let mut app : uix::ApplicationContext = uix::ApplicationContext::new(
         on_button_press,
         on_wacom_input,
         on_touch_handler,
@@ -318,6 +314,7 @@ fn main() {
            app.create_active_region(10, 900, 240, 480, on_touch_rustlogo);
         */
         onclick: Some(on_touch_rustlogo),
+        userdata: Some(uix::RwLockedU32::new(0)),
         inner: UIElement::Image {
             img: image::load_from_memory(include_bytes!("../assets/rustlang.bmp")).unwrap(),
         },
@@ -325,68 +322,65 @@ fn main() {
     app.add_element(Arc::new(UIElementWrapper {
         name: "availAt".to_owned(),
         y: 650, x: 120,
-        onclick: None,
         refresh: UIConstraintRefresh::Refresh,
         inner: UIElement::Text {
             text: "Available at:".to_owned(),
             scale: 70,
         },
+        ..Default::default()
     }));
     app.add_element(Arc::new(UIElementWrapper {
         name: "github".to_owned(),
-        y: 750,
-        x: 100,
-        onclick: None,
+        y: 750, x: 100,
         refresh: UIConstraintRefresh::Refresh,
         inner: UIElement::Text {
             text: "github.com/canselcik/libremarkable".to_owned(),
             scale: 60,
         },
+        ..Default::default()
     }));
     app.add_element(Arc::new(UIElementWrapper {
         name: "l1".to_owned(),
-        y: 350,
-        x: 120,
-        onclick: None,
+        y: 350, x: 120,
         refresh: UIConstraintRefresh::Refresh,
         inner: UIElement::Text {
             text: "Low Latency eInk Display Partial Refresh API".to_owned(),
             scale: 55,
         },
+        ..Default::default()
     }));
     app.add_element(Arc::new(UIElementWrapper {
         name: "l2".to_owned(),
-        y: 470,
-        x: 120,
-        onclick: None,
+        y: 470, x: 120,
         refresh: UIConstraintRefresh::Refresh,
         inner: UIElement::Text {
             text: "Physical Button Support".to_owned(),
             scale: 55,
         },
+        ..Default::default()
     }));
     app.add_element(Arc::new(UIElementWrapper {
         name: "l3".to_owned(),
-        y: 410,
-        x: 120,
-        onclick: None,
+        y: 410, x: 120,
         refresh: UIConstraintRefresh::Refresh,
         inner: UIElement::Text {
             text: "Capacitive Multitouch Input Support".to_owned(),
             scale: 55,
         },
+        ..Default::default()
     }));
     app.add_element(Arc::new(UIElementWrapper {
         name: "l4".to_owned(),
-        y: 530,
-        x: 120,
-        onclick: None,
+        y: 530, x: 120,
         refresh: UIConstraintRefresh::RefreshAndWait,
         inner: UIElement::Text {
             text: "Wacom Digitizer Support".to_owned(),
             scale: 55,
         },
+        ..Default::default()
     }));
+
+    // Draw the scene
     app.draw_elements();
 
     // Get a &mut to the framebuffer object, exposing many convenience functions

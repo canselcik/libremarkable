@@ -31,15 +31,16 @@ use fb::FramebufferBase;
 use fbdraw::FramebufferDraw;
 use refresh::FramebufferRefresh;
 
-use std::sync::Mutex;
 use std::sync::Arc;
+use std::sync::RwLock;
 use std::collections::HashSet;
-use std::collections::HashMap;
+
+pub type ActiveRegionFunction = fn(&mut fb::Framebuffer, Arc<UIElementWrapper>);
 
 #[derive(Clone)]
-struct ActiveRegionHandler<StateType> {
-    handler: ActiveRegionFunction<StateType>,
-    element: Arc<UIElementWrapper<StateType>>,
+struct ActiveRegionHandler {
+    handler: ActiveRegionFunction,
+    element: Arc<UIElementWrapper>,
 }
 
 #[derive(Clone)]
@@ -49,8 +50,26 @@ pub enum UIConstraintRefresh {
     RefreshAndWait
 }
 
+pub struct RwLockedU32(pub RwLock<u32>);
+impl Clone for RwLockedU32 {
+    fn clone(&self) -> Self {
+        let val = self.0.read().unwrap();
+        RwLockedU32(std::sync::RwLock::new(*val))
+    }
+}
+
+impl RwLockedU32 {
+    pub fn new(init: u32) -> RwLockedU32 {
+        RwLockedU32(std::sync::RwLock::new(init))
+    }
+}
+
+impl Default for UIConstraintRefresh {
+    fn default() -> UIConstraintRefresh { UIConstraintRefresh::Refresh }
+}
+
 use std::hash::{Hash, Hasher};
-impl<StateType> Hash for UIElementWrapper<StateType> {
+impl Hash for UIElementWrapper {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.x.hash(state);
         self.y.hash(state);
@@ -58,23 +77,24 @@ impl<StateType> Hash for UIElementWrapper<StateType> {
     }
 }
 
-impl<StateType> PartialEq for UIElementWrapper<StateType> {
-    fn eq(&self, other: &UIElementWrapper<StateType>) -> bool {
+impl PartialEq for UIElementWrapper {
+    fn eq(&self, other: &UIElementWrapper) -> bool {
         self.x == other.x &&
             self.y == other.y &&
             self.name == other.name
     }
 }
 
-impl<StateType> Eq for UIElementWrapper<StateType> {}
+impl Eq for UIElementWrapper {}
 
-#[derive(Clone)]
-pub struct UIElementWrapper<StateType> {
+#[derive(Clone, Default)]
+pub struct UIElementWrapper {
     pub name: String,
     pub y: usize,
     pub x: usize,
     pub refresh: UIConstraintRefresh,
-    pub onclick: Option<ActiveRegionFunction<StateType>>,
+    pub onclick: Option<ActiveRegionFunction>,
+    pub userdata: Option<RwLockedU32>,
     pub inner: UIElement,
 }
 
@@ -87,32 +107,33 @@ pub enum UIElement {
     Image {
         img: image::DynamicImage,
     },
+    Unspecified,
 }
 
-pub type ActiveRegionFunction<StateType> = fn(&mut fb::Framebuffer, Arc<UIElementWrapper<StateType>>, &Mutex<HashMap<String, StateType>>);
+impl Default for UIElement {
+    fn default() -> UIElement { UIElement::Unspecified }
+}
 
-
-pub struct ApplicationContext<'a, StateType> {
+pub struct ApplicationContext<'a> {
     framebuffer: Box<fb::Framebuffer<'a>>,
     running: AtomicBool,
     lua: UnsafeCell<Lua<'a>>,
     on_button: fn(&mut fb::Framebuffer, unifiedinput::GPIOEvent),
     on_wacom: fn(&mut fb::Framebuffer, unifiedinput::WacomEvent),
     on_touch: fn(&mut fb::Framebuffer, unifiedinput::MultitouchEvent),
-    active_regions: QuadTree<ActiveRegionHandler<StateType>>,
-    ui_elements: HashSet<Arc<UIElementWrapper<StateType>>>,
-    ui_state: Mutex<HashMap<String, StateType>>,
+    active_regions: QuadTree<ActiveRegionHandler>,
+    ui_elements: HashSet<Arc<UIElementWrapper>>,
     yres: u32,
     xres: u32,
 }
 
-impl<'a, StateType> std::fmt::Debug for ActiveRegionHandler<StateType> {
+impl<'a> std::fmt::Debug for ActiveRegionHandler {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{0:p}", self)
     }
 }
 
-impl<'a, StateType> ApplicationContext<'a, StateType> {
+impl<'a> ApplicationContext<'a> {
     pub fn get_framebuffer_ref(&mut self) -> &'static mut fb::Framebuffer<'static> {
         unsafe {
             std::mem::transmute::<_, &'static mut fb::Framebuffer<'static>>(self.framebuffer.deref_mut())
@@ -132,7 +153,7 @@ impl<'a, StateType> ApplicationContext<'a, StateType> {
     pub fn new(on_button: fn(&mut fb::Framebuffer, unifiedinput::GPIOEvent),
                on_wacom: fn(&mut fb::Framebuffer, unifiedinput::WacomEvent),
                on_touch: fn(&mut fb::Framebuffer, unifiedinput::MultitouchEvent),
-    ) -> ApplicationContext<'static, StateType> {
+    ) -> ApplicationContext<'static> {
         let framebuffer = Box::new(fb::Framebuffer::new("/dev/fb0"));
         let yres = framebuffer.var_screen_info.yres;
         let xres = framebuffer.var_screen_info.xres;
@@ -145,7 +166,6 @@ impl<'a, StateType> ApplicationContext<'a, StateType> {
             on_wacom,
             on_touch,
             ui_elements: HashSet::new(),
-            ui_state: Mutex::new(HashMap::new()),
             active_regions: QuadTree::default(geom::Rect::from_points(&geom::Point { x: 0.0, y: 0.0 },
                                                                            &geom::Point {
                                                                                x: xres as f32,
@@ -195,7 +215,7 @@ impl<'a, StateType> ApplicationContext<'a, StateType> {
         scale: usize,
         text: String,
         refresh: UIConstraintRefresh,
-        onclick: &Option<ActiveRegionHandler<StateType>>,
+        onclick: &Option<ActiveRegionHandler>,
     ) {
         let framebuffer = self.get_framebuffer_ref();
         let draw_area: mxc_types::mxcfb_rect = framebuffer.draw_text(y, x, text, scale,
@@ -238,7 +258,7 @@ impl<'a, StateType> ApplicationContext<'a, StateType> {
                          y: usize,
                          x: usize,
                          refresh: UIConstraintRefresh,
-                         onclick: &Option<ActiveRegionHandler<StateType>>,
+                         onclick: &Option<ActiveRegionHandler>,
     ) {
         let framebuffer = self.get_framebuffer_ref();
         let draw_area = framebuffer.draw_image(&img, y, x);
@@ -272,12 +292,12 @@ impl<'a, StateType> ApplicationContext<'a, StateType> {
         };
     }
 
-    pub fn add_element(&mut self, element: Arc<UIElementWrapper<StateType>>) -> bool {
+    pub fn add_element(&mut self, element: Arc<UIElementWrapper>) -> bool {
         // Insert already checks if this is already present in the hashset
         self.ui_elements.insert(element)
     }
 
-    pub fn remove_element(&mut self, element: Arc<UIElementWrapper<StateType>>) -> bool {
+    pub fn remove_element(&mut self, element: Arc<UIElementWrapper>) -> bool {
         // If there is an active region, remove it.
         if element.onclick.is_some() {
             self.remove_active_region_at_point(element.y as u16, element.x as u16);
@@ -304,6 +324,7 @@ impl<'a, StateType> ApplicationContext<'a, StateType> {
                 UIElement::Image{ref img} => {
                     self.display_image(&img, y, x, refresh, &handler);
                 },
+                UIElement::Unspecified => {},
             }
         }
     }
@@ -380,10 +401,9 @@ impl<'a, StateType> ApplicationContext<'a, StateType> {
                             unifiedinput::MultitouchEvent::Touch {gesture_seq, finger_id: _, y, x} => {
                                 let gseq = gesture_seq as i32;
                                 if last_active_region_gesture_id != gseq {
-                                    let state = &self.ui_state;
                                     match self.find_active_region(y, x) {
                                         Some((h, _)) => {
-                                            (h.handler)(framebuffer, Arc::clone(&h.element), state);
+                                            (h.handler)(framebuffer, Arc::clone(&h.element));
                                         }
                                         _ => {},
                                     };
@@ -408,7 +428,7 @@ impl<'a, StateType> ApplicationContext<'a, StateType> {
         touch_thread.join().unwrap();
     }
 
-    fn find_active_region(&self, y: u16, x: u16) -> Option<(&ActiveRegionHandler<StateType>, ItemId)> {
+    fn find_active_region(&self, y: u16, x: u16) -> Option<(&ActiveRegionHandler, ItemId)> {
         let matches = self.active_regions.query(
             geom::Rect::centered_with_radius(&geom::Point{ y: y as f32, x: x as f32 }, 2.0)
         );
@@ -435,8 +455,8 @@ impl<'a, StateType> ApplicationContext<'a, StateType> {
     }
 
     pub fn create_active_region(&mut self, y: u16, x: u16, height: u16, width: u16,
-                                handler: ActiveRegionFunction<StateType>,
-                                element: Arc<UIElementWrapper<StateType>>) {
+                                handler: ActiveRegionFunction,
+                                element: Arc<UIElementWrapper>) {
         self.active_regions.insert_with_box(
             ActiveRegionHandler {
                 handler, element,
