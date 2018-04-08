@@ -224,8 +224,13 @@ pub enum waveform_mode {
 
 #[derive(Debug)]
 pub enum display_temp {
-    TEMP_USE_AMBIENT = 0x1000,
-    TEMP_USE_PAPYRUS = 0x1001,
+    /// Seems to have the best draw latency. Perhaps the rule of thumb here is the lower the faster.
+    /// `xochitl` seems to use this value.
     TEMP_USE_REMARKABLE_DRAW = 0x0018,
+    /// For some odd reason, using this display temp will yield higher draw latency
+    TEMP_USE_AMBIENT = 0x1000,
+    /// This also has high draw latency
+    TEMP_USE_PAPYRUS = 0x1001,
+    /// High draw latency again
     TEMP_USE_MAX = 0xFFFF,
 }
