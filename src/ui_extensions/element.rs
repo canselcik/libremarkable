@@ -6,6 +6,7 @@ use std::hash::{Hash, Hasher};
 use image;
 
 use framebuffer::core;
+use framebuffer::common;
 
 pub type ActiveRegionFunction = fn(&mut core::Framebuffer, Arc<UIElementWrapper>);
 
@@ -56,6 +57,7 @@ pub struct UIElementWrapper {
     pub y: usize,
     pub x: usize,
     pub refresh: UIConstraintRefresh,
+    pub last_drawn_rect: Option<common::mxcfb_rect>,
     pub onclick: Option<ActiveRegionFunction>,
     pub userdata: Option<RwLockedU32>,
     pub inner: UIElement,

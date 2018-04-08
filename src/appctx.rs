@@ -225,22 +225,38 @@ impl<'a> ApplicationContext<'a> {
         // Cloning here shouldn't be all that costly since it is just a hashset of Arc
         let elems = self.ui_elements.clone();
         for element in elems.iter() {
-            let (x, y) = (element.x, element.y);
-            let refresh = element.refresh.clone();
-            let handler = match element.onclick {
-                Some(handler) => Some(ActiveRegionHandler { handler, element: Arc::clone(element) }),
-                _ => None,
-            };
+            self.draw_element(element);
+        }
+    }
 
-            match element.inner {
-                UIElement::Text{ref text, scale} => {
-                    self.display_text(y, x, scale, text.to_string(), refresh, &handler);
-                },
-                UIElement::Image{ref img} => {
-                    self.display_image(&img, y, x, refresh, &handler);
-                },
-                UIElement::Unspecified => {},
-            }
+    pub fn draw_element(&mut self, element: &Arc<UIElementWrapper>) {
+        let (x, y) = (element.x, element.y);
+        let refresh = element.refresh.clone();
+        let handler = match element.onclick {
+            Some(handler) => Some(ActiveRegionHandler { handler, element: Arc::clone(element) }),
+            _ => None,
+        };
+
+        match element.last_drawn_rect {
+            Some(rect) => {
+                // Clear the background on the last occupied region
+                self.framebuffer.fill_rect(rect.top as usize,
+                                           rect.left as usize,
+                                           rect.height as usize,
+                                           rect.width as usize,
+                                           REMARKABLE_BRIGHTEST);
+            },
+            None => {},
+        }
+
+        match element.inner {
+            UIElement::Text{ref text, scale} => {
+                self.display_text(y, x, scale, text.to_string(), refresh, &handler);
+            },
+            UIElement::Image{ref img} => {
+                self.display_image(&img, y, x, refresh, &handler);
+            },
+            UIElement::Unspecified => {},
         }
     }
 

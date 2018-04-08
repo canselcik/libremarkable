@@ -312,6 +312,7 @@ fn main() {
         inner: UIElement::Image {
             img: image::load_from_memory(include_bytes!("../assets/rustlang.bmp")).unwrap(),
         },
+        ..Default::default()
     }));
     app.add_element(Arc::new(UIElementWrapper {
         name: "availAt".to_owned(),
