@@ -23,8 +23,9 @@ use libremarkable::framebuffer::common::*;
 use libremarkable::appctx;
 use libremarkable::ui_extensions::element::{UIElement,UIElementWrapper,UIConstraintRefresh,RwLockedU32};
 
-use libremarkable::framebuffer::FramebufferDraw;
-use libremarkable::framebuffer::FramebufferRefresh;
+use libremarkable::framebuffer::refresh::PartialRefreshMode;
+use libremarkable::framebuffer::{FramebufferDraw, FramebufferRefresh};
+
 use libremarkable::input::{wacom,gpio,multitouch};
 use libremarkable::battery;
 
@@ -73,26 +74,23 @@ fn loop_update_topbar(framebuffer: &mut core::Framebuffer, y: usize, x: usize, s
         // Now refresh the regions
         match (time_draw_area, battery_draw_area) {
             (Some(ref time_area), Some(ref battery_area)) => {
-                framebuffer.refresh(
+                framebuffer.partial_refresh(
                     time_area,
-                    update_mode::UPDATE_MODE_PARTIAL,
+                    PartialRefreshMode::Async,
                     waveform_mode::WAVEFORM_MODE_GC16_FAST,
                     display_temp::TEMP_USE_AMBIENT,
                     dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                    0,
                     0,
                 );
                 // Refresh the battery status region on the screen
-                let marker = framebuffer.refresh(
+                framebuffer.partial_refresh(
                     battery_area,
-                    update_mode::UPDATE_MODE_PARTIAL,
+                    PartialRefreshMode::Wait,
                     waveform_mode::WAVEFORM_MODE_GC16_FAST,
                     display_temp::TEMP_USE_AMBIENT,
                     dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
                     0,
-                    0,
                 );
-                framebuffer.wait_refresh_complete(marker);
             },
             _ => {},
         }
@@ -111,14 +109,13 @@ fn on_wacom_input(framebuffer: &mut core::Framebuffer, input: wacom::WacomEvent)
                     y as i32, x as i32,prev.0, prev.1,
                     rad.ceil() as usize,REMARKABLE_DARKEST
                 );
-                framebuffer.refresh(
+                framebuffer.partial_refresh(
                     &rect,
-                    update_mode::UPDATE_MODE_PARTIAL,
+                    PartialRefreshMode::Async,
                     waveform_mode::WAVEFORM_MODE_DU,
                     display_temp::TEMP_USE_REMARKABLE_DRAW,
                     dither_mode::EPDC_FLAG_EXP1,
                     DRAWING_QUANT_BIT,
-                    0,
                 );
             }
             *prev = (y as i32, x as i32);
@@ -155,14 +152,13 @@ fn on_touch_handler(framebuffer: &mut core::Framebuffer, input: multitouch::Mult
                                             REMARKABLE_DARKEST),
                _ => return,
             };
-            framebuffer.refresh(
+            framebuffer.partial_refresh(
                 &rect,
-                update_mode::UPDATE_MODE_PARTIAL,
+                PartialRefreshMode::Async,
                 waveform_mode::WAVEFORM_MODE_DU,
                 display_temp::TEMP_USE_REMARKABLE_DRAW,
                 dither_mode::EPDC_FLAG_USE_DITHERING_ALPHA,
                 DRAWING_QUANT_BIT,
-                0,
             );
         }
         _ => {}
@@ -201,19 +197,18 @@ fn on_button_press(framebuffer: &mut core::Framebuffer, input: gpio::GPIOEvent) 
                     xres as usize,
                     REMARKABLE_BRIGHTEST
                 );
-                let rect = mxcfb_rect {
-                    top: offset,
-                    left: 0,
-                    height,
-                    width: xres,
-                };
-                framebuffer.refresh(
-                    &rect,
-                    update_mode::UPDATE_MODE_FULL,
+                framebuffer.partial_refresh(
+                    &mxcfb_rect {
+                        top: offset,
+                        left: 0,
+                        height,
+                        width: xres,
+                    },
+                    PartialRefreshMode::Wait,
                     waveform_mode::WAVEFORM_MODE_INIT,
                     display_temp::TEMP_USE_AMBIENT,
                     dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                    0, 0,
+                    0,
                 );
             }
             return;
@@ -222,18 +217,17 @@ fn on_button_press(framebuffer: &mut core::Framebuffer, input: gpio::GPIOEvent) 
     };
 
     framebuffer.fill_rect(1500, x_offset, 125, 125, color);
-    framebuffer.refresh(
+    framebuffer.partial_refresh(
         &mxcfb_rect {
             top: 1500,
             left: x_offset as u32,
             height: 125,
             width: 125,
         },
-        update_mode::UPDATE_MODE_PARTIAL,
+        PartialRefreshMode::Async,
         waveform_mode::WAVEFORM_MODE_DU,
         display_temp::TEMP_USE_PAPYRUS,
         dither_mode::EPDC_FLAG_USE_DITHERING_ALPHA,
-        0,
         0,
     );
 }
@@ -266,13 +260,9 @@ fn on_touch_rustlogo(framebuffer: &mut core::Framebuffer,
         65,
         REMARKABLE_DARKEST
     );
-    let marker = framebuffer.refresh(&rect,
-                                     update_mode::UPDATE_MODE_PARTIAL,
-                                     waveform,
-                                     display_temp::TEMP_USE_MAX,
-                                     dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                                     0, 0);
-    framebuffer.wait_refresh_complete(marker);
+    framebuffer.partial_refresh(&rect, PartialRefreshMode::Wait,
+                                waveform, display_temp::TEMP_USE_MAX,
+                                dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH, 0);
 }
 
 lazy_static! {

@@ -23,10 +23,14 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
 
         let begin = self.frame.data() as *mut u8;
         unsafe {
-            // TODO: Figure out this packing
+            // TODO: Fix this packing scheme to be more flexible
+            //  red:   0xF800F800
+            //  green: 0x07E007E0
+            //  blue:  0x001F001F
             *(begin.offset(curr_index)) = v;
             *(begin.offset(curr_index + 1)) = v;
             *(begin.offset(curr_index + 2)) = v;
+            *(begin.offset(curr_index + 3)) = v;
         }
     }
 

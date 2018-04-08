@@ -4,6 +4,8 @@ use hlua;
 use framebuffer::common::*;
 use framebuffer::core;
 
+use framebuffer::refresh::PartialRefreshMode;
+
 use framebuffer::FramebufferRefresh;
 use framebuffer::FramebufferIO;
 use framebuffer::FramebufferDraw;
@@ -37,29 +39,30 @@ pub fn lua_refresh(y: hlua::AnyLuaValue, x: hlua::AnyLuaValue, height: hlua::Any
                 height: nheight as u32,
                 width: nwidth as u32,
             };
-            let marker = match bdeep {
-                false => framebuffer.refresh(
+            match bdeep {
+                false => framebuffer.partial_refresh(
                     &rect,
-                    update_mode::UPDATE_MODE_PARTIAL,
+                    match bwait {
+                        true => PartialRefreshMode::Wait,
+                        false => PartialRefreshMode::Async,
+                    },
                     waveform_mode::WAVEFORM_MODE_DU,
                     display_temp::TEMP_USE_REMARKABLE_DRAW,
                     dither_mode::EPDC_FLAG_EXP1,
                     DRAWING_QUANT_BIT,
-                    0,
                 ),
-                true => framebuffer.refresh(
+                true => framebuffer.partial_refresh(
                     &rect,
-                    update_mode::UPDATE_MODE_PARTIAL,
+                    match bwait {
+                        true => PartialRefreshMode::Wait,
+                        false => PartialRefreshMode::Async,
+                    },
                     waveform_mode::WAVEFORM_MODE_GC16_FAST,
                     display_temp::TEMP_USE_PAPYRUS,
                     dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
                     0,
-                    0,
                 ),
             };
-            if bwait {
-                framebuffer.wait_refresh_complete(marker);
-            }
         },
         _ => {},
     };
@@ -96,25 +99,9 @@ pub fn lua_set_pixel(y: hlua::AnyLuaValue, x: hlua::AnyLuaValue, color: hlua::An
 
 pub fn lua_clear() {
     let framebuffer = get_current_framebuffer!();
-    let (yres, xres) = (
-        framebuffer.var_screen_info.yres,
-        framebuffer.var_screen_info.xres,
-    );
-
     framebuffer.clear();
-
-    let marker = framebuffer.refresh(
-        &mxcfb_rect {
-            top: 0,
-            left: 0,
-            height: yres,
-            width: xres,
-        },
-        update_mode::UPDATE_MODE_FULL,
-        waveform_mode::WAVEFORM_MODE_INIT,
-        display_temp::TEMP_USE_AMBIENT,
-        dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-        0, 0,
-    );
-    framebuffer.wait_refresh_complete(marker);
+    framebuffer.full_refresh(waveform_mode::WAVEFORM_MODE_INIT,
+                             display_temp::TEMP_USE_AMBIENT,
+                             dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                             0, true);
 }

@@ -67,12 +67,20 @@ pub trait FramebufferBase<'a> {
 
 pub mod refresh;
 pub trait FramebufferRefresh {
-    /// Refreshes the given rectangle on the screen and returns a marker
-    /// if the `update_mode` is set to PARTIAL.
-    ///
-    /// This market can then be fed into `wait_refresh_complete` function
-    /// which will block until the refresh for which the marker has been
-    /// returned completes.
+    /// Refreshes the entire screen with the provided parameters. If `wait_completion` is
+    /// set to true, doesn't return before the refresh has been completed. Returns the marker.
+    fn full_refresh(&mut self,
+                    waveform_mode: common::waveform_mode,
+                    temperature: common::display_temp,
+                    dither_mode: common::dither_mode,
+                    quant_bit: i32,
+                    wait_completion: bool) -> u32;
+
+    /// Refreshes the given `region` with the provided parameters. If `mode` is `DryRun` or
+    /// `Wait`, this function won't return before the `DryRun`'s collision_test or
+    /// refresh has been completed. In `Async` mode, this function will return immediately
+    /// and return a `marker` which can then later be fed to `wait_refresh_complete` to wait
+    /// for its completion. In `DryRun`, it will return the `collision_test` result.
     ///
     /// Some additional points to note:
     ///
@@ -92,20 +100,20 @@ pub trait FramebufferRefresh {
     ///    line than the original update line width, the EPDC would
     ///    cause screen artifacts by incorrectly handling the 8+ pixels
     ///    at the end of each line.
-    fn refresh(
+    fn partial_refresh(
         &mut self,
         region: &common::mxcfb_rect,
-        update_mode: common::update_mode,
+        mode: refresh::PartialRefreshMode,
         waveform_mode: common::waveform_mode,
         temperature: common::display_temp,
         dither_mode: common::dither_mode,
         quant_bit: i32,
-        flags: u32,
     ) -> u32;
 
-    /// Takes a marker returned by `refresh` and blocks until that
+
+    /// Takes a marker returned by `partial_refresh` and blocks until that
     /// refresh has been reflected on the display.
     /// Returns the collusion_test result which is supposed to be
-    /// related to the collusion information. Needs more insights.
+    /// related to the collusion information.
     fn wait_refresh_complete(&mut self, marker: u32) -> u32;
 }

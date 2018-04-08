@@ -27,6 +27,7 @@ use hlua::Lua;
 use aabb_quadtree::{QuadTree, geom, ItemId};
 
 use framebuffer::core;
+use framebuffer::refresh::PartialRefreshMode;
 use framebuffer::FramebufferBase;
 use framebuffer::FramebufferDraw;
 use framebuffer::FramebufferRefresh;
@@ -139,13 +140,12 @@ impl<'a> ApplicationContext<'a> {
         let framebuffer = self.get_framebuffer_ref();
         let draw_area: mxcfb_rect = framebuffer.draw_text(y, x, text, scale, REMARKABLE_DARKEST);
         let marker = match refresh {
-            UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer.refresh(
+            UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer.partial_refresh(
                 &draw_area,
-                update_mode::UPDATE_MODE_PARTIAL,
+                PartialRefreshMode::Async,
                 waveform_mode::WAVEFORM_MODE_GC16_FAST,
                 display_temp::TEMP_USE_REMARKABLE_DRAW,
                 dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                0,
                 0,
             ),
             _ => return,
@@ -181,13 +181,12 @@ impl<'a> ApplicationContext<'a> {
         let framebuffer = self.get_framebuffer_ref();
         let draw_area = framebuffer.draw_image(&img, y, x);
         let marker = match refresh {
-            UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer.refresh(
+            UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer.partial_refresh(
                 &draw_area,
-                update_mode::UPDATE_MODE_PARTIAL,
+                PartialRefreshMode::Async,
                 waveform_mode::WAVEFORM_MODE_GC16_FAST,
                 display_temp::TEMP_USE_REMARKABLE_DRAW,
                 dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                0,
                 0,
             ),
             _ => return,
@@ -271,25 +270,18 @@ impl<'a> ApplicationContext<'a> {
         );
         framebuffer.clear();
 
-        let (update_mode, waveform_mode) = match deep {
-            false => (update_mode::UPDATE_MODE_PARTIAL, waveform_mode::WAVEFORM_MODE_GC16_FAST),
-            true  => (update_mode::UPDATE_MODE_FULL, waveform_mode::WAVEFORM_MODE_INIT),
+        match deep {
+            false => framebuffer.partial_refresh(&mxcfb_rect { top: 0, left: 0, height: yres, width: xres },
+                                                 PartialRefreshMode::Wait,
+                                                 waveform_mode::WAVEFORM_MODE_GC16_FAST,
+                                                 display_temp::TEMP_USE_AMBIENT,
+                                                 dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                                                 0),
+            true => framebuffer.full_refresh(waveform_mode::WAVEFORM_MODE_INIT,
+                                             display_temp::TEMP_USE_AMBIENT,
+                                             dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                                             0, true),
         };
-
-        let marker = framebuffer.refresh(
-            &mxcfb_rect {
-                top: 0,
-                left: 0,
-                height: yres,
-                width: xres,
-            },
-            update_mode,
-            waveform_mode,
-            display_temp::TEMP_USE_AMBIENT,
-            dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-            0, 0,
-        );
-        framebuffer.wait_refresh_complete(marker);
     }
 
     pub fn stop(&mut self) {
