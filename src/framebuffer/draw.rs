@@ -44,7 +44,6 @@ fn sample_bezier(startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32)) -> 
 }
 
 impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
-    /// Draws `img` at y=top, x=left coordinates with 1:1 scaling
     fn draw_image(&mut self, img: &DynamicImage, top: usize, left: usize) -> mxcfb_rect {
         for (x, y, pixel) in img.to_luma().enumerate_pixels() {
             self.write_pixel(top + y as usize, left + x as usize, pixel.data[0]);
@@ -57,7 +56,6 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         };
     }
 
-    /// Draws a straight line
     fn draw_line(&mut self, y0: i32, x0: i32, y1: i32, x1: i32, width: usize, color: u8) -> mxcfb_rect {
         // Create local variables for moving start point
         let mut x0 = x0;
@@ -113,7 +111,6 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         };
     }
 
-    /// Draws a circle using Bresenham circle algorithm
     fn draw_circle(&mut self, y: usize, x: usize, rad: usize, color: u8) -> mxcfb_rect {
         for (x, y) in line_drawing::BresenhamCircle::new(x as i32, y as i32, rad as i32) {
             self.write_pixel(y as usize, x as usize, color);
@@ -126,7 +123,6 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         };
     }
 
-    /// Fills a circle
     fn fill_circle(&mut self, y: usize, x: usize, rad: usize, color: u8) -> mxcfb_rect {
         for current in { 1..rad + 1 } {
             for (x, y) in line_drawing::BresenhamCircle::new(x as i32, y as i32, current as i32) {
@@ -141,7 +137,6 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         };
     }
 
-    /// Draws a bezier curve begining at `startpt`, with control point `ctrlpt`, ending at `endpt` with `color`
     fn draw_bezier(&mut self, startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32), color: u8) -> mxcfb_rect {
         let mut upperleft: (usize, usize) = (0, 0);
         let mut lowerright: (usize, usize) = (0, 0);
@@ -161,7 +156,6 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         };
     }
 
-    /// Draws `text` at `(y, x)` with `color` using `scale`
     fn draw_text(
         &mut self,
         y: usize,
@@ -227,7 +221,6 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         };
     }
 
-    /// Fills rectangle of `height` and `width` at `(y, x)`
     fn fill_rect(&mut self, y: usize, x: usize, height: usize, width: usize, color: u8) {
         for ypos in y..y + height {
             for xpos in x..x + width {
@@ -236,7 +229,6 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         }
     }
 
-    /// Clears the framebuffer however does not perform a refresh
     fn clear(&mut self) {
         let h = self.var_screen_info.yres as usize;
         let line_length = self.fix_screen_info.line_length as usize;

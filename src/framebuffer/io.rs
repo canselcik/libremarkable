@@ -2,7 +2,6 @@
 use framebuffer;
 
 impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
-    /// Writes an arbitrary length frame into the framebuffer
     fn write_frame(&mut self, frame: &[u8]) {
         unsafe {
             let begin = self.frame.data() as *mut u8;
@@ -12,7 +11,6 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         }
     }
 
-    /// Writes a single pixel at `(y, x)` with value `v`
     fn write_pixel(&mut self, y: usize, x: usize, v: u8) {
         let w = self.var_screen_info.xres as usize;
         let h = self.var_screen_info.yres as usize;
@@ -32,7 +30,6 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         }
     }
 
-    /// Reads the value of the pixel at `(y, x)`
     fn read_pixel(&mut self, y: usize, x: usize) -> u8 {
         let w = self.var_screen_info.xres as usize;
         let h = self.var_screen_info.yres as usize;
@@ -45,8 +42,7 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         return self.read_offset(curr_index as isize);
     }
 
-    /// Reads the value at offset `ofst` from the mmapp'ed framebuffer region
-     fn read_offset(&mut self, ofst: isize) -> u8 {
+    fn read_offset(&mut self, ofst: isize) -> u8 {
         unsafe {
             let begin = self.frame.data() as *mut u8;
             return *(begin.offset(ofst));

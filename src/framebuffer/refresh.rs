@@ -14,22 +14,6 @@ macro_rules! max {
 }
 
 impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
-    ///    1) PxP must process 8x8 pixel blocks, and all pixels in each block
-    ///    are considered for auto-waveform mode selection. If the
-    ///    update region is not 8x8 aligned, additional unwanted pixels
-    ///    will be considered in auto-waveform mode selection.
-    ///
-    ///    2) PxP input must be 32-bit aligned, so any update
-    ///    address not 32-bit aligned must be shifted to meet the
-    ///    32-bit alignment.  The PxP will thus end up processing pixels
-    ///    outside of the update region to satisfy this alignment restriction,
-    ///    which can affect auto-waveform mode selection.
-    ///
-    ///    3) If input fails 32-bit alignment, and the resulting expansion
-    ///    of the processed region would add at least 8 pixels more per
-    ///    line than the original update line width, the EPDC would
-    ///    cause screen artifacts by incorrectly handling the 8+ pixels
-    ///    at the end of each line.
     fn refresh(
         &mut self,
         region: &common::mxcfb_rect,

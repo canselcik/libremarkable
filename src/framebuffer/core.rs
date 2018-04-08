@@ -36,7 +36,6 @@ unsafe impl<'a> Send for Framebuffer<'a> {}
 unsafe impl<'a> Sync for Framebuffer<'a> {}
 
 impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
-    /// Creates a new instance of Framebuffer
     fn new(path_to_device: &str) -> Framebuffer {
         let device = OpenOptions::new()
             .read(true)
@@ -92,7 +91,6 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
         return fb;
     }
 
-    /// Toggles the EPD Controller (see https://wiki.mobileread.com/wiki/EPD_controller)
     fn set_epdc_access(&mut self, state: bool) {
         unsafe {
             libc::ioctl(
@@ -106,7 +104,6 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
         };
     }
 
-    /// Toggles autoupdate mode
     fn set_autoupdate_mode(&mut self, mode: u32) {
         unsafe {
             libc::ioctl(
@@ -117,7 +114,6 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
         };
     }
 
-    /// Toggles update scheme
     fn set_update_scheme(&mut self, scheme: u32) {
         unsafe {
             libc::ioctl(
@@ -128,7 +124,6 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
         };
     }
 
-    /// Creates a FixScreeninfo struct and fills it using ioctl
     fn get_fix_screeninfo(device: &File) -> FixScreeninfo {
         let mut info: FixScreeninfo = Default::default();
         let result = unsafe { ioctl(device.as_raw_fd(), FBIOGET_FSCREENINFO, &mut info) };
@@ -138,7 +133,6 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
         return info;
     }
 
-    /// Creates a VarScreeninfo struct and fills it using ioctl
     fn get_var_screeninfo(device: &File) -> VarScreeninfo {
         let mut info: VarScreeninfo = Default::default();
         let result = unsafe { ioctl(device.as_raw_fd(), FBIOGET_VSCREENINFO, &mut info) };
@@ -148,9 +142,6 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
         return info;
     }
 
-    /// Makes the proper ioctl call to set the VarScreenInfo.
-    /// You must first update the contents of self.var_screen_info
-    /// and then call this function.
     fn put_var_screeninfo(&mut self) -> bool {
         let result = unsafe {
             ioctl(
