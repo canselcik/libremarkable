@@ -36,6 +36,9 @@ use input::wacom::WacomEvent;
 use input::gpio::GPIOEvent;
 use input::multitouch::MultitouchEvent;
 
+unsafe impl<'a> Send for ApplicationContext<'a> {}
+unsafe impl<'a> Sync for ApplicationContext<'a> {}
+
 pub struct ApplicationContext<'a> {
     framebuffer: Box<core::Framebuffer<'a>>,
     running: AtomicBool,
