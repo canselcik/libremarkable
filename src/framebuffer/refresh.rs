@@ -72,7 +72,7 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
         return whole.update_marker;
     }
 
-    fn wait_refresh_complete(&mut self, marker: u32) {
+    fn wait_refresh_complete(&mut self, marker: u32) -> u32 {
         let mut markerdata = mxcfb_update_marker_data {
             update_marker: marker,
             collision_test: 0,
@@ -84,6 +84,6 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
                 &mut markerdata,
             );
         };
-        // TODO: Return collision test -- kernel updates it to the next marker's collision data
+        return markerdata.collision_test;
     }
 }

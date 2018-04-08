@@ -166,7 +166,7 @@ impl<'a> ApplicationContext<'a> {
             &None => {},
         }
         match refresh {
-            UIConstraintRefresh::RefreshAndWait => framebuffer.wait_refresh_complete(marker),
+            UIConstraintRefresh::RefreshAndWait => { framebuffer.wait_refresh_complete(marker); },
             _ => {},
         };
     }
@@ -205,7 +205,7 @@ impl<'a> ApplicationContext<'a> {
             &None => {},
         }
         match refresh {
-            UIConstraintRefresh::RefreshAndWait => framebuffer.wait_refresh_complete(marker),
+            UIConstraintRefresh::RefreshAndWait => { framebuffer.wait_refresh_complete(marker); },
             _ => {},
         };
     }

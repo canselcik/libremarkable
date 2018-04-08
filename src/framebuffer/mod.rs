@@ -105,5 +105,7 @@ pub trait FramebufferRefresh {
 
     /// Takes a marker returned by `refresh` and blocks until that
     /// refresh has been reflected on the display.
-    fn wait_refresh_complete(&mut self, marker: u32);
+    /// Returns the collusion_test result which is supposed to be
+    /// related to the collusion information. Needs more insights.
+    fn wait_refresh_complete(&mut self, marker: u32) -> u32;
 }
