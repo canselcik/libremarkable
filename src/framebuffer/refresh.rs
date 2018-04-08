@@ -13,6 +13,11 @@ macro_rules! max {
         ($x: expr, $($z: expr),+) => (::std::cmp::max($x, max!($($z),*)));
 }
 
+/// The minimum height/width that we will enforce before each call to MXCFB_SEND_UPDATE
+/// The higher it is, the more likely we are to have collisions between updates.
+/// The smaller it is, the more likely we are to have display artifacts.
+const MIN_SEND_UPDATE_DIMENSION_PX: u32 = 8;
+
 impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
     fn refresh(
         &mut self,
@@ -32,8 +37,8 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
             return 0;
         }
 
-        update_region.width = max!(update_region.width, 8);
-        update_region.height = max!(update_region.height, 8);
+        update_region.width = max!(update_region.width, MIN_SEND_UPDATE_DIMENSION_PX);
+        update_region.height = max!(update_region.height, MIN_SEND_UPDATE_DIMENSION_PX);
 
         // Dont try to refresh OOB horizontally
         let max_x = update_region.left + update_region.width;
