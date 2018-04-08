@@ -138,8 +138,8 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
     }
 
     fn draw_bezier(&mut self, startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32), color: u8) -> mxcfb_rect {
-        let mut upperleft: (usize, usize) = (0, 0);
-        let mut lowerright: (usize, usize) = (0, 0);
+        let mut upperleft: (usize, usize) = (startpt.0 as usize, startpt.1 as usize);
+        let mut lowerright: (usize, usize) = (endpt.0 as usize, endpt.1 as usize);
         for pt in sample_bezier(startpt, ctrlpt, endpt) {
             let approx = (pt.0 as usize, pt.1 as usize);
             upperleft.1 = min!(upperleft.1, approx.1);
