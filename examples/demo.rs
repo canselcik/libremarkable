@@ -21,7 +21,7 @@ use libremarkable::framebuffer::core;
 use libremarkable::framebuffer::common::*;
 
 use libremarkable::appctx;
-use libremarkable::ui_extensions::element::{UIElement,UIElementWrapper,UIConstraintRefresh,RwLockedU32};
+use libremarkable::ui_extensions::element::{UIElement,UIElementWrapper,UIConstraintRefresh};
 
 use libremarkable::framebuffer::refresh::PartialRefreshMode;
 use libremarkable::framebuffer::{FramebufferDraw, FramebufferRefresh};
@@ -233,16 +233,11 @@ fn on_button_press(framebuffer: &mut core::Framebuffer, input: gpio::GPIOEvent) 
 }
 
 fn on_touch_rustlogo(framebuffer: &mut core::Framebuffer,
-                     element: Arc<UIElementWrapper>) {
+                     _element: Arc<UIElementWrapper>) {
     let new_press_count = {
-        match element.userdata {
-            Some(ref lock) => {
-                let mut v = lock.0.write().unwrap();
-                *v += 1;
-                (*v).clone()
-            }
-            _ => return,
-        }
+        let mut v = G_COUNTER.lock().unwrap();
+        *v += 1;
+        (*v).clone()
     };
 
     // First drawing with GC16_FAST to draw it thoroughly and then
@@ -271,6 +266,7 @@ lazy_static! {
     // 2 -> Bezier
     static ref DRAW_ON_TOUCH: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
     static ref PREV_WACOM: Arc<Mutex<(i32, i32)>> = Arc::new(Mutex::new((-1, -1)));
+    static ref G_COUNTER: Mutex<u32> = Mutex::new(0);
 }
 
 fn main() {
@@ -298,7 +294,6 @@ fn main() {
            app.create_active_region(10, 900, 240, 480, on_touch_rustlogo);
         */
         onclick: Some(on_touch_rustlogo),
-        userdata: Some(RwLockedU32::new(0)),
         inner: UIElement::Image {
             img: image::load_from_memory(include_bytes!("../assets/rustlang.bmp")).unwrap(),
         },

@@ -1,6 +1,5 @@
 use std;
 use std::sync::Arc;
-use std::sync::RwLock;
 use std::hash::{Hash, Hasher};
 
 use image;
@@ -36,21 +35,6 @@ impl Default for UIConstraintRefresh {
 }
 
 
-pub struct RwLockedU32(pub RwLock<u32>);
-impl Clone for RwLockedU32 {
-    fn clone(&self) -> Self {
-        let val = self.0.read().unwrap();
-        RwLockedU32(std::sync::RwLock::new(*val))
-    }
-}
-
-impl RwLockedU32 {
-    pub fn new(init: u32) -> RwLockedU32 {
-        RwLockedU32(std::sync::RwLock::new(init))
-    }
-}
-
-
 #[derive(Clone, Default)]
 pub struct UIElementWrapper {
     pub name: String,
@@ -59,7 +43,6 @@ pub struct UIElementWrapper {
     pub refresh: UIConstraintRefresh,
     pub last_drawn_rect: Option<common::mxcfb_rect>,
     pub onclick: Option<ActiveRegionFunction>,
-    pub userdata: Option<RwLockedU32>,
     pub inner: UIElement,
 }
 
