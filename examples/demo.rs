@@ -27,6 +27,9 @@ use libremarkable::framebuffer::{FramebufferDraw, FramebufferRefresh};
 use libremarkable::input::{wacom,gpio,multitouch};
 use libremarkable::battery;
 
+use std::process::Command;
+
+
 fn loop_update_topbar(app: &mut appctx::ApplicationContext,
                       time_label: Arc<RwLock<UIElementWrapper>>,
                       battery_label: Arc<RwLock<UIElementWrapper>>,
@@ -192,6 +195,15 @@ fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent)
     //    );
 }
 
+fn on_touch_exit_to_xochitl(_app: &mut appctx::ApplicationContext,
+                            _element: Arc<RwLock<UIElementWrapper>>) {
+    Command::new("systemctl")
+        .arg("start")
+        .arg("xochitl")
+        .spawn().unwrap();
+    std::process::exit(0);
+}
+
 fn on_touch_rustlogo(app: &mut appctx::ApplicationContext,
                      _element: Arc<RwLock<UIElementWrapper>>) {
     let framebuffer = app.get_framebuffer_ref();
@@ -257,6 +269,17 @@ fn main() {
         onclick: Some(on_touch_rustlogo),
         inner: UIElement::Image {
             img: image::load_from_memory(include_bytes!("../assets/rustlang.bmp")).unwrap(),
+        },
+        ..Default::default()
+    })));
+    app.add_element("exitToXochitl", Arc::new(RwLock::new(UIElementWrapper {
+        y: 50, x: 50,
+        refresh: UIConstraintRefresh::Refresh,
+
+        onclick: Some(on_touch_exit_to_xochitl),
+        inner: UIElement::Text {
+            text: "< Touch to Exit to Remarkable xochitl >".to_owned(),
+            scale: 45,
         },
         ..Default::default()
     })));
