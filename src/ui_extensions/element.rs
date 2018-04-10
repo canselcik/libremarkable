@@ -4,14 +4,13 @@ use std::hash::{Hash, Hasher};
 
 use image;
 
-use framebuffer::core;
 use framebuffer::common;
 use framebuffer::FramebufferDraw;
 use framebuffer::common::REMARKABLE_BRIGHTEST;
 
 use appctx;
 
-pub type ActiveRegionFunction = fn(&mut core::Framebuffer, Arc<RwLock<UIElementWrapper>>);
+pub type ActiveRegionFunction = fn(&mut appctx::ApplicationContext, Arc<RwLock<UIElementWrapper>>);
 
 #[derive(Clone)]
 pub struct ActiveRegionHandler {

@@ -45,9 +45,9 @@ pub struct ApplicationContext<'a> {
     framebuffer: Box<core::Framebuffer<'a>>,
     running: AtomicBool,
     lua: UnsafeCell<Lua<'a>>,
-    on_button: fn(&mut core::Framebuffer, GPIOEvent),
-    on_wacom: fn(&mut core::Framebuffer, WacomEvent),
-    on_touch: fn(&mut core::Framebuffer, MultitouchEvent),
+    on_button: fn(&mut ApplicationContext, GPIOEvent),
+    on_wacom: fn(&mut ApplicationContext, WacomEvent),
+    on_touch: fn(&mut ApplicationContext, MultitouchEvent),
     active_regions: QuadTree<ActiveRegionHandler>,
     ui_elements: HashMap<String, Arc<RwLock<UIElementWrapper>>>,
     yres: u32,
@@ -61,6 +61,17 @@ impl<'a> ApplicationContext<'a> {
         }
     }
 
+    /// Perhaps this is bad practice but we know that the ApplicationContext,
+    /// just like the Framebuffer will have a static lifetime. We are doing this
+    /// so that we can have the event handlers call into the ApplicationContext.
+    ///
+    /// At least it is `private`.
+    fn upgrade_ref(&mut self) -> &'static mut ApplicationContext<'static> {
+        unsafe {
+            std::mem::transmute(self)
+        }
+    }
+
     pub fn get_lua_ref(&mut self) -> &'a mut Lua<'static> {
         unsafe {
             std::mem::transmute::<_, &'a mut Lua<'static>>(self.lua.get())
@@ -71,9 +82,9 @@ impl<'a> ApplicationContext<'a> {
         (self.yres, self.xres)
     }
 
-    pub fn new(on_button: fn(&mut core::Framebuffer, GPIOEvent),
-               on_wacom: fn(&mut core::Framebuffer, WacomEvent),
-               on_touch: fn(&mut core::Framebuffer, MultitouchEvent),
+    pub fn new(on_button: fn(&mut ApplicationContext, GPIOEvent),
+               on_wacom: fn(&mut ApplicationContext, WacomEvent),
+               on_touch: fn(&mut ApplicationContext, MultitouchEvent),
     ) -> ApplicationContext<'static> {
         let framebuffer = Box::new(core::Framebuffer::new("/dev/fb0"));
         let yres = framebuffer.var_screen_info.yres;
@@ -271,7 +282,7 @@ impl<'a> ApplicationContext<'a> {
     }
 
     pub fn dispatch_events(&mut self, ringbuffer_size: usize, event_read_chunksize: usize) {
-        let mut framebuffer = self.get_framebuffer_ref();
+        let appref = self.upgrade_ref();
 
         let ringbuffer= rb::SpscRb::new(ringbuffer_size);
         let producer = ringbuffer.producer();
@@ -301,7 +312,7 @@ impl<'a> ApplicationContext<'a> {
             for &ev in buf.iter() {
                 match ev {
                     InputEvent::GPIO{event} => {
-                        (self.on_button)(&mut framebuffer, event);
+                        (self.on_button)(appref, event);
                     },
                     InputEvent::MultitouchEvent{event} => {
                         // Check for and notify clickable active regions for multitouch events
@@ -311,7 +322,7 @@ impl<'a> ApplicationContext<'a> {
                                 if last_active_region_gesture_id != gseq {
                                     match self.find_active_region(y, x) {
                                         Some((h, _)) => {
-                                            (h.handler)(framebuffer, Arc::clone(&h.element));
+                                            (h.handler)(appref, Arc::clone(&h.element));
                                         }
                                         _ => {},
                                     };
@@ -320,10 +331,10 @@ impl<'a> ApplicationContext<'a> {
                             },
                             _ => {},
                         };
-                        (self.on_touch)(&mut framebuffer, event);
+                        (self.on_touch)(appref, event);
                     },
                     InputEvent::WacomEvent{event} => {
-                        (self.on_wacom)(&mut framebuffer, event);
+                        (self.on_wacom)(appref, event);
                     },
                     _ => {},
                 }

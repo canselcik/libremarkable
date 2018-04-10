@@ -99,7 +99,8 @@ fn loop_update_topbar(framebuffer: &mut core::Framebuffer, y: usize, x: usize, s
     }
 }
 
-fn on_wacom_input(framebuffer: &mut core::Framebuffer, input: wacom::WacomEvent) {
+fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent) {
+    let framebuffer = app.get_framebuffer_ref();
     let mut prev = PREV_WACOM.lock().unwrap();
     match input {
         wacom::WacomEvent::Draw { y, x, pressure, tilt_x: _, tilt_y: _ } => {
@@ -137,7 +138,8 @@ fn on_wacom_input(framebuffer: &mut core::Framebuffer, input: wacom::WacomEvent)
 }
 
 #[allow(unused_variables)]
-fn on_touch_handler(framebuffer: &mut core::Framebuffer, input: multitouch::MultitouchEvent) {
+fn on_touch_handler(app: &mut appctx::ApplicationContext, input: multitouch::MultitouchEvent) {
+    let framebuffer = app.get_framebuffer_ref();
     match input {
         multitouch::MultitouchEvent::Touch { gesture_seq, finger_id, y, x } => {
             let action = { DRAW_ON_TOUCH.lock().unwrap().clone() };
@@ -165,7 +167,8 @@ fn on_touch_handler(framebuffer: &mut core::Framebuffer, input: multitouch::Mult
     }
 }
 
-fn on_button_press(framebuffer: &mut core::Framebuffer, input: gpio::GPIOEvent) {
+fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent) {
+    let framebuffer = app.get_framebuffer_ref();
     let (btn, new_state) = match input {
         gpio::GPIOEvent::Press { button } => (button, true),
         gpio::GPIOEvent::Unpress { button } => (button, false),
@@ -232,8 +235,9 @@ fn on_button_press(framebuffer: &mut core::Framebuffer, input: gpio::GPIOEvent) 
     );
 }
 
-fn on_touch_rustlogo(framebuffer: &mut core::Framebuffer,
+fn on_touch_rustlogo(app: &mut appctx::ApplicationContext,
                      _element: Arc<RwLock<UIElementWrapper>>) {
+    let framebuffer = app.get_framebuffer_ref();
     let new_press_count = {
         let mut v = G_COUNTER.lock().unwrap();
         *v += 1;
