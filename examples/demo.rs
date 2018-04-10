@@ -168,71 +168,82 @@ fn on_touch_handler(app: &mut appctx::ApplicationContext, input: multitouch::Mul
 }
 
 fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent) {
-    let framebuffer = app.get_framebuffer_ref();
     let (btn, new_state) = match input {
         gpio::GPIOEvent::Press { button } => (button, true),
         gpio::GPIOEvent::Unpress { button } => (button, false),
         _ => return,
     };
 
-    let color = match new_state {
-        false => REMARKABLE_BRIGHTEST,
-        true => REMARKABLE_DARKEST,
-    };
+    // Ignoring the unpressed event
+    if !new_state {
+        return;
+    }
 
-    let (yres, xres) = (framebuffer.var_screen_info.yres, framebuffer.var_screen_info.xres);
-    let offset = 45 * yres / 100;
-    let height = yres - offset;
-    let x_offset = match btn {
+    match btn {
         gpio::PhysicalButton::LEFT => {
-            if new_state {
-                let mut data = DRAW_ON_TOUCH.lock().unwrap();
-                *data = (*data + 1) % 3;
-            }
-            return; // 50
+            let mut data = DRAW_ON_TOUCH.lock().unwrap();
+            *data = (*data + 1) % 3;
+            return
         },
         gpio::PhysicalButton::MIDDLE => {
-            if new_state {
-                framebuffer.fill_rect(
-                    offset as usize,
-                    0,
-                    height as usize,
-                    xres as usize,
-                    REMARKABLE_BRIGHTEST
-                );
-                framebuffer.partial_refresh(
-                    &mxcfb_rect {
-                        top: offset,
-                        left: 0,
-                        height,
-                        width: xres,
-                    },
-                    PartialRefreshMode::Wait,
-                    waveform_mode::WAVEFORM_MODE_INIT,
-                    display_temp::TEMP_USE_AMBIENT,
-                    dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                    0,
-                );
-            }
-            return;
-        }
-        gpio::PhysicalButton::RIGHT => 1250,
+            app.clear(true);
+        },
+        gpio::PhysicalButton::RIGHT => {
+            app.clear(false);
+        },
     };
 
-    framebuffer.fill_rect(1500, x_offset, 125, 125, color);
-    framebuffer.partial_refresh(
-        &mxcfb_rect {
-            top: 1500,
-            left: x_offset as u32,
-            height: 125,
-            width: 125,
-        },
-        PartialRefreshMode::Async,
-        waveform_mode::WAVEFORM_MODE_DU,
-        display_temp::TEMP_USE_PAPYRUS,
-        dither_mode::EPDC_FLAG_USE_DITHERING_ALPHA,
-        0,
-    );
+    // do_loop set to false, it will simply clear, print and
+    // update the top bar so that it isn't empty after the
+    // scene is redrawn.
+//    loop_update_topbar(framebuffer, 150, 100,
+//                       75, 30 * 1000, false);
+
+    app.draw_elements();
+
+    // Alternatively, if we wanted to just clear the bottom half of the screen
+    // we could have done something like this:
+    //     let framebuffer = app.get_framebuffer_ref();
+    //     let (yres, xres) = (framebuffer.var_screen_info.yres,
+    //                         framebuffer.var_screen_info.xres);
+    //     let offset = 45 * yres / 100;
+    //     let height = yres - offset;
+    //     framebuffer.fill_rect(
+    //         offset as usize,
+    //         0,
+    //         height as usize,
+    //         xres as usize,
+    //         REMARKABLE_BRIGHTEST
+    //     );
+    //     framebuffer.partial_refresh(
+    //         &mxcfb_rect {
+    //             top: offset,
+    //             left: 0,
+    //             height,
+    //             width: xres,
+    //         },
+    //         PartialRefreshMode::Wait,
+    //         waveform_mode::WAVEFORM_MODE_INIT,
+    //         display_temp::TEMP_USE_AMBIENT,
+    //         dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+    //         0,
+    //     );
+
+    // If you wanted to draw a rectangle and refresh it, this is how it is done:
+    //    framebuffer.fill_rect(1500, x_offset, 125, 125, color);
+    //    framebuffer.partial_refresh(
+    //        &mxcfb_rect {
+    //            top: 1500,
+    //            left: x_offset as u32,
+    //            height: 125,
+    //            width: 125,
+    //        },
+    //        PartialRefreshMode::Async,
+    //        waveform_mode::WAVEFORM_MODE_DU,
+    //        display_temp::TEMP_USE_PAPYRUS,
+    //        dither_mode::EPDC_FLAG_USE_DITHERING_ALPHA,
+    //        0,
+    //    );
 }
 
 fn on_touch_rustlogo(app: &mut appctx::ApplicationContext,
@@ -349,13 +360,55 @@ fn main() {
     })));
     app.add_element("l4", Arc::new(RwLock::new(UIElementWrapper {
         y: 530, x: 120,
-        refresh: UIConstraintRefresh::RefreshAndWait,
+        refresh: UIConstraintRefresh::Refresh,
         inner: UIElement::Text {
             text: "Wacom Digitizer Support".to_owned(),
             scale: 55,
         },
         ..Default::default()
     })));
+
+    app.add_element("tooltipLeft", Arc::new(RwLock::new(UIElementWrapper {
+        y: 1850, x: 15,
+        refresh: UIConstraintRefresh::Refresh,
+        inner: UIElement::Text {
+            text: "Toggle Touch".to_owned(),
+            scale: 50,
+        },
+        ..Default::default()
+    })));
+    app.add_element("tooltipMiddle", Arc::new(RwLock::new(UIElementWrapper {
+        y: 1850, x: 550,
+        refresh: UIConstraintRefresh::Refresh,
+        inner: UIElement::Text {
+            text: "Redraw Layout".to_owned(),
+            scale: 50,
+        },
+        ..Default::default()
+    })));
+    app.add_element("tooltipRight", Arc::new(RwLock::new(UIElementWrapper {
+        y: 1850, x: 1085,
+        refresh: UIConstraintRefresh::Refresh,
+        inner: UIElement::Text {
+            text: "Quick Redraw".to_owned(), // maybe quick redraw for the demo or waveform change?
+            scale: 50,
+        },
+        ..Default::default()
+    })));
+
+
+    // Create the top bar's time label. We can mutate this later.
+    let dt: DateTime<Local> = Local::now();
+    let time_label = Arc::new(RwLock::new(UIElementWrapper {
+        y: 150, x: 100,
+        refresh: UIConstraintRefresh::Refresh,
+        inner: UIElement::Text {
+            text: format!("{}", dt.format("%F %r")),
+            scale: 75,
+        },
+        ..Default::default()
+    }));
+    app.add_element("time", Arc::clone(&time_label));
 
     // Draw the scene
     app.draw_elements();

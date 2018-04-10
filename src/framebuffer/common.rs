@@ -81,7 +81,7 @@ pub const DRAWING_QUANT_BIT: i32 = 0x76143b24;
 pub const DRAWING_QUANT_BIT_2 : i32 = 0x75e7bb24;
 pub const DRAWING_QUANT_BIT_3 : i32 = 0x53ed4;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 #[repr(C)]
 pub struct mxcfb_rect {
     pub top: u32,
