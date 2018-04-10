@@ -5,6 +5,8 @@ use std::hash::{Hash, Hasher};
 use image;
 
 use framebuffer::common;
+use framebuffer::FramebufferRefresh;
+use framebuffer::refresh::PartialRefreshMode;
 use framebuffer::FramebufferDraw;
 use framebuffer::common::{mxcfb_rect, REMARKABLE_BRIGHTEST};
 
@@ -92,6 +94,19 @@ impl UIElementWrapper {
                                       rect.height as usize,
                                       rect.width as usize,
                                       REMARKABLE_BRIGHTEST);
+
+                // We have filled the old_filled_rect, now we need to also refresh that but if
+                // only if it isn't at the same spot. Otherwise we will be refreshing it for no
+                // reason and showing a blank frame.
+                if rect.top != y as u32 && rect.left != x as u32 {
+                    framebuffer.partial_refresh(&rect,
+                                                PartialRefreshMode::Wait,
+                                                common::waveform_mode::WAVEFORM_MODE_DU,
+                                                common::display_temp::TEMP_USE_REMARKABLE_DRAW,
+                                                common::dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                                                0);
+                }
+
                 rect
             },
             None => mxcfb_rect::invalid(),
