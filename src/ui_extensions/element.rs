@@ -1,18 +1,22 @@
 use std;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use std::hash::{Hash, Hasher};
 
 use image;
 
 use framebuffer::core;
 use framebuffer::common;
+use framebuffer::FramebufferDraw;
+use framebuffer::common::REMARKABLE_BRIGHTEST;
 
-pub type ActiveRegionFunction = fn(&mut core::Framebuffer, Arc<UIElementWrapper>);
+use appctx;
+
+pub type ActiveRegionFunction = fn(&mut core::Framebuffer, Arc<RwLock<UIElementWrapper>>);
 
 #[derive(Clone)]
 pub struct ActiveRegionHandler {
     pub handler: ActiveRegionFunction,
-    pub element: Arc<UIElementWrapper>,
+    pub element: Arc<RwLock<UIElementWrapper>>,
 }
 
 impl<'a> std::fmt::Debug for ActiveRegionHandler {
@@ -37,7 +41,6 @@ impl Default for UIConstraintRefresh {
 
 #[derive(Clone, Default)]
 pub struct UIElementWrapper {
-    pub name: String,
     pub y: usize,
     pub x: usize,
     pub refresh: UIConstraintRefresh,
@@ -50,15 +53,13 @@ impl Hash for UIElementWrapper {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.x.hash(state);
         self.y.hash(state);
-        self.name.hash(state);
     }
 }
 
 impl PartialEq for UIElementWrapper {
     fn eq(&self, other: &UIElementWrapper) -> bool {
         self.x == other.x &&
-            self.y == other.y &&
-            self.name == other.name
+            self.y == other.y
     }
 }
 
@@ -76,6 +77,40 @@ pub enum UIElement {
         img: image::DynamicImage,
     },
     Unspecified,
+}
+
+impl UIElementWrapper {
+    pub fn draw(&mut self, app: &mut appctx::ApplicationContext, handler: Option<ActiveRegionHandler>) {
+        let (x, y) = (self.x, self.y);
+        let refresh = self.refresh.clone();
+        let framebuffer = app.get_framebuffer_ref();
+
+        match self.last_drawn_rect {
+            Some(rect) => {
+                // Clear the background on the last occupied region
+                framebuffer.fill_rect(rect.top as usize,
+                                      rect.left as usize,
+                                      rect.height as usize,
+                                      rect.width as usize,
+                                      REMARKABLE_BRIGHTEST);
+            },
+            None => {},
+        }
+
+        match self.inner {
+            UIElement::Text{ref text, scale} => {
+                self.last_drawn_rect = Some(app.display_text(y, x,
+                                                        scale,
+                                                        text.to_string(),
+                                                        refresh,
+                                                        &handler));
+            },
+            UIElement::Image{ref img} => {
+                self.last_drawn_rect = Some(app.display_image(&img, y, x, refresh, &handler));
+            },
+            UIElement::Unspecified => {},
+        };
+    }
 }
 
 impl Default for UIElement {

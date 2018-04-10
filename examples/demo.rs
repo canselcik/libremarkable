@@ -14,7 +14,7 @@ use std::option::Option;
 use std::time::Duration;
 use std::thread::sleep;
 use std::sync::Mutex;
-use std::sync::Arc;
+use std::sync::{RwLock, Arc};
 
 use libremarkable::image;
 use libremarkable::framebuffer::core;
@@ -233,7 +233,7 @@ fn on_button_press(framebuffer: &mut core::Framebuffer, input: gpio::GPIOEvent) 
 }
 
 fn on_touch_rustlogo(framebuffer: &mut core::Framebuffer,
-                     _element: Arc<UIElementWrapper>) {
+                     _element: Arc<RwLock<UIElementWrapper>>) {
     let new_press_count = {
         let mut v = G_COUNTER.lock().unwrap();
         *v += 1;
@@ -284,8 +284,7 @@ fn main() {
     app.clear(true);
 
     // A rudimentary way to declare a scene and layout
-    app.add_element(Arc::new(UIElementWrapper {
-        name: "logo".to_owned(),
+    app.add_element("logo", Arc::new(RwLock::new(UIElementWrapper {
         y: 10, x: 900,
         refresh: UIConstraintRefresh::Refresh,
 
@@ -298,9 +297,8 @@ fn main() {
             img: image::load_from_memory(include_bytes!("../assets/rustlang.bmp")).unwrap(),
         },
         ..Default::default()
-    }));
-    app.add_element(Arc::new(UIElementWrapper {
-        name: "availAt".to_owned(),
+    })));
+    app.add_element("availAt", Arc::new(RwLock::new(UIElementWrapper {
         y: 650, x: 120,
         refresh: UIConstraintRefresh::Refresh,
         inner: UIElement::Text {
@@ -308,9 +306,8 @@ fn main() {
             scale: 70,
         },
         ..Default::default()
-    }));
-    app.add_element(Arc::new(UIElementWrapper {
-        name: "github".to_owned(),
+    })));
+    app.add_element("github", Arc::new(RwLock::new(UIElementWrapper {
         y: 750, x: 100,
         refresh: UIConstraintRefresh::Refresh,
         inner: UIElement::Text {
@@ -318,9 +315,8 @@ fn main() {
             scale: 60,
         },
         ..Default::default()
-    }));
-    app.add_element(Arc::new(UIElementWrapper {
-        name: "l1".to_owned(),
+    })));
+    app.add_element("l1", Arc::new(RwLock::new(UIElementWrapper {
         y: 350, x: 120,
         refresh: UIConstraintRefresh::Refresh,
         inner: UIElement::Text {
@@ -328,9 +324,8 @@ fn main() {
             scale: 55,
         },
         ..Default::default()
-    }));
-    app.add_element(Arc::new(UIElementWrapper {
-        name: "l2".to_owned(),
+    })));
+    app.add_element("l2", Arc::new(RwLock::new(UIElementWrapper {
         y: 470, x: 120,
         refresh: UIConstraintRefresh::Refresh,
         inner: UIElement::Text {
@@ -338,9 +333,8 @@ fn main() {
             scale: 55,
         },
         ..Default::default()
-    }));
-    app.add_element(Arc::new(UIElementWrapper {
-        name: "l3".to_owned(),
+    })));
+    app.add_element("l3", Arc::new(RwLock::new(UIElementWrapper {
         y: 410, x: 120,
         refresh: UIConstraintRefresh::Refresh,
         inner: UIElement::Text {
@@ -348,9 +342,8 @@ fn main() {
             scale: 55,
         },
         ..Default::default()
-    }));
-    app.add_element(Arc::new(UIElementWrapper {
-        name: "l4".to_owned(),
+    })));
+    app.add_element("l4", Arc::new(RwLock::new(UIElementWrapper {
         y: 530, x: 120,
         refresh: UIConstraintRefresh::RefreshAndWait,
         inner: UIElement::Text {
@@ -358,7 +351,7 @@ fn main() {
             scale: 55,
         },
         ..Default::default()
-    }));
+    })));
 
     // Draw the scene
     app.draw_elements();

@@ -1,10 +1,10 @@
 use std;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use std::cell::UnsafeCell;
 use std::ops::DerefMut;
 
-use std::collections::HashSet;
+use std::collections::HashMap;
 
 use image;
 
@@ -18,8 +18,9 @@ use rb::RbConsumer;
 use framebuffer::common::*;
 
 use ui_extensions::luaext;
-use ui_extensions::element::{UIElementWrapper, UIElement,
-                             UIConstraintRefresh, ActiveRegionFunction,
+use ui_extensions::element::{UIElementWrapper,
+                             UIConstraintRefresh,
+                             ActiveRegionFunction,
                              ActiveRegionHandler};
 use hlua;
 use hlua::Lua;
@@ -48,7 +49,7 @@ pub struct ApplicationContext<'a> {
     on_wacom: fn(&mut core::Framebuffer, WacomEvent),
     on_touch: fn(&mut core::Framebuffer, MultitouchEvent),
     active_regions: QuadTree<ActiveRegionHandler>,
-    ui_elements: HashSet<Arc<UIElementWrapper>>,
+    ui_elements: HashMap<String, Arc<RwLock<UIElementWrapper>>>,
     yres: u32,
     xres: u32,
 }
@@ -85,7 +86,7 @@ impl<'a> ApplicationContext<'a> {
             on_button,
             on_wacom,
             on_touch,
-            ui_elements: HashSet::new(),
+            ui_elements: HashMap::new(),
             active_regions: QuadTree::default(geom::Rect::from_points(&geom::Point { x: 0.0, y: 0.0 },
                                                                            &geom::Point {
                                                                                x: xres as f32,
@@ -128,7 +129,7 @@ impl<'a> ApplicationContext<'a> {
         };
     }
 
-    fn display_text(
+    pub fn display_text(
         &mut self,
         y: usize,
         x: usize,
@@ -136,7 +137,7 @@ impl<'a> ApplicationContext<'a> {
         text: String,
         refresh: UIConstraintRefresh,
         onclick: &Option<ActiveRegionHandler>,
-    ) {
+    ) -> mxcfb_rect {
         let framebuffer = self.get_framebuffer_ref();
         let draw_area: mxcfb_rect = framebuffer.draw_text(y, x, text, scale, REMARKABLE_DARKEST);
         let marker = match refresh {
@@ -148,7 +149,7 @@ impl<'a> ApplicationContext<'a> {
                 dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
                 0,
             ),
-            _ => return,
+            _ => return draw_area,
         };
 
         // We need to wait until now because we don't know the size of the active region before we
@@ -169,15 +170,16 @@ impl<'a> ApplicationContext<'a> {
             UIConstraintRefresh::RefreshAndWait => { framebuffer.wait_refresh_complete(marker); },
             _ => {},
         };
+        return draw_area;
     }
 
-    fn display_image(&mut self,
+    pub fn display_image(&mut self,
                          img: &image::DynamicImage,
                          y: usize,
                          x: usize,
                          refresh: UIConstraintRefresh,
                          onclick: &Option<ActiveRegionHandler>,
-    ) {
+    ) -> mxcfb_rect {
         let framebuffer = self.get_framebuffer_ref();
         let draw_area = framebuffer.draw_image(&img, y, x);
         let marker = match refresh {
@@ -189,7 +191,7 @@ impl<'a> ApplicationContext<'a> {
                 dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
                 0,
             ),
-            _ => return,
+            _ => return draw_area,
         };
         match onclick {
             &Some(ref handler) => {
@@ -207,61 +209,41 @@ impl<'a> ApplicationContext<'a> {
             UIConstraintRefresh::RefreshAndWait => { framebuffer.wait_refresh_complete(marker); },
             _ => {},
         };
+        return draw_area;
     }
 
-    pub fn add_element(&mut self, element: Arc<UIElementWrapper>) -> bool {
-        // Insert already checks if this is already present in the hashset
-        self.ui_elements.insert(element)
-    }
-
-    pub fn remove_element(&mut self, element: Arc<UIElementWrapper>) -> bool {
-        // If there is an active region, remove it.
-        if element.onclick.is_some() {
-            self.remove_active_region_at_point(element.y as u16, element.x as u16);
+    pub fn add_element(&mut self, name: &str, element: Arc<RwLock<UIElementWrapper>>) -> bool {
+        match self.ui_elements.contains_key(name) {
+            true => false,
+            false => {
+                self.ui_elements.insert(name.to_owned(), element);
+                true
+            },
         }
-        // Remove the element itself
-        self.ui_elements.remove(&element)
+    }
+
+    pub fn remove_element(&mut self, name: &str) -> bool {
+        return self.ui_elements.remove(name).is_some();
     }
 
     pub fn draw_elements(&mut self) {
-        // Cloning here shouldn't be all that costly since it is just a hashset of Arc
-        let elems = self.ui_elements.clone();
-        for element in elems.iter() {
-            self.draw_element(element);
+        let mut elems = std::vec::Vec::new();
+        for (_, element) in self.ui_elements.iter() {
+            elems.push(Arc::clone(element));
+        }
+
+        for element in &mut elems {
+            let h = {
+                let l = element.read().unwrap();
+                l.onclick
+            };
+            let handler = match h {
+                Some(handler) => Some(ActiveRegionHandler { handler, element: Arc::clone(element) }),
+                _ => None,
+            };
+            element.write().unwrap().draw(self, handler);
         }
     }
-
-    pub fn draw_element(&mut self, element: &Arc<UIElementWrapper>) {
-        let (x, y) = (element.x, element.y);
-        let refresh = element.refresh.clone();
-        let handler = match element.onclick {
-            Some(handler) => Some(ActiveRegionHandler { handler, element: Arc::clone(element) }),
-            _ => None,
-        };
-
-        match element.last_drawn_rect {
-            Some(rect) => {
-                // Clear the background on the last occupied region
-                self.framebuffer.fill_rect(rect.top as usize,
-                                           rect.left as usize,
-                                           rect.height as usize,
-                                           rect.width as usize,
-                                           REMARKABLE_BRIGHTEST);
-            },
-            None => {},
-        }
-
-        match element.inner {
-            UIElement::Text{ref text, scale} => {
-                self.display_text(y, x, scale, text.to_string(), refresh, &handler);
-            },
-            UIElement::Image{ref img} => {
-                self.display_image(&img, y, x, refresh, &handler);
-            },
-            UIElement::Unspecified => {},
-        }
-    }
-
     pub fn clear(&mut self, deep: bool) {
         let framebuffer = self.get_framebuffer_ref();
         let (yres, xres) = (
@@ -382,7 +364,7 @@ impl<'a> ApplicationContext<'a> {
 
     pub fn create_active_region(&mut self, y: u16, x: u16, height: u16, width: u16,
                                 handler: ActiveRegionFunction,
-                                element: Arc<UIElementWrapper>) {
+                                element: Arc<RwLock<UIElementWrapper>>) {
         self.active_regions.insert_with_box(
             ActiveRegionHandler {
                 handler, element,
