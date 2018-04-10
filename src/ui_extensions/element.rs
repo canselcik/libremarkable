@@ -97,7 +97,9 @@ impl UIElementWrapper {
 
                 // We have filled the old_filled_rect, now we need to also refresh that but if
                 // only if it isn't at the same spot. Otherwise we will be refreshing it for no
-                // reason and showing a blank frame.
+                // reason and showing a blank frame. There is of course still a caveat since we don't
+                // know the dimensions of a drawn text before it is actually drawn.
+                // TODO: Take care of the point above ^
                 if rect.top != y as u32 && rect.left != x as u32 {
                     framebuffer.partial_refresh(&rect,
                                                 PartialRefreshMode::Wait,
