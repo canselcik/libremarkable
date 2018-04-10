@@ -147,7 +147,6 @@ impl<'a> ApplicationContext<'a> {
         scale: usize,
         text: String,
         refresh: UIConstraintRefresh,
-        onclick: &Option<ActiveRegionHandler>,
     ) -> mxcfb_rect {
         let framebuffer = self.get_framebuffer_ref();
         let draw_area: mxcfb_rect = framebuffer.draw_text(y, x, text, scale, REMARKABLE_DARKEST);
@@ -163,20 +162,6 @@ impl<'a> ApplicationContext<'a> {
             _ => return draw_area,
         };
 
-        // We need to wait until now because we don't know the size of the active region before we
-        // actually go ahead and draw it.
-        match onclick {
-            &Some(ref handler) => {
-                if self.find_active_region(y as u16, x as u16).is_none() {
-                    self.create_active_region(draw_area.top as u16,
-                                              draw_area.left as u16,
-                                              draw_area.height as u16,
-                                              draw_area.width as u16,
-                                              handler.handler, Arc::clone(&handler.element));
-                }
-            },
-            &None => {},
-        }
         match refresh {
             UIConstraintRefresh::RefreshAndWait => { framebuffer.wait_refresh_complete(marker); },
             _ => {},
@@ -189,7 +174,6 @@ impl<'a> ApplicationContext<'a> {
                          y: usize,
                          x: usize,
                          refresh: UIConstraintRefresh,
-                         onclick: &Option<ActiveRegionHandler>,
     ) -> mxcfb_rect {
         let framebuffer = self.get_framebuffer_ref();
         let draw_area = framebuffer.draw_image(&img, y, x);
@@ -204,18 +188,7 @@ impl<'a> ApplicationContext<'a> {
             ),
             _ => return draw_area,
         };
-        match onclick {
-            &Some(ref handler) => {
-                if self.find_active_region(y as u16, x as u16).is_none() {
-                    self.create_active_region(draw_area.top as u16,
-                                              draw_area.left as u16,
-                                              draw_area.height as u16,
-                                              draw_area.width as u16,
-                                              handler.handler, Arc::clone(&handler.element));
-                }
-            },
-            &None => {},
-        }
+
         match refresh {
             UIConstraintRefresh::RefreshAndWait => { framebuffer.wait_refresh_complete(marker); },
             _ => {},
@@ -235,6 +208,25 @@ impl<'a> ApplicationContext<'a> {
 
     pub fn remove_element(&mut self, name: &str) -> bool {
         return self.ui_elements.remove(name).is_some();
+    }
+
+    pub fn draw_element(&mut self, name: &str) -> bool {
+        let appref = self.upgrade_ref();
+        match self.ui_elements.get(name) {
+            None => false,
+            Some(element) => {
+                let h = {
+                    let l = element.read().unwrap();
+                    l.onclick
+                };
+                let handler = match h {
+                    Some(handler) => Some(ActiveRegionHandler { handler, element: Arc::clone(element) }),
+                    _ => None,
+                };
+                element.write().unwrap().draw(appref, handler);
+                true
+            }
+        }
     }
 
     pub fn draw_elements(&mut self) {
@@ -347,7 +339,7 @@ impl<'a> ApplicationContext<'a> {
         touch_thread.join().unwrap();
     }
 
-    fn find_active_region(&self, y: u16, x: u16) -> Option<(&ActiveRegionHandler, ItemId)> {
+    pub fn find_active_region(&self, y: u16, x: u16) -> Option<(&ActiveRegionHandler, ItemId)> {
         let matches = self.active_regions.query(
             geom::Rect::centered_with_radius(&geom::Point{ y: y as f32, x: x as f32 }, 2.0)
         );

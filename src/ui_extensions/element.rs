@@ -6,7 +6,7 @@ use image;
 
 use framebuffer::common;
 use framebuffer::FramebufferDraw;
-use framebuffer::common::REMARKABLE_BRIGHTEST;
+use framebuffer::common::{mxcfb_rect, REMARKABLE_BRIGHTEST};
 
 use appctx;
 
@@ -84,7 +84,7 @@ impl UIElementWrapper {
         let refresh = self.refresh.clone();
         let framebuffer = app.get_framebuffer_ref();
 
-        match self.last_drawn_rect {
+        let old_filled_rect = match self.last_drawn_rect {
             Some(rect) => {
                 // Clear the background on the last occupied region
                 framebuffer.fill_rect(rect.top as usize,
@@ -92,23 +92,41 @@ impl UIElementWrapper {
                                       rect.height as usize,
                                       rect.width as usize,
                                       REMARKABLE_BRIGHTEST);
+                rect
             },
-            None => {},
-        }
+            None => mxcfb_rect::invalid(),
+        };
 
-        match self.inner {
-            UIElement::Text{ref text, scale} => {
-                self.last_drawn_rect = Some(app.display_text(y, x,
+        // TODO: Move this to inside the app and then have it call the UIElement's draw
+        let rect = match self.inner {
+            UIElement::Text{ref text, scale} => app.display_text(y, x,
                                                         scale,
                                                         text.to_string(),
-                                                        refresh,
-                                                        &handler));
-            },
-            UIElement::Image{ref img} => {
-                self.last_drawn_rect = Some(app.display_image(&img, y, x, refresh, &handler));
-            },
-            UIElement::Unspecified => {},
+                                                        refresh),
+            UIElement::Image{ref img} => app.display_image(&img, y, x, refresh),
+            UIElement::Unspecified => return,
         };
+
+        // If no changes, no need to change the active region
+        if old_filled_rect != rect {
+            if let Some(ref h) = handler {
+                    if old_filled_rect != mxcfb_rect::invalid() {
+                        app.remove_active_region_at_point(old_filled_rect.top as u16, old_filled_rect.left as u16);
+                    }
+
+                    if app.find_active_region(y as u16, x as u16).is_none() {
+                        app.create_active_region(rect.top as u16,
+                                                 rect.left as u16,
+                                                 rect.height as u16,
+                                                 rect.width as u16,
+                                                  h.handler, Arc::clone(&h.element));
+                    }
+            }
+        }
+
+        // We need to wait until now because we don't know the size of the active region before we
+        // actually go ahead and draw it.
+        self.last_drawn_rect = Some(rect);
     }
 }
 

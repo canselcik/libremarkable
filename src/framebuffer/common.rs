@@ -97,6 +97,17 @@ impl ::std::default::Default for mxcfb_rect {
 }
 
 impl mxcfb_rect {
+    pub fn invalid() -> Self {
+        mxcfb_rect {
+            top: 9999,
+            left: 9999,
+            height: 0,
+            width: 0,
+        }
+    }
+}
+
+impl mxcfb_rect {
     pub fn contains_point(&mut self, y: u32, x: u32) -> bool {
         x >= self.left && x < (self.left + self.width) &&
             y >= self.top && x < (self.top + self.height)
