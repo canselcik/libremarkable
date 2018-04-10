@@ -10,14 +10,12 @@ extern crate chrono;
 
 use chrono::{Local, DateTime};
 
-use std::option::Option;
 use std::time::Duration;
 use std::thread::sleep;
 use std::sync::Mutex;
 use std::sync::{RwLock, Arc};
 
 use libremarkable::image;
-use libremarkable::framebuffer::core;
 use libremarkable::framebuffer::common::*;
 
 use libremarkable::appctx;
@@ -29,71 +27,25 @@ use libremarkable::framebuffer::{FramebufferDraw, FramebufferRefresh};
 use libremarkable::input::{wacom,gpio,multitouch};
 use libremarkable::battery;
 
-fn loop_update_topbar(framebuffer: &mut core::Framebuffer, y: usize, x: usize, scale: usize, millis: u64) {
-    let mut time_draw_area: Option<mxcfb_rect> = None;
-    let mut battery_draw_area: Option<mxcfb_rect> = None;
+fn loop_update_topbar(app: &mut appctx::ApplicationContext,
+                      time_label: Arc<RwLock<UIElementWrapper>>,
+                      battery_label: Arc<RwLock<UIElementWrapper>>,
+                      millis: u64) {
     loop {
         // Get the datetime
         let dt: DateTime<Local> = Local::now();
 
-        // Skip the fill background step upon first pass
-        match (time_draw_area, battery_draw_area) {
-            (Some(ref time_area), Some(ref battery_area)) => {
-                framebuffer.fill_rect(
-                    time_area.top as usize,
-                    time_area.left as usize,
-                    time_area.height as usize,
-                    time_area.width as usize,
-                    REMARKABLE_BRIGHTEST,
-                );
-                framebuffer.fill_rect(
-                    battery_area.top as usize,
-                    battery_area.left as usize,
-                    battery_area.height as usize,
-                    battery_area.width as usize,
-                    REMARKABLE_BRIGHTEST,
-                )
-            },
-            _ => {},
-        };
-
-        // Create the draw_areas
-        time_draw_area = Some(framebuffer.draw_text(y, x,
-            format!("{}", dt.format("%F %r")),
-            scale,
-            REMARKABLE_DARKEST,
-        ));
-        battery_draw_area = Some(framebuffer.draw_text(
-            y + 65, x,
-            format!("{0:<128}", format!("{0} — {1}%",
-                    battery::human_readable_charging_status().unwrap(),
-                    battery::percentage().unwrap())),
-            2 * scale / 3, REMARKABLE_DARKEST
-        ));
-
-        // Now refresh the regions
-        match (time_draw_area, battery_draw_area) {
-            (Some(ref time_area), Some(ref battery_area)) => {
-                framebuffer.partial_refresh(
-                    time_area,
-                    PartialRefreshMode::Async,
-                    waveform_mode::WAVEFORM_MODE_GC16_FAST,
-                    display_temp::TEMP_USE_AMBIENT,
-                    dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                    0,
-                );
-                // Refresh the battery status region on the screen
-                framebuffer.partial_refresh(
-                    battery_area,
-                    PartialRefreshMode::Wait,
-                    waveform_mode::WAVEFORM_MODE_GC16_FAST,
-                    display_temp::TEMP_USE_AMBIENT,
-                    dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                    0,
-                );
-            },
-            _ => {},
+        if let UIElement::Text { ref mut text, scale: _ } = time_label.write().unwrap().inner {
+            *text = format!("{}", dt.format("%F %r"));
         }
+        if let UIElement::Text { ref mut text, scale: _ } = battery_label.write().unwrap().inner {
+            *text = format!("{0:<128}",
+                            format!("{0} — {1}%",
+                                battery::human_readable_charging_status().unwrap(),
+                                battery::percentage().unwrap()));
+        }
+        app.draw_element("time");
+        app.draw_element("battery");
 
         sleep(Duration::from_millis(millis));
     }
@@ -192,12 +144,6 @@ fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent)
             app.clear(false);
         },
     };
-
-    // do_loop set to false, it will simply clear, print and
-    // update the top bar so that it isn't empty after the
-    // scene is redrawn.
-//    loop_update_topbar(framebuffer, 150, 100,
-//                       75, 30 * 1000, false);
 
     app.draw_elements();
 
@@ -304,6 +250,7 @@ fn main() {
         refresh: UIConstraintRefresh::Refresh,
 
         /* We could have alternatively done this:
+
            // Create a clickable region for multitouch input and associate it with its handler fn
            app.create_active_region(10, 900, 240, 480, on_touch_rustlogo);
         */
@@ -396,8 +343,7 @@ fn main() {
         ..Default::default()
     })));
 
-
-    // Create the top bar's time label. We can mutate this later.
+    // Create the top bar's time and battery labels. We can mutate these later.
     let dt: DateTime<Local> = Local::now();
     let time_label = Arc::new(RwLock::new(UIElementWrapper {
         y: 150, x: 100,
@@ -408,15 +354,28 @@ fn main() {
         },
         ..Default::default()
     }));
+    let battery_label = Arc::new(RwLock::new(UIElementWrapper {
+        y: 215, x: 100,
+        refresh: UIConstraintRefresh::Refresh,
+        inner: UIElement::Text {
+            text: format!("{0:<128}",
+                          format!("{0} — {1}%",
+                                  battery::human_readable_charging_status().unwrap(),
+                                  battery::percentage().unwrap())),
+            scale: 44,
+        },
+        ..Default::default()
+    }));
     app.add_element("time", Arc::clone(&time_label));
+    app.add_element("battery", Arc::clone(&battery_label));
 
     // Draw the scene
     app.draw_elements();
 
     // Get a &mut to the framebuffer object, exposing many convenience functions
-    let fb = app.get_framebuffer_ref();
+    let appref = app.upgrade_ref();
     let clock_thread = std::thread::spawn(move || {
-        loop_update_topbar(fb, 150, 100, 75, 30 * 1000);
+        loop_update_topbar(appref, time_label, battery_label, 30 * 1000);
     });
 
     app.execute_lua(r#"

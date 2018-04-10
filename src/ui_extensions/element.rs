@@ -110,17 +110,17 @@ impl UIElementWrapper {
         // If no changes, no need to change the active region
         if old_filled_rect != rect {
             if let Some(ref h) = handler {
-                    if old_filled_rect != mxcfb_rect::invalid() {
-                        app.remove_active_region_at_point(old_filled_rect.top as u16, old_filled_rect.left as u16);
-                    }
+                if old_filled_rect != mxcfb_rect::invalid() {
+                    app.remove_active_region_at_point(old_filled_rect.top as u16, old_filled_rect.left as u16);
+                }
 
-                    if app.find_active_region(y as u16, x as u16).is_none() {
-                        app.create_active_region(rect.top as u16,
-                                                 rect.left as u16,
-                                                 rect.height as u16,
-                                                 rect.width as u16,
-                                                  h.handler, Arc::clone(&h.element));
-                    }
+                if app.find_active_region(y as u16, x as u16).is_none() {
+                    app.create_active_region(rect.top as u16,
+                                             rect.left as u16,
+                                             rect.height as u16,
+                                             rect.width as u16,
+                                              h.handler, Arc::clone(&h.element));
+                }
             }
         }
 

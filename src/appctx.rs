@@ -64,9 +64,7 @@ impl<'a> ApplicationContext<'a> {
     /// Perhaps this is bad practice but we know that the ApplicationContext,
     /// just like the Framebuffer will have a static lifetime. We are doing this
     /// so that we can have the event handlers call into the ApplicationContext.
-    ///
-    /// At least it is `private`.
-    fn upgrade_ref(&mut self) -> &'static mut ApplicationContext<'static> {
+    pub fn upgrade_ref(&mut self) -> &'static mut ApplicationContext<'static> {
         unsafe {
             std::mem::transmute(self)
         }
