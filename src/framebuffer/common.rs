@@ -51,6 +51,10 @@ pub const FBIO_CURSOR: NativeWidthType = 0x4608;
 pub const REMARKABLE_DARKEST: u8 = 0x00;
 pub const REMARKABLE_BRIGHTEST: u8 = 0xFF;
 
+enum color {
+    DARKEST
+}
+
 ///
 /// If no processing required, skip update processing
 ///  No processing means:

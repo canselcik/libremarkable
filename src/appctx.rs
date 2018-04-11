@@ -228,10 +228,10 @@ impl<'a> ApplicationContext<'a> {
     }
 
     pub fn draw_elements(&mut self) {
-        let mut elems = std::vec::Vec::new();
-        for (_, element) in self.ui_elements.iter() {
-            elems.push(Arc::clone(element));
-        }
+        let mut elems : std::vec::Vec<Arc<RwLock<UIElementWrapper>>> =
+            self.ui_elements.iter()
+                            .map(|(_key, value)| Arc::clone(&value))
+                            .collect();
 
         for element in &mut elems {
             let h = {
@@ -239,7 +239,7 @@ impl<'a> ApplicationContext<'a> {
                 l.onclick
             };
             let handler = match h {
-                Some(handler) => Some(ActiveRegionHandler { handler, element: Arc::clone(element) }),
+                Some(handler) => Some(ActiveRegionHandler { handler, element: element.clone() }),
                 _ => None,
             };
             element.write().unwrap().draw(self, handler);
