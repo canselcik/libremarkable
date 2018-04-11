@@ -142,12 +142,13 @@ impl<'a> ApplicationContext<'a> {
         &mut self,
         y: usize,
         x: usize,
+        c: color,
         scale: usize,
         text: String,
         refresh: UIConstraintRefresh,
     ) -> mxcfb_rect {
         let framebuffer = self.get_framebuffer_ref();
-        let draw_area: mxcfb_rect = framebuffer.draw_text(y, x, text, scale, color::BLACK);
+        let draw_area: mxcfb_rect = framebuffer.draw_text(y, x, text, scale, c);
         let marker = match refresh {
             UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer.partial_refresh(
                 &draw_area,

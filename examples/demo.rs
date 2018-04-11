@@ -38,10 +38,10 @@ fn loop_update_topbar(app: &mut appctx::ApplicationContext,
         // Get the datetime
         let dt: DateTime<Local> = Local::now();
 
-        if let UIElement::Text { ref mut text, scale: _ } = time_label.write().unwrap().inner {
+        if let UIElement::Text { ref mut text, scale: _, foreground: _ } = time_label.write().unwrap().inner {
             *text = format!("{}", dt.format("%F %r"));
         }
-        if let UIElement::Text { ref mut text, scale: _ } = battery_label.write().unwrap().inner {
+        if let UIElement::Text { ref mut text, scale: _, foreground: _ } = battery_label.write().unwrap().inner {
             *text = format!("{0:<128}",
                             format!("{0} — {1}%",
                                 battery::human_readable_charging_status().unwrap(),
@@ -273,67 +273,74 @@ fn main() {
         ..Default::default()
     })));
     app.add_element("exitToXochitl", Arc::new(RwLock::new(UIElementWrapper {
-        y: 50, x: 50,
+        y: 55, x: 20,
         refresh: UIConstraintRefresh::Refresh,
 
         onclick: Some(on_touch_exit_to_xochitl),
         inner: UIElement::Text {
-            text: "< Touch to Exit to Remarkable xochitl >".to_owned(),
-            scale: 45,
+            foreground: color::BLACK,
+            text: "[TOUCH TO EXIT TO REMARKABLE]".to_owned(),
+            scale: 35,
         },
         ..Default::default()
     })));
     app.add_element("availAt", Arc::new(RwLock::new(UIElementWrapper {
-        y: 650, x: 120,
+        y: 650, x: 100,
         refresh: UIConstraintRefresh::Refresh,
         inner: UIElement::Text {
+            foreground: color::BLACK,
             text: "Available at:".to_owned(),
             scale: 70,
         },
         ..Default::default()
     })));
     app.add_element("github", Arc::new(RwLock::new(UIElementWrapper {
-        y: 750, x: 100,
+        y: 720, x: 100,
         refresh: UIConstraintRefresh::Refresh,
         inner: UIElement::Text {
+            foreground: color::BLACK,
             text: "github.com/canselcik/libremarkable".to_owned(),
             scale: 60,
         },
         ..Default::default()
     })));
     app.add_element("l1", Arc::new(RwLock::new(UIElementWrapper {
-        y: 350, x: 120,
+        y: 350, x: 100,
         refresh: UIConstraintRefresh::Refresh,
         inner: UIElement::Text {
+            foreground: color::BLACK,
             text: "Low Latency eInk Display Partial Refresh API".to_owned(),
-            scale: 55,
-        },
-        ..Default::default()
-    })));
-    app.add_element("l2", Arc::new(RwLock::new(UIElementWrapper {
-        y: 470, x: 120,
-        refresh: UIConstraintRefresh::Refresh,
-        inner: UIElement::Text {
-            text: "Physical Button Support".to_owned(),
-            scale: 55,
+            scale: 45,
         },
         ..Default::default()
     })));
     app.add_element("l3", Arc::new(RwLock::new(UIElementWrapper {
-        y: 410, x: 120,
+        y: 400, x: 100,
         refresh: UIConstraintRefresh::Refresh,
         inner: UIElement::Text {
+            foreground: color::BLACK,
             text: "Capacitive Multitouch Input Support".to_owned(),
-            scale: 55,
+            scale: 45,
+        },
+        ..Default::default()
+    })));
+    app.add_element("l2", Arc::new(RwLock::new(UIElementWrapper {
+        y: 450, x: 100,
+        refresh: UIConstraintRefresh::Refresh,
+        inner: UIElement::Text {
+            foreground: color::BLACK,
+            text: "Physical Button Support".to_owned(),
+            scale: 45,
         },
         ..Default::default()
     })));
     app.add_element("l4", Arc::new(RwLock::new(UIElementWrapper {
-        y: 530, x: 120,
+        y: 500, x: 100,
         refresh: UIConstraintRefresh::Refresh,
         inner: UIElement::Text {
+            foreground: color::BLACK,
             text: "Wacom Digitizer Support".to_owned(),
-            scale: 55,
+            scale: 45,
         },
         ..Default::default()
     })));
@@ -342,6 +349,7 @@ fn main() {
         y: 1850, x: 15,
         refresh: UIConstraintRefresh::Refresh,
         inner: UIElement::Text {
+            foreground: color::BLACK,
             text: "Toggle Touch".to_owned(),
             scale: 50,
         },
@@ -351,6 +359,7 @@ fn main() {
         y: 1850, x: 550,
         refresh: UIConstraintRefresh::Refresh,
         inner: UIElement::Text {
+            foreground: color::BLACK,
             text: "Redraw Layout".to_owned(),
             scale: 50,
         },
@@ -360,6 +369,7 @@ fn main() {
         y: 1850, x: 1085,
         refresh: UIConstraintRefresh::Refresh,
         inner: UIElement::Text {
+            foreground: color::BLACK,
             text: "Quick Redraw".to_owned(), // maybe quick redraw for the demo or waveform change?
             scale: 50,
         },
@@ -372,6 +382,7 @@ fn main() {
         y: 150, x: 100,
         refresh: UIConstraintRefresh::Refresh,
         inner: UIElement::Text {
+            foreground: color::BLACK,
             text: format!("{}", dt.format("%F %r")),
             scale: 75,
         },
@@ -381,6 +392,7 @@ fn main() {
         y: 215, x: 100,
         refresh: UIConstraintRefresh::Refresh,
         inner: UIElement::Text {
+            foreground: color::BLACK,
             text: format!("{0:<128}",
                           format!("{0} — {1}%",
                                   battery::human_readable_charging_status().unwrap(),

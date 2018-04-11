@@ -79,6 +79,13 @@ impl color {
     }
 }
 
+impl ::std::default::Default for color {
+    fn default() -> Self {
+        color::WHITE
+    }
+}
+
+
 ///
 /// If no processing required, skip update processing
 ///  No processing means:

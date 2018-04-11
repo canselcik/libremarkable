@@ -73,6 +73,7 @@ pub enum UIElement {
     Text {
         text: String,
         scale: usize,
+        foreground: color,
     },
     Image {
         img: image::DynamicImage,
@@ -116,10 +117,11 @@ impl UIElementWrapper {
 
         // TODO: Move this to inside the app and then have it call the UIElement's draw
         let rect = match self.inner {
-            UIElement::Text{ref text, scale} => app.display_text(y, x,
-                                                        scale,
-                                                        text.to_string(),
-                                                        refresh),
+            UIElement::Text{ref text, scale, foreground} => app.display_text(y, x,
+                                                                             foreground,
+                                                                             scale,
+                                                                             text.to_string(),
+                                                                             refresh),
             UIElement::Image{ref img} => app.display_image(&img, y, x, refresh),
             UIElement::Unspecified => return,
         };
