@@ -63,7 +63,7 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
             if prev.0 >= 0 && prev.1 >= 0 {
                 let rect = framebuffer.draw_line(
                     y as i32, x as i32,prev.0, prev.1,
-                    rad.ceil() as usize,REMARKABLE_DARKEST
+                    rad.ceil() as usize,color::BLACK
                 );
                 framebuffer.partial_refresh(
                     &rect,
@@ -102,11 +102,11 @@ fn on_touch_handler(app: &mut appctx::ApplicationContext, input: multitouch::Mul
                1 => framebuffer.draw_bezier((x as f32, y as f32),
                                             ((x + 155) as f32, (y + 14) as f32),
                                             ((x + 200) as f32, (y + 200) as f32),
-                                            REMARKABLE_DARKEST),
+                                            color::BLACK),
                2 => framebuffer.draw_circle(y as usize,
                                             x as usize,
                                             20,
-                                            REMARKABLE_DARKEST),
+                                            color::BLACK),
                _ => return,
             };
             framebuffer.partial_refresh(
@@ -226,7 +226,7 @@ fn on_touch_rustlogo(app: &mut appctx::ApplicationContext,
         1140,
         format!("{0}", new_press_count),
         65,
-        REMARKABLE_DARKEST
+        color::BLACK
     );
     framebuffer.partial_refresh(&rect, PartialRefreshMode::Wait,
                                 waveform, display_temp::TEMP_USE_MAX,

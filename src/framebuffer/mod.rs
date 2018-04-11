@@ -8,9 +8,9 @@ pub trait FramebufferIO {
     /// Writes an arbitrary length frame into the framebuffer
     fn write_frame(&mut self, frame: &[u8]);
     /// Writes a single pixel at `(y, x)` with value `v`
-    fn write_pixel(&mut self, y: usize, x: usize, v: u8);
+    fn write_pixel(&mut self, y: usize, x: usize, v: common::color);
     /// Reads the value of the pixel at `(y, x)`
-    fn read_pixel(&mut self, y: usize, x: usize) -> u8;
+    fn read_pixel(&mut self, y: usize, x: usize) -> common::color;
     /// Reads the value at offset `ofst` from the mmapp'ed framebuffer region
     fn read_offset(&mut self, ofst: isize) -> u8;
 }
@@ -19,15 +19,15 @@ use image;
 pub mod draw;
 pub trait FramebufferDraw {
     /// Draws `img` at y=top, x=left coordinates with 1:1 scaling
-    fn draw_image(&mut self, img: &image::DynamicImage, top: usize, left: usize) -> common::mxcfb_rect;
+    fn draw_grayscale_image(&mut self, img: &image::DynamicImage, top: usize, left: usize) -> common::mxcfb_rect;
     /// Draws a straight line
-    fn draw_line(&mut self, y0: i32, x0: i32, y1: i32, x1: i32, width: usize, color: u8) -> common::mxcfb_rect;
+    fn draw_line(&mut self, y0: i32, x0: i32, y1: i32, x1: i32, width: usize, v: common::color) -> common::mxcfb_rect;
     /// Draws a circle using Bresenham circle algorithm
-    fn draw_circle(&mut self, y: usize, x: usize, rad: usize, color: u8) -> common::mxcfb_rect;
+    fn draw_circle(&mut self, y: usize, x: usize, rad: usize, c: common::color) -> common::mxcfb_rect;
     /// Fills a circle
-    fn fill_circle(&mut self, y: usize, x: usize, rad: usize, color: u8) -> common::mxcfb_rect;
+    fn fill_circle(&mut self, y: usize, x: usize, rad: usize, c: common::color) -> common::mxcfb_rect;
     /// Draws a bezier curve begining at `startpt`, with control point `ctrlpt`, ending at `endpt` with `color`
-    fn draw_bezier(&mut self, startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32), color: u8) -> common::mxcfb_rect;
+    fn draw_bezier(&mut self, startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32), c: common::color) -> common::mxcfb_rect;
     /// Draws `text` at `(y, x)` with `color` using `scale`
     fn draw_text(
         &mut self,
@@ -35,10 +35,10 @@ pub trait FramebufferDraw {
         x: usize,
         text: String,
         size: usize,
-        color: u8,
+        col: common::color
     ) -> common::mxcfb_rect;
     /// Fills rectangle of `height` and `width` at `(y, x)`
-    fn fill_rect(&mut self, y: usize, x: usize, height: usize, width: usize, color: u8);
+    fn fill_rect(&mut self, y: usize, x: usize, height: usize, width: usize, c: common::color);
     /// Clears the framebuffer however does not perform a refresh
     fn clear(&mut self);
 }

@@ -147,7 +147,7 @@ impl<'a> ApplicationContext<'a> {
         refresh: UIConstraintRefresh,
     ) -> mxcfb_rect {
         let framebuffer = self.get_framebuffer_ref();
-        let draw_area: mxcfb_rect = framebuffer.draw_text(y, x, text, scale, REMARKABLE_DARKEST);
+        let draw_area: mxcfb_rect = framebuffer.draw_text(y, x, text, scale, color::BLACK);
         let marker = match refresh {
             UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer.partial_refresh(
                 &draw_area,
@@ -174,7 +174,7 @@ impl<'a> ApplicationContext<'a> {
                          refresh: UIConstraintRefresh,
     ) -> mxcfb_rect {
         let framebuffer = self.get_framebuffer_ref();
-        let draw_area = framebuffer.draw_image(&img, y, x);
+        let draw_area = framebuffer.draw_grayscale_image(&img, y, x);
         let marker = match refresh {
             UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer.partial_refresh(
                 &draw_area,

@@ -11,7 +11,7 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         }
     }
 
-    fn write_pixel(&mut self, y: usize, x: usize, v: u8) {
+    fn write_pixel(&mut self, y: usize, x: usize, v: framebuffer::common::color) {
         let w = self.var_screen_info.xres as usize;
         let h = self.var_screen_info.yres as usize;
         if y >= h || x >= w {
@@ -22,28 +22,30 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         let curr_index = (y * line_length + x * bytespp) as isize;
 
         let begin = self.frame.data() as *mut u8;
+        let components = v.as_native();
         unsafe {
-            // TODO: Fix this packing scheme to be more flexible
-            //  red:   0xF800F800
-            //  green: 0x07E007E0
-            //  blue:  0x001F001F
-            *(begin.offset(curr_index)) = v;
-            *(begin.offset(curr_index + 1)) = v;
-            *(begin.offset(curr_index + 2)) = v;
-            *(begin.offset(curr_index + 3)) = v;
+            *(begin.offset(curr_index)) = components[0];
+            *(begin.offset(curr_index + 1)) = components[1];
+            *(begin.offset(curr_index + 2)) = components[2];
+            *(begin.offset(curr_index + 3)) = components[3];
         }
     }
 
-    fn read_pixel(&mut self, y: usize, x: usize) -> u8 {
+    fn read_pixel(&mut self, y: usize, x: usize) -> framebuffer::common::color {
         let w = self.var_screen_info.xres as usize;
         let h = self.var_screen_info.yres as usize;
         if y >= h || x >= w {
-            return 0;
+            error!("Attempting to read pixel out of range. Returning a white pixel.");
+            return framebuffer::common::color::WHITE;
         }
         let line_length = self.fix_screen_info.line_length as usize;
         let bytespp = (self.var_screen_info.bits_per_pixel / 8) as usize;
         let curr_index = y * line_length + x * bytespp;
-        return self.read_offset(curr_index as isize);
+
+        framebuffer::common::color::NATIVE_COMPONENTS(self.read_offset(curr_index as isize),
+                                                      self.read_offset(curr_index as isize + 1),
+                                                      self.read_offset(curr_index as isize + 2),
+                                                      self.read_offset(curr_index as isize + 3))
     }
 
     fn read_offset(&mut self, ofst: isize) -> u8 {

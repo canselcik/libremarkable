@@ -81,7 +81,7 @@ pub fn lua_draw_text(y: hlua::AnyLuaValue, x: hlua::AnyLuaValue, text: hlua::Any
                                               nx as usize,
                                               stext,
                                               nsize as usize,
-                                              ncolor as u8);
+                                              color::GRAY(ncolor as u8));
         },
         _ => {},
     };
@@ -92,7 +92,9 @@ pub fn lua_set_pixel(y: hlua::AnyLuaValue, x: hlua::AnyLuaValue, color: hlua::An
     match (y, x, color) {
         (hlua::AnyLuaValue::LuaNumber(ny),
          hlua::AnyLuaValue::LuaNumber(nx),
-         hlua::AnyLuaValue::LuaNumber(ncolor)) => framebuffer.write_pixel(ny as usize, nx as usize, ncolor as u8),
+         hlua::AnyLuaValue::LuaNumber(ncolor)) => {
+            framebuffer.write_pixel(ny as usize, nx as usize, color::GRAY(ncolor as u8))
+        },
         _ => {},
     };
 }

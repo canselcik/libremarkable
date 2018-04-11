@@ -40,19 +40,43 @@ pub const FBIOPUTCMAP: NativeWidthType = 0x4605;
 pub const FBIOPAN_DISPLAY: NativeWidthType = 0x4606;
 pub const FBIO_CURSOR: NativeWidthType = 0x4608;
 
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum color {
+    BLACK,
+    RED,
+    GREEN,
+    BLUE,
+    WHITE,
+    NATIVE_COMPONENTS(u8, u8, u8, u8),
+    RGB(u8, u8, u8),
 
-/// Further experimentation is needed here but here is the gist of it:
-///
-///    red     : offset = 11,  length =5,      msb_right = 0
-///    green   : offset = 5,   length =6,      msb_right = 0
-///    blue    : offset = 0,   length =5,      msb_right = 0
-///
-/// TO_REMARKABLE_COLOR(r, g, b) = ((r << 11) | (g << 5) | b)
-pub const REMARKABLE_DARKEST: u8 = 0x00;
-pub const REMARKABLE_BRIGHTEST: u8 = 0xFF;
+    /// 0-255 -- 0 will yield black and 255 will yield white
+    GRAY(u8),
+}
 
-enum color {
-    DARKEST
+impl color {
+    pub fn as_native(&self) -> [u8; 4] {
+        // No need to over-optimize here and return a reference because 4 x u8 (1byte) = 4bytes
+        match self {
+            &color::BLACK => [0x00, 0x00, 0x00, 0x00],
+            &color::RED => [0xF8, 0x00, 0xF8, 0x00],
+            &color::GREEN => [0x07, 0xE0, 0x07, 0xE0],
+            &color::BLUE => [0x00, 0x1F, 0x00, 0x1F],
+            &color::WHITE => [0xFF, 0xFF, 0xFF, 0xFF],
+            &color::GRAY(level) => [level, level, level, level],
+            &color::NATIVE_COMPONENTS(c1, c2, c3, c4) => [c1, c2, c3, c4],
+            &color::RGB(r, _g, _b) => {
+                // Further experimentation is needed here but here is the gist of it:
+                //
+                //    red     : offset = 11,  length =5,      msb_right = 0
+                //    green   : offset = 5,   length =6,      msb_right = 0
+                //    blue    : offset = 0,   length =5,      msb_right = 0
+                //
+                // TODO: RGB conversion ~ TO_REMARKABLE_COLOR(r, g, b) = ((r << 11) | (g << 5) | b)
+                color::GRAY(r).as_native()
+            }
+        }
+    }
 }
 
 ///

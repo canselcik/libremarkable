@@ -8,7 +8,7 @@ use framebuffer::common;
 use framebuffer::FramebufferRefresh;
 use framebuffer::refresh::PartialRefreshMode;
 use framebuffer::FramebufferDraw;
-use framebuffer::common::{mxcfb_rect, REMARKABLE_BRIGHTEST};
+use framebuffer::common::{mxcfb_rect, color};
 
 use appctx;
 
@@ -93,7 +93,7 @@ impl UIElementWrapper {
                                       rect.left as usize,
                                       rect.height as usize,
                                       rect.width as usize,
-                                      REMARKABLE_BRIGHTEST);
+                                      color::WHITE);
 
                 // We have filled the old_filled_rect, now we need to also refresh that but if
                 // only if it isn't at the same spot. Otherwise we will be refreshing it for no

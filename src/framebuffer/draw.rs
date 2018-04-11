@@ -44,9 +44,10 @@ fn sample_bezier(startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32)) -> 
 }
 
 impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
-    fn draw_image(&mut self, img: &DynamicImage, top: usize, left: usize) -> mxcfb_rect {
+    fn draw_grayscale_image(&mut self, img: &DynamicImage, top: usize, left: usize) -> mxcfb_rect {
         for (x, y, pixel) in img.to_luma().enumerate_pixels() {
-            self.write_pixel(top + y as usize, left + x as usize, pixel.data[0]);
+            self.write_pixel(top + y as usize, left + x as usize,
+                             color::GRAY(pixel.data[0]));
         }
         return mxcfb_rect {
             top: top as u32,
@@ -56,7 +57,7 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         };
     }
 
-    fn draw_line(&mut self, y0: i32, x0: i32, y1: i32, x1: i32, width: usize, color: u8) -> mxcfb_rect {
+    fn draw_line(&mut self, y0: i32, x0: i32, y1: i32, x1: i32, width: usize, v: color) -> mxcfb_rect {
         // Create local variables for moving start point
         let mut x0 = x0;
         let mut y0 = y0;
@@ -77,8 +78,8 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         loop {
             // Set pixel
             match width {
-                1 => self.write_pixel(y0 as usize, x0 as usize, color),
-                _ => self.fill_rect((y0 - (width / 2) as i32) as usize, (x0 - (width / 2) as i32) as usize, width, width, color),
+                1 => self.write_pixel(y0 as usize, x0 as usize, v),
+                _ => self.fill_rect((y0 - (width / 2) as i32) as usize, (x0 - (width / 2) as i32) as usize, width, width, v),
             }
 
             max_y = max!(max_y, y0);
@@ -111,9 +112,9 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         };
     }
 
-    fn draw_circle(&mut self, y: usize, x: usize, rad: usize, color: u8) -> mxcfb_rect {
+    fn draw_circle(&mut self, y: usize, x: usize, rad: usize, v: color) -> mxcfb_rect {
         for (x, y) in line_drawing::BresenhamCircle::new(x as i32, y as i32, rad as i32) {
-            self.write_pixel(y as usize, x as usize, color);
+            self.write_pixel(y as usize, x as usize, v);
         }
         return mxcfb_rect {
             top: y as u32 - rad as u32,
@@ -123,10 +124,10 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         };
     }
 
-    fn fill_circle(&mut self, y: usize, x: usize, rad: usize, color: u8) -> mxcfb_rect {
+    fn fill_circle(&mut self, y: usize, x: usize, rad: usize, v: color) -> mxcfb_rect {
         for current in { 1..rad + 1 } {
             for (x, y) in line_drawing::BresenhamCircle::new(x as i32, y as i32, current as i32) {
-                self.write_pixel(y as usize, x as usize, color);
+                self.write_pixel(y as usize, x as usize, v);
             }
         }
         return mxcfb_rect {
@@ -137,7 +138,7 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         };
     }
 
-    fn draw_bezier(&mut self, startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32), color: u8) -> mxcfb_rect {
+    fn draw_bezier(&mut self, startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32), v: color) -> mxcfb_rect {
         let mut upperleft: (usize, usize) = (startpt.0 as usize, startpt.1 as usize);
         let mut lowerright: (usize, usize) = (endpt.0 as usize, endpt.1 as usize);
         for pt in sample_bezier(startpt, ctrlpt, endpt) {
@@ -146,7 +147,7 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
             upperleft.0 = min!(upperleft.0, approx.0);
             lowerright.1 = max!(lowerright.1, approx.1);
             lowerright.0 = max!(lowerright.0, approx.0);
-            self.write_pixel(approx.1, approx.0, color);
+            self.write_pixel(approx.1, approx.0, v);
         }
         return mxcfb_rect {
             top: upperleft.1 as u32,
@@ -162,7 +163,7 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         x: usize,
         text: String,
         size: usize,
-        color: u8,
+        col: color
     ) -> mxcfb_rect {
         let scale = Scale {
             x: size as f32,
@@ -178,6 +179,12 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         let mut max_y = y;
         let mut min_x = x;
         let mut max_x = x;
+
+        let components = col.as_native();
+        let c1 = (255 - components[0]) as f32;
+        let c2 = (255 - components[1]) as f32;
+        let c3 = (255 - components[2]) as f32;
+        let c4 = (255 - components[3]) as f32;
 
         // Loop through the glyphs in the text, positing each one on a line
         for glyph in dfont.layout(&text, scale, start) {
@@ -200,15 +207,13 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
                     min_x = bbmin_x;
                 }
                 glyph.draw(|x, y, v| {
-                    /* TODO: We have a small issue with color interpolation here allowing only
-                             black text to be displayed. However this is only due to the code below,
-                             not an inherent limitation.
-                     */
-                    self.write_pixel(
-                        (y + bounding_box.min.y as u32) as usize,
-                        (x + bounding_box.min.x as u32) as usize,
-                        !((v * !color as f32) as u8),
-                    )
+                    let mult = (1.0 - v).min(1.0);
+                    self.write_pixel((y + bounding_box.min.y as u32) as usize,
+                                     (x + bounding_box.min.x as u32) as usize,
+                                     color::NATIVE_COMPONENTS((c1 * mult) as u8,
+                                                                 (c2 * mult) as u8,
+                                                                 (c3 * mult) as u8,
+                                                                 (c4 * mult) as u8))
                 });
             }
         }
@@ -221,10 +226,10 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         };
     }
 
-    fn fill_rect(&mut self, y: usize, x: usize, height: usize, width: usize, color: u8) {
+    fn fill_rect(&mut self, y: usize, x: usize, height: usize, width: usize, c: color) {
         for ypos in y..y + height {
             for xpos in x..x + width {
-                self.write_pixel(ypos, xpos, color);
+                self.write_pixel(ypos, xpos, c);
             }
         }
     }
