@@ -27,12 +27,14 @@ pub enum PartialRefreshMode {
 }
 
 impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
-    fn full_refresh(&mut self,
-                    waveform_mode: common::waveform_mode,
-                    temperature: common::display_temp,
-                    dither_mode: common::dither_mode,
-                    quant_bit: i32,
-                    wait_completion: bool) -> u32 {
+    fn full_refresh(
+        &mut self,
+        waveform_mode: common::waveform_mode,
+        temperature: common::display_temp,
+        dither_mode: common::dither_mode,
+        quant_bit: i32,
+        wait_completion: bool,
+    ) -> u32 {
         let screen = common::mxcfb_rect {
             top: 0,
             left: 0,
@@ -63,9 +65,12 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
                 collision_test: 0,
             };
             unsafe {
-                if libc::ioctl(self.device.as_raw_fd(),
-                               common::MXCFB_WAIT_FOR_UPDATE_COMPLETE,
-                               &mut markerdata) < 0 {
+                if libc::ioctl(
+                    self.device.as_raw_fd(),
+                    common::MXCFB_WAIT_FOR_UPDATE_COMPLETE,
+                    &mut markerdata,
+                ) < 0
+                {
                     warn!("WAIT_FOR_UPDATE_COMPLETE failed after a full_refresh(..)");
                 }
             }
@@ -85,8 +90,9 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
         let mut update_region = region.clone();
 
         // No accounting for this, out of bounds, entirely ignored
-        if update_region.left >= common::DISPLAYWIDTH as u32 ||
-            update_region.top >= common::DISPLAYHEIGHT as u32 {
+        if update_region.left >= common::DISPLAYWIDTH as u32
+            || update_region.top >= common::DISPLAYHEIGHT as u32
+        {
             return 0;
         }
 
@@ -133,14 +139,17 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
                     collision_test: 0,
                 };
                 unsafe {
-                    if libc::ioctl(self.device.as_raw_fd(),
-                                   common::MXCFB_WAIT_FOR_UPDATE_COMPLETE,
-                                   &mut markerdata) < 0 {
+                    if libc::ioctl(
+                        self.device.as_raw_fd(),
+                        common::MXCFB_WAIT_FOR_UPDATE_COMPLETE,
+                        &mut markerdata,
+                    ) < 0
+                    {
                         warn!("WAIT_FOR_UPDATE_COMPLETE failed after a partial_refresh(..)");
                     }
                 }
                 markerdata.collision_test
-            },
+            }
             PartialRefreshMode::Async => whole.update_marker,
         }
     }
@@ -151,9 +160,12 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
             collision_test: 0,
         };
         unsafe {
-            if libc::ioctl(self.device.as_raw_fd(),
-                           common::MXCFB_WAIT_FOR_UPDATE_COMPLETE,
-                           &mut markerdata) < 0 {
+            if libc::ioctl(
+                self.device.as_raw_fd(),
+                common::MXCFB_WAIT_FOR_UPDATE_COMPLETE,
+                &mut markerdata,
+            ) < 0
+            {
                 warn!("WAIT_FOR_UPDATE_COMPLETE failed");
             }
         };

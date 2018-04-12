@@ -23,8 +23,6 @@ impl ::std::default::Default for ioctl_intercept_event {
     }
 }
 
-
-
 #[derive(Debug)]
 #[repr(C)]
 pub struct mxcfb_update_marker_data {
@@ -37,7 +35,6 @@ impl ::std::default::Default for mxcfb_update_marker_data {
         unsafe { ::std::mem::zeroed() }
     }
 }
-
 
 #[derive(Debug)]
 #[repr(C)]

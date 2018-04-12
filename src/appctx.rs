@@ -18,14 +18,12 @@ use rb::RbConsumer;
 use framebuffer::common::*;
 
 use ui_extensions::luaext;
-use ui_extensions::element::{UIElementWrapper,
-                             UIConstraintRefresh,
-                             ActiveRegionFunction,
-                             ActiveRegionHandler};
+use ui_extensions::element::{ActiveRegionFunction, ActiveRegionHandler, UIConstraintRefresh,
+                             UIElementWrapper};
 use hlua;
 use hlua::Lua;
 
-use aabb_quadtree::{QuadTree, geom, ItemId};
+use aabb_quadtree::{geom, ItemId, QuadTree};
 
 use framebuffer::core;
 use framebuffer::refresh::PartialRefreshMode;
@@ -57,7 +55,9 @@ pub struct ApplicationContext<'a> {
 impl<'a> ApplicationContext<'a> {
     pub fn get_framebuffer_ref(&mut self) -> &'static mut core::Framebuffer<'static> {
         unsafe {
-            std::mem::transmute::<_, &'static mut core::Framebuffer<'static>>(self.framebuffer.deref_mut())
+            std::mem::transmute::<_, &'static mut core::Framebuffer<'static>>(
+                self.framebuffer.deref_mut(),
+            )
         }
     }
 
@@ -65,42 +65,42 @@ impl<'a> ApplicationContext<'a> {
     /// just like the Framebuffer will have a static lifetime. We are doing this
     /// so that we can have the event handlers call into the ApplicationContext.
     pub fn upgrade_ref(&mut self) -> &'static mut ApplicationContext<'static> {
-        unsafe {
-            std::mem::transmute(self)
-        }
+        unsafe { std::mem::transmute(self) }
     }
 
     pub fn get_lua_ref(&mut self) -> &'a mut Lua<'static> {
-        unsafe {
-            std::mem::transmute::<_, &'a mut Lua<'static>>(self.lua.get())
-        }
+        unsafe { std::mem::transmute::<_, &'a mut Lua<'static>>(self.lua.get()) }
     }
 
     pub fn get_dimensions(self) -> (u32, u32) {
         (self.yres, self.xres)
     }
 
-    pub fn new(on_button: fn(&mut ApplicationContext, GPIOEvent),
-               on_wacom: fn(&mut ApplicationContext, WacomEvent),
-               on_touch: fn(&mut ApplicationContext, MultitouchEvent),
+    pub fn new(
+        on_button: fn(&mut ApplicationContext, GPIOEvent),
+        on_wacom: fn(&mut ApplicationContext, WacomEvent),
+        on_touch: fn(&mut ApplicationContext, MultitouchEvent),
     ) -> ApplicationContext<'static> {
         let framebuffer = Box::new(core::Framebuffer::new("/dev/fb0"));
         let yres = framebuffer.var_screen_info.yres;
         let xres = framebuffer.var_screen_info.xres;
         let mut res = ApplicationContext {
             framebuffer,
-            xres, yres,
+            xres,
+            yres,
             running: AtomicBool::new(false),
             lua: UnsafeCell::new(Lua::new()),
             on_button,
             on_wacom,
             on_touch,
             ui_elements: HashMap::new(),
-            active_regions: QuadTree::default(geom::Rect::from_points(&geom::Point { x: 0.0, y: 0.0 },
-                                                                           &geom::Point {
-                                                                               x: xres as f32,
-                                                                               y: yres as f32
-                                                                           })),
+            active_regions: QuadTree::default(geom::Rect::from_points(
+                &geom::Point { x: 0.0, y: 0.0 },
+                &geom::Point {
+                    x: xres as f32,
+                    y: yres as f32,
+                },
+            )),
         };
         let lua = res.get_lua_ref();
 
@@ -109,9 +109,7 @@ impl<'a> ApplicationContext<'a> {
 
         // Reluctantly resort to using a static global to associate the lua context with the
         // one and only framebuffer that's going to be used
-        unsafe {
-            luaext::G_FB = res.framebuffer.deref_mut() as *mut core::Framebuffer
-        };
+        unsafe { luaext::G_FB = res.framebuffer.deref_mut() as *mut core::Framebuffer };
 
         let mut nms = lua.empty_array("fb");
         // Clears and refreshes the entire screen
@@ -134,7 +132,7 @@ impl<'a> ApplicationContext<'a> {
         let lua = self.get_lua_ref();
         match lua.execute::<hlua::AnyLuaValue>(&code) {
             Err(e) => warn!("Error in Lua Context: {:?}", e),
-            Ok(_) => {},
+            Ok(_) => {}
         };
     }
 
@@ -150,47 +148,54 @@ impl<'a> ApplicationContext<'a> {
         let framebuffer = self.get_framebuffer_ref();
         let draw_area: mxcfb_rect = framebuffer.draw_text(y, x, text, scale, c);
         let marker = match refresh {
-            UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer.partial_refresh(
-                &draw_area,
-                PartialRefreshMode::Async,
-                waveform_mode::WAVEFORM_MODE_GC16_FAST,
-                display_temp::TEMP_USE_REMARKABLE_DRAW,
-                dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                0,
-            ),
+            UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer
+                .partial_refresh(
+                    &draw_area,
+                    PartialRefreshMode::Async,
+                    waveform_mode::WAVEFORM_MODE_GC16_FAST,
+                    display_temp::TEMP_USE_REMARKABLE_DRAW,
+                    dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                    0,
+                ),
             _ => return draw_area,
         };
 
         match refresh {
-            UIConstraintRefresh::RefreshAndWait => { framebuffer.wait_refresh_complete(marker); },
-            _ => {},
+            UIConstraintRefresh::RefreshAndWait => {
+                framebuffer.wait_refresh_complete(marker);
+            }
+            _ => {}
         };
         return draw_area;
     }
 
-    pub fn display_image(&mut self,
-                         img: &image::DynamicImage,
-                         y: usize,
-                         x: usize,
-                         refresh: UIConstraintRefresh,
+    pub fn display_image(
+        &mut self,
+        img: &image::DynamicImage,
+        y: usize,
+        x: usize,
+        refresh: UIConstraintRefresh,
     ) -> mxcfb_rect {
         let framebuffer = self.get_framebuffer_ref();
         let draw_area = framebuffer.draw_grayscale_image(&img, y, x);
         let marker = match refresh {
-            UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer.partial_refresh(
-                &draw_area,
-                PartialRefreshMode::Async,
-                waveform_mode::WAVEFORM_MODE_GC16_FAST,
-                display_temp::TEMP_USE_REMARKABLE_DRAW,
-                dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                0,
-            ),
+            UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer
+                .partial_refresh(
+                    &draw_area,
+                    PartialRefreshMode::Async,
+                    waveform_mode::WAVEFORM_MODE_GC16_FAST,
+                    display_temp::TEMP_USE_REMARKABLE_DRAW,
+                    dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                    0,
+                ),
             _ => return draw_area,
         };
 
         match refresh {
-            UIConstraintRefresh::RefreshAndWait => { framebuffer.wait_refresh_complete(marker); },
-            _ => {},
+            UIConstraintRefresh::RefreshAndWait => {
+                framebuffer.wait_refresh_complete(marker);
+            }
+            _ => {}
         };
         return draw_area;
     }
@@ -201,7 +206,7 @@ impl<'a> ApplicationContext<'a> {
             false => {
                 self.ui_elements.insert(name.to_owned(), element);
                 true
-            },
+            }
         }
     }
 
@@ -219,7 +224,10 @@ impl<'a> ApplicationContext<'a> {
                     l.onclick
                 };
                 let handler = match h {
-                    Some(handler) => Some(ActiveRegionHandler { handler, element: Arc::clone(element) }),
+                    Some(handler) => Some(ActiveRegionHandler {
+                        handler,
+                        element: Arc::clone(element),
+                    }),
                     _ => None,
                 };
                 element.write().unwrap().draw(appref, handler);
@@ -229,10 +237,10 @@ impl<'a> ApplicationContext<'a> {
     }
 
     pub fn draw_elements(&mut self) {
-        let mut elems : std::vec::Vec<Arc<RwLock<UIElementWrapper>>> =
-            self.ui_elements.iter()
-                            .map(|(_key, value)| Arc::clone(&value))
-                            .collect();
+        let mut elems: std::vec::Vec<Arc<RwLock<UIElementWrapper>>> = self.ui_elements
+            .iter()
+            .map(|(_key, value)| Arc::clone(&value))
+            .collect();
 
         for element in &mut elems {
             let h = {
@@ -240,7 +248,10 @@ impl<'a> ApplicationContext<'a> {
                 l.onclick
             };
             let handler = match h {
-                Some(handler) => Some(ActiveRegionHandler { handler, element: element.clone() }),
+                Some(handler) => Some(ActiveRegionHandler {
+                    handler,
+                    element: element.clone(),
+                }),
                 _ => None,
             };
             element.write().unwrap().draw(self, handler);
@@ -255,16 +266,26 @@ impl<'a> ApplicationContext<'a> {
         framebuffer.clear();
 
         match deep {
-            false => framebuffer.partial_refresh(&mxcfb_rect { top: 0, left: 0, height: yres, width: xres },
-                                                 PartialRefreshMode::Wait,
-                                                 waveform_mode::WAVEFORM_MODE_GC16_FAST,
-                                                 display_temp::TEMP_USE_AMBIENT,
-                                                 dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                                                 0),
-            true => framebuffer.full_refresh(waveform_mode::WAVEFORM_MODE_INIT,
-                                             display_temp::TEMP_USE_AMBIENT,
-                                             dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                                             0, true),
+            false => framebuffer.partial_refresh(
+                &mxcfb_rect {
+                    top: 0,
+                    left: 0,
+                    height: yres,
+                    width: xres,
+                },
+                PartialRefreshMode::Wait,
+                waveform_mode::WAVEFORM_MODE_GC16_FAST,
+                display_temp::TEMP_USE_AMBIENT,
+                dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                0,
+            ),
+            true => framebuffer.full_refresh(
+                waveform_mode::WAVEFORM_MODE_INIT,
+                display_temp::TEMP_USE_AMBIENT,
+                dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                0,
+                true,
+            ),
         };
     }
 
@@ -275,11 +296,12 @@ impl<'a> ApplicationContext<'a> {
     pub fn dispatch_events(&mut self, ringbuffer_size: usize, event_read_chunksize: usize) {
         let appref = self.upgrade_ref();
 
-        let ringbuffer= rb::SpscRb::new(ringbuffer_size);
+        let ringbuffer = rb::SpscRb::new(ringbuffer_size);
         let producer = ringbuffer.producer();
-        let unified =  unsafe {
-            std::mem::transmute::<input::UnifiedInputHandler, input::UnifiedInputHandler<'static>>
-             (input::UnifiedInputHandler::new(&producer))
+        let unified = unsafe {
+            std::mem::transmute::<input::UnifiedInputHandler, input::UnifiedInputHandler<'static>>(
+                input::UnifiedInputHandler::new(&producer),
+            )
         };
 
         let w: &mut input::UnifiedInputHandler = unsafe { std::mem::transmute_copy(&&unified) };
@@ -297,37 +319,42 @@ impl<'a> ApplicationContext<'a> {
 
         self.running.store(true, Ordering::Relaxed);
 
-        let mut last_active_region_gesture_id : i32 = -1;
+        let mut last_active_region_gesture_id: i32 = -1;
         while self.running.load(Ordering::Relaxed) {
             let _read = consumer.read_blocking(&mut buf).unwrap();
             for &ev in buf.iter() {
                 match ev {
-                    InputEvent::GPIO{event} => {
+                    InputEvent::GPIO { event } => {
                         (self.on_button)(appref, event);
-                    },
-                    InputEvent::MultitouchEvent{event} => {
+                    }
+                    InputEvent::MultitouchEvent { event } => {
                         // Check for and notify clickable active regions for multitouch events
                         match event {
-                            MultitouchEvent::Touch {gesture_seq, finger_id: _, y, x} => {
+                            MultitouchEvent::Touch {
+                                gesture_seq,
+                                finger_id: _,
+                                y,
+                                x,
+                            } => {
                                 let gseq = gesture_seq as i32;
                                 if last_active_region_gesture_id != gseq {
                                     match self.find_active_region(y, x) {
                                         Some((h, _)) => {
                                             (h.handler)(appref, Arc::clone(&h.element));
                                         }
-                                        _ => {},
+                                        _ => {}
                                     };
                                     last_active_region_gesture_id = gseq;
                                 }
-                            },
-                            _ => {},
+                            }
+                            _ => {}
                         };
                         (self.on_touch)(appref, event);
-                    },
-                    InputEvent::WacomEvent{event} => {
+                    }
+                    InputEvent::WacomEvent { event } => {
                         (self.on_wacom)(appref, event);
-                    },
-                    _ => {},
+                    }
+                    _ => {}
                 }
             }
         }
@@ -339,42 +366,53 @@ impl<'a> ApplicationContext<'a> {
     }
 
     pub fn find_active_region(&self, y: u16, x: u16) -> Option<(&ActiveRegionHandler, ItemId)> {
-        let matches = self.active_regions.query(
-            geom::Rect::centered_with_radius(&geom::Point{ y: y as f32, x: x as f32 }, 2.0)
-        );
+        let matches = self.active_regions.query(geom::Rect::centered_with_radius(
+            &geom::Point {
+                y: y as f32,
+                x: x as f32,
+            },
+            2.0,
+        ));
         match matches.len() {
             0 => None,
             _ => {
                 let res = matches.first().unwrap();
                 Some((res.0, res.2.clone()))
-            },
+            }
         }
     }
 
     pub fn remove_active_region_at_point(&mut self, y: u16, x: u16) -> bool {
         match self.find_active_region(y, x) {
-            Some((_, itemid)) => {
-                match self.active_regions.remove(itemid) {
-                    Some(_) => true,
-                    _ => false,
-                }
-            }
+            Some((_, itemid)) => match self.active_regions.remove(itemid) {
+                Some(_) => true,
+                _ => false,
+            },
             _ => false,
         }
-
     }
 
-    pub fn create_active_region(&mut self, y: u16, x: u16, height: u16, width: u16,
-                                handler: ActiveRegionFunction,
-                                element: Arc<RwLock<UIElementWrapper>>) {
+    pub fn create_active_region(
+        &mut self,
+        y: u16,
+        x: u16,
+        height: u16,
+        width: u16,
+        handler: ActiveRegionFunction,
+        element: Arc<RwLock<UIElementWrapper>>,
+    ) {
         self.active_regions.insert_with_box(
-            ActiveRegionHandler {
-                handler, element,
-            },
+            ActiveRegionHandler { handler, element },
             geom::Rect::from_points(
-                &geom::Point { x: x as f32, y: y as f32 },
-                &geom::Point { x: (x+width) as f32, y: (y+height) as f32 }
-            )
+                &geom::Point {
+                    x: x as f32,
+                    y: y as f32,
+                },
+                &geom::Point {
+                    x: (x + width) as f32,
+                    y: (y + height) as f32,
+                },
+            ),
         );
     }
 }

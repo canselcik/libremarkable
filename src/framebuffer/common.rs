@@ -27,10 +27,8 @@ pub const MXCFB_SEND_UPDATE: NativeWidthType =
     iow!(b'F', 0x2E, std::mem::size_of::<mxcfb_update_data>()) as NativeWidthType;
 pub const MXCFB_WAIT_FOR_UPDATE_COMPLETE: NativeWidthType =
     iowr!(b'F', 0x2F, std::mem::size_of::<mxcfb_update_marker_data>()) as NativeWidthType;
-pub const MXCFB_DISABLE_EPDC_ACCESS: NativeWidthType =
-    io!(b'F', 0x35) as NativeWidthType;
-pub const MXCFB_ENABLE_EPDC_ACCESS: NativeWidthType =
-    io!(b'F', 0x36) as NativeWidthType;
+pub const MXCFB_DISABLE_EPDC_ACCESS: NativeWidthType = io!(b'F', 0x35) as NativeWidthType;
+pub const MXCFB_ENABLE_EPDC_ACCESS: NativeWidthType = io!(b'F', 0x36) as NativeWidthType;
 
 pub const FBIOPUT_VSCREENINFO: NativeWidthType = 0x4601;
 pub const FBIOGET_VSCREENINFO: NativeWidthType = 0x4600;
@@ -85,7 +83,6 @@ impl ::std::default::Default for color {
     }
 }
 
-
 ///
 /// If no processing required, skip update processing
 ///  No processing means:
@@ -113,8 +110,8 @@ pub const EPDC_FLAG_GROUP_UPDATE: u32 = 0x0400;
 
 /// xochitl tends to draw with these but there are many more
 pub const DRAWING_QUANT_BIT: i32 = 0x76143b24;
-pub const DRAWING_QUANT_BIT_2 : i32 = 0x75e7bb24;
-pub const DRAWING_QUANT_BIT_3 : i32 = 0x53ed4;
+pub const DRAWING_QUANT_BIT_2: i32 = 0x75e7bb24;
+pub const DRAWING_QUANT_BIT_3: i32 = 0x53ed4;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 #[repr(C)]
@@ -144,8 +141,8 @@ impl mxcfb_rect {
 
 impl mxcfb_rect {
     pub fn contains_point(&mut self, y: u32, x: u32) -> bool {
-        x >= self.left && x < (self.left + self.width) &&
-            y >= self.top && x < (self.top + self.height)
+        x >= self.left && x < (self.left + self.width) && y >= self.top
+            && x < (self.top + self.height)
     }
 }
 

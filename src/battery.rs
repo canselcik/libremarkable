@@ -7,11 +7,9 @@ fn read_attribute(attr: &str) -> Result<String, String> {
     let mut data = String::new();
     match File::open(format!("/sys/class/power_supply/bq27441/{0}", attr)) {
         Err(e) => Err(format!("Unable to open file: {0}", e)),
-        Ok(ref mut f) => {
-            match f.read_to_string(&mut data).unwrap_or(0) {
-                0 => Err("Unable to read file".to_owned()),
-                _ => Ok(data.trim().to_owned()),
-            }
+        Ok(ref mut f) => match f.read_to_string(&mut data).unwrap_or(0) {
+            0 => Err("Unable to read file".to_owned()),
+            _ => Ok(data.trim().to_owned()),
         },
     }
 }
@@ -22,7 +20,9 @@ pub fn percentage() -> Result<i32, String> {
     let curr = read_attribute("capacity")?;
     match curr.parse::<i32>() {
         Ok(r) => Ok(r),
-        Err(_) => Err("Unable to parse the contents of 'capacity' during a battery query".to_owned()),
+        Err(_) => {
+            Err("Unable to parse the contents of 'capacity' during a battery query".to_owned())
+        }
     }
 }
 
@@ -38,7 +38,9 @@ pub fn charge_full() -> Result<i32, String> {
     let curr = read_attribute("charge_full")?;
     match curr.parse::<i32>() {
         Ok(r) => Ok(r),
-        Err(_) => Err("Unable to parse the contents of 'charge_full' during a battery query".to_owned()),
+        Err(_) => {
+            Err("Unable to parse the contents of 'charge_full' during a battery query".to_owned())
+        }
     }
 }
 
@@ -48,7 +50,10 @@ pub fn charge_full_design() -> Result<i32, String> {
     let curr = read_attribute("charge_full_design")?;
     match curr.parse::<i32>() {
         Ok(r) => Ok(r),
-        Err(_) => Err("Unable to parse the contents of 'charge_full_design' during a battery query".to_owned()),
+        Err(_) => Err(
+            "Unable to parse the contents of 'charge_full_design' during a battery query"
+                .to_owned(),
+        ),
     }
 }
 
@@ -58,7 +63,9 @@ pub fn charge() -> Result<i32, String> {
     let curr = read_attribute("charge_now")?;
     match curr.parse::<i32>() {
         Ok(r) => Ok(r),
-        Err(_) => Err("Unable to parse the contents of 'charge_now' during a battery query".to_owned()),
+        Err(_) => {
+            Err("Unable to parse the contents of 'charge_now' during a battery query".to_owned())
+        }
     }
 }
 
@@ -74,7 +81,9 @@ pub fn temperature() -> Result<i32, String> {
     let curr = read_attribute("temp")?;
     match curr.parse::<i32>() {
         Ok(r) => Ok(r),
-        Err(_) => Err("Unable to parse the contents of 'current_now' during a battery query".to_owned()),
+        Err(_) => {
+            Err("Unable to parse the contents of 'current_now' during a battery query".to_owned())
+        }
     }
 }
 
@@ -84,7 +93,9 @@ pub fn voltage() -> Result<i32, String> {
     let curr = read_attribute("voltage_now")?;
     match curr.parse::<i32>() {
         Ok(r) => Ok(r),
-        Err(_) => Err("Unable to parse the contents of 'voltage_now' during a battery query".to_owned()),
+        Err(_) => {
+            Err("Unable to parse the contents of 'voltage_now' during a battery query".to_owned())
+        }
     }
 }
 
@@ -94,6 +105,8 @@ pub fn current() -> Result<i32, String> {
     let curr = read_attribute("current_now")?;
     match curr.parse::<i32>() {
         Ok(r) => Ok(r),
-        Err(_) => Err("Unable to parse the contents of 'current_now' during a battery query".to_owned()),
+        Err(_) => {
+            Err("Unable to parse the contents of 'current_now' during a battery query".to_owned())
+        }
     }
 }

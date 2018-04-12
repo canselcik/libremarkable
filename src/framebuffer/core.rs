@@ -7,17 +7,13 @@ use mmap::MemoryMap;
 
 use std::os::unix::io::AsRawFd;
 use std::sync::atomic::AtomicU32;
-use std::fs::{OpenOptions, File};
+use std::fs::{File, OpenOptions};
 
 use framebuffer;
-use framebuffer::screeninfo::{FixScreeninfo,VarScreeninfo};
-use framebuffer::common::{FBIOGET_FSCREENINFO,
-                          FBIOGET_VSCREENINFO,
-                          FBIOPUT_VSCREENINFO,
-                          MXCFB_SET_AUTO_UPDATE_MODE,
-                          MXCFB_SET_UPDATE_SCHEME,
-                          MXCFB_ENABLE_EPDC_ACCESS,
-                          MXCFB_DISABLE_EPDC_ACCESS};
+use framebuffer::screeninfo::{FixScreeninfo, VarScreeninfo};
+use framebuffer::common::{FBIOGET_FSCREENINFO, FBIOGET_VSCREENINFO, FBIOPUT_VSCREENINFO,
+                          MXCFB_DISABLE_EPDC_ACCESS, MXCFB_ENABLE_EPDC_ACCESS,
+                          MXCFB_SET_AUTO_UPDATE_MODE, MXCFB_SET_UPDATE_SCHEME};
 
 use rusttype::{Font, FontCollection};
 

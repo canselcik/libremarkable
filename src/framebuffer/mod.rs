@@ -2,7 +2,6 @@ pub mod common;
 pub mod mxcfb;
 pub mod screeninfo;
 
-
 pub mod io;
 pub trait FramebufferIO {
     /// Writes an arbitrary length frame into the framebuffer
@@ -19,15 +18,46 @@ use image;
 pub mod draw;
 pub trait FramebufferDraw {
     /// Draws `img` at y=top, x=left coordinates with 1:1 scaling
-    fn draw_grayscale_image(&mut self, img: &image::DynamicImage, top: usize, left: usize) -> common::mxcfb_rect;
+    fn draw_grayscale_image(
+        &mut self,
+        img: &image::DynamicImage,
+        top: usize,
+        left: usize,
+    ) -> common::mxcfb_rect;
     /// Draws a straight line
-    fn draw_line(&mut self, y0: i32, x0: i32, y1: i32, x1: i32, width: usize, v: common::color) -> common::mxcfb_rect;
+    fn draw_line(
+        &mut self,
+        y0: i32,
+        x0: i32,
+        y1: i32,
+        x1: i32,
+        width: usize,
+        v: common::color,
+    ) -> common::mxcfb_rect;
     /// Draws a circle using Bresenham circle algorithm
-    fn draw_circle(&mut self, y: usize, x: usize, rad: usize, c: common::color) -> common::mxcfb_rect;
+    fn draw_circle(
+        &mut self,
+        y: usize,
+        x: usize,
+        rad: usize,
+        c: common::color,
+    ) -> common::mxcfb_rect;
     /// Fills a circle
-    fn fill_circle(&mut self, y: usize, x: usize, rad: usize, c: common::color) -> common::mxcfb_rect;
+    fn fill_circle(
+        &mut self,
+        y: usize,
+        x: usize,
+        rad: usize,
+        c: common::color,
+    ) -> common::mxcfb_rect;
     /// Draws a bezier curve begining at `startpt`, with control point `ctrlpt`, ending at `endpt` with `color`
-    fn draw_bezier(&mut self, startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32), c: common::color) -> common::mxcfb_rect;
+    fn draw_bezier(
+        &mut self,
+        startpt: (f32, f32),
+        ctrlpt: (f32, f32),
+        endpt: (f32, f32),
+        c: common::color,
+    ) -> common::mxcfb_rect;
     /// Draws `text` at `(y, x)` with `color` using `scale`
     fn draw_text(
         &mut self,
@@ -35,7 +65,7 @@ pub trait FramebufferDraw {
         x: usize,
         text: String,
         size: usize,
-        col: common::color
+        col: common::color,
     ) -> common::mxcfb_rect;
     /// Fills rectangle of `height` and `width` at `(y, x)`
     fn fill_rect(&mut self, y: usize, x: usize, height: usize, width: usize, c: common::color);
@@ -64,17 +94,18 @@ pub trait FramebufferBase<'a> {
     fn put_var_screeninfo(&mut self) -> bool;
 }
 
-
 pub mod refresh;
 pub trait FramebufferRefresh {
     /// Refreshes the entire screen with the provided parameters. If `wait_completion` is
     /// set to true, doesn't return before the refresh has been completed. Returns the marker.
-    fn full_refresh(&mut self,
-                    waveform_mode: common::waveform_mode,
-                    temperature: common::display_temp,
-                    dither_mode: common::dither_mode,
-                    quant_bit: i32,
-                    wait_completion: bool) -> u32;
+    fn full_refresh(
+        &mut self,
+        waveform_mode: common::waveform_mode,
+        temperature: common::display_temp,
+        dither_mode: common::dither_mode,
+        quant_bit: i32,
+        wait_completion: bool,
+    ) -> u32;
 
     /// Refreshes the given `region` with the provided parameters. If `mode` is `DryRun` or
     /// `Wait`, this function won't return before the `DryRun`'s collision_test or
@@ -109,7 +140,6 @@ pub trait FramebufferRefresh {
         dither_mode: common::dither_mode,
         quant_bit: i32,
     ) -> u32;
-
 
     /// Takes a marker returned by `partial_refresh` and blocks until that
     /// refresh has been reflected on the display.

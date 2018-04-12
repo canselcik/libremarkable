@@ -5,7 +5,10 @@ use input;
 
 /// Non-blocking function that will open the provided path and wait for more data with epoll.
 /// `handler` must implement the `EvDevHandler` trait so that it can get callbacks `on_init` and `on_event`.
-pub fn start_evdev<H: input::EvdevHandler + Send>(path: String, handler: &'static mut H) -> std::thread::JoinHandle<()> {
+pub fn start_evdev<H: input::EvdevHandler + Send>(
+    path: String,
+    handler: &'static mut H,
+) -> std::thread::JoinHandle<()> {
     std::thread::spawn(move || {
         let mut dev = evdev::Device::open(&path).unwrap();
         let devn = unsafe {
@@ -15,7 +18,8 @@ pub fn start_evdev<H: input::EvdevHandler + Send>(path: String, handler: &'stati
 
         let mut v = vec![
             epoll::Event {
-                events: (epoll::Events::EPOLLET | epoll::Events::EPOLLIN | epoll::Events::EPOLLPRI).bits(),
+                events: (epoll::Events::EPOLLET | epoll::Events::EPOLLIN | epoll::Events::EPOLLPRI)
+                    .bits(),
                 data: 0,
             },
         ];

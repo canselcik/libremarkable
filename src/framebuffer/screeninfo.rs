@@ -42,7 +42,6 @@ pub struct VarScreeninfo {
     pub reserved: [u32; 4],
 }
 
-
 /// Struct as defined in /usr/include/linux/fb.h Note: type is a keyword in Rust and therefore has been
 /// changed to fb_type.
 #[repr(C)]
@@ -137,7 +136,6 @@ pub struct fb_var_screeninfo {
 
     /// (OBSOLETE) see fb_info.flags
     pub accel_flags: u32,
-
 
     /// Timing: All values in pixclocks, except pixclock (of course)
     /// pixel clock in ps (pico seconds)

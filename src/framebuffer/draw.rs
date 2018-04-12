@@ -2,7 +2,7 @@ use std;
 
 use libc;
 use image::DynamicImage;
-use rusttype::{Scale, point};
+use rusttype::{point, Scale};
 use line_drawing;
 use image::GenericImage;
 
@@ -46,8 +46,11 @@ fn sample_bezier(startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32)) -> 
 impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
     fn draw_grayscale_image(&mut self, img: &DynamicImage, top: usize, left: usize) -> mxcfb_rect {
         for (x, y, pixel) in img.to_luma().enumerate_pixels() {
-            self.write_pixel(top + y as usize, left + x as usize,
-                             color::GRAY(pixel.data[0]));
+            self.write_pixel(
+                top + y as usize,
+                left + x as usize,
+                color::GRAY(pixel.data[0]),
+            );
         }
         return mxcfb_rect {
             top: top as u32,
@@ -57,7 +60,15 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         };
     }
 
-    fn draw_line(&mut self, y0: i32, x0: i32, y1: i32, x1: i32, width: usize, v: color) -> mxcfb_rect {
+    fn draw_line(
+        &mut self,
+        y0: i32,
+        x0: i32,
+        y1: i32,
+        x1: i32,
+        width: usize,
+        v: color,
+    ) -> mxcfb_rect {
         // Create local variables for moving start point
         let mut x0 = x0;
         let mut y0 = y0;
@@ -79,7 +90,13 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
             // Set pixel
             match width {
                 1 => self.write_pixel(y0 as usize, x0 as usize, v),
-                _ => self.fill_rect((y0 - (width / 2) as i32) as usize, (x0 - (width / 2) as i32) as usize, width, width, v),
+                _ => self.fill_rect(
+                    (y0 - (width / 2) as i32) as usize,
+                    (x0 - (width / 2) as i32) as usize,
+                    width,
+                    width,
+                    v,
+                ),
             }
 
             max_y = max!(max_y, y0);
@@ -88,7 +105,9 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
             max_x = max!(max_x, x0);
 
             // Check end condition
-            if x0 == x1 && y0 == y1 { break; };
+            if x0 == x1 && y0 == y1 {
+                break;
+            };
 
             // Store old error
             err2 = 2 * err;
@@ -138,7 +157,13 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         };
     }
 
-    fn draw_bezier(&mut self, startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32), v: color) -> mxcfb_rect {
+    fn draw_bezier(
+        &mut self,
+        startpt: (f32, f32),
+        ctrlpt: (f32, f32),
+        endpt: (f32, f32),
+        v: color,
+    ) -> mxcfb_rect {
         let mut upperleft: (usize, usize) = (startpt.0 as usize, startpt.1 as usize);
         let mut lowerright: (usize, usize) = (endpt.0 as usize, endpt.1 as usize);
         for pt in sample_bezier(startpt, ctrlpt, endpt) {
@@ -163,7 +188,7 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         x: usize,
         text: String,
         size: usize,
-        col: color
+        col: color,
     ) -> mxcfb_rect {
         let scale = Scale {
             x: size as f32,
@@ -208,12 +233,16 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
                 }
                 glyph.draw(|x, y, v| {
                     let mult = (1.0 - v).min(1.0);
-                    self.write_pixel((y + bounding_box.min.y as u32) as usize,
-                                     (x + bounding_box.min.x as u32) as usize,
-                                     color::NATIVE_COMPONENTS((c1 * mult) as u8,
-                                                                 (c2 * mult) as u8,
-                                                                 (c3 * mult) as u8,
-                                                                 (c4 * mult) as u8))
+                    self.write_pixel(
+                        (y + bounding_box.min.y as u32) as usize,
+                        (x + bounding_box.min.x as u32) as usize,
+                        color::NATIVE_COMPONENTS(
+                            (c1 * mult) as u8,
+                            (c2 * mult) as u8,
+                            (c3 * mult) as u8,
+                            (c4 * mult) as u8,
+                        ),
+                    )
                 });
             }
         }
@@ -238,7 +267,11 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         let h = self.var_screen_info.yres as usize;
         let line_length = self.fix_screen_info.line_length as usize;
         unsafe {
-            libc::memset(self.frame.data() as *mut libc::c_void, std::i32::MAX, line_length * h);
+            libc::memset(
+                self.frame.data() as *mut libc::c_void,
+                std::i32::MAX,
+                line_length * h,
+            );
         }
     }
 }

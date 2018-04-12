@@ -1,7 +1,6 @@
-use input::{UnifiedInputHandler,InputEvent};
+use input::{InputEvent, UnifiedInputHandler};
 use evdev::raw::input_event;
 use rb::RbProducer;
-
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum PhysicalButton {
@@ -23,9 +22,7 @@ pub struct GPIOState {
 
 impl GPIOState {
     pub fn new() -> GPIOState {
-        GPIOState {
-            states: [false; 3],
-        }
+        GPIOState { states: [false; 3] }
     }
 }
 
@@ -60,18 +57,19 @@ impl<'a> UnifiedInputHandler<'a> {
                 }
 
                 let event = match new_state {
-                    true => GPIOEvent::Press {
-                        button: p,
-                    },
-                    false => GPIOEvent::Unpress {
-                        button: p,
-                    },
+                    true => GPIOEvent::Press { button: p },
+                    false => GPIOEvent::Unpress { button: p },
                 };
-                self.ringbuffer.write(&[InputEvent::GPIO { event }]).unwrap();
+                self.ringbuffer
+                    .write(&[InputEvent::GPIO { event }])
+                    .unwrap();
             }
             _ => {
                 // Shouldn't happen
-                error!("Unknown event on PhysicalButtonHandler (type: {0})", ev._type);
+                error!(
+                    "Unknown event on PhysicalButtonHandler (type: {0})",
+                    ev._type
+                );
             }
         }
     }

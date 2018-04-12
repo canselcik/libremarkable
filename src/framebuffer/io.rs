@@ -42,10 +42,12 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         let bytespp = (self.var_screen_info.bits_per_pixel / 8) as usize;
         let curr_index = y * line_length + x * bytespp;
 
-        framebuffer::common::color::NATIVE_COMPONENTS(self.read_offset(curr_index as isize),
-                                                      self.read_offset(curr_index as isize + 1),
-                                                      self.read_offset(curr_index as isize + 2),
-                                                      self.read_offset(curr_index as isize + 3))
+        framebuffer::common::color::NATIVE_COMPONENTS(
+            self.read_offset(curr_index as isize),
+            self.read_offset(curr_index as isize + 1),
+            self.read_offset(curr_index as isize + 2),
+            self.read_offset(curr_index as isize + 3),
+        )
     }
 
     fn read_offset(&mut self, ofst: isize) -> u8 {
