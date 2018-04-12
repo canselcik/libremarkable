@@ -76,7 +76,8 @@ fn handle_send_update(event: ioctl_intercept_event) {
     println!("===WAVEFORM DISTRIBUTION===");
     add_entry(&mut distwave, unsafe { (*update_data).waveform_mode });
     println!("===DITHERING DISTRIBUTION===");
-    add_entry(&mut distdither, unsafe { (*update_data).dither_mode } as u32);
+    add_entry(&mut distdither, unsafe { (*update_data).dither_mode }
+        as u32);
     println!("===TEMP DISTRIBUTION===");
     add_entry(&mut disttemp, unsafe { (*update_data).temp } as u32);
     println!("===QUANT DISTRIBUTION===");
@@ -85,14 +86,20 @@ fn handle_send_update(event: ioctl_intercept_event) {
     add_entry(&mut distflags, unsafe { (*update_data).flags } as u32);
 
     unsafe {
-        println!("mxcfb_send_update(fd: {0}, updateData: {1:#?}) = {2}", event.fd, *update_data, event.ret);
+        println!(
+            "mxcfb_send_update(fd: {0}, updateData: {1:#?}) = {2}",
+            event.fd, *update_data, event.ret
+        );
     }
 }
 
 fn handle_wait_update_complete(event: ioctl_intercept_event) {
     unsafe {
         let update_data = event.p1 as *mut mxcfb_update_marker_data;
-        println!("mxcfb_wait_update_complete(fd: {0}, updateData: {1:#?}) = {2}", event.fd, *update_data, event.ret);
+        println!(
+            "mxcfb_wait_update_complete(fd: {0}, updateData: {1:#?}) = {2}",
+            event.fd, *update_data, event.ret
+        );
     }
 }
 

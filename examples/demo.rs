@@ -1,51 +1,66 @@
 #[macro_use]
 extern crate lazy_static;
 
+extern crate env_logger;
 #[macro_use]
 extern crate log;
-extern crate env_logger;
 
-extern crate libremarkable;
 extern crate chrono;
+extern crate libremarkable;
 
-use chrono::{Local, DateTime};
+use chrono::{DateTime, Local};
 
 use std::time::Duration;
 use std::thread::sleep;
 use std::sync::Mutex;
-use std::sync::{RwLock, Arc};
+use std::sync::{Arc, RwLock};
 
 use libremarkable::image;
 use libremarkable::framebuffer::common::*;
 
 use libremarkable::appctx;
-use libremarkable::ui_extensions::element::{UIElement,UIElementWrapper,UIConstraintRefresh};
+use libremarkable::ui_extensions::element::{UIConstraintRefresh, UIElement, UIElementWrapper};
 
 use libremarkable::framebuffer::refresh::PartialRefreshMode;
 use libremarkable::framebuffer::{FramebufferDraw, FramebufferRefresh};
 
-use libremarkable::input::{wacom,gpio,multitouch};
+use libremarkable::input::{gpio, multitouch, wacom};
 use libremarkable::battery;
 
 use std::process::Command;
 
-
-fn loop_update_topbar(app: &mut appctx::ApplicationContext,
-                      time_label: Arc<RwLock<UIElementWrapper>>,
-                      battery_label: Arc<RwLock<UIElementWrapper>>,
-                      millis: u64) {
+fn loop_update_topbar(
+    app: &mut appctx::ApplicationContext,
+    time_label: Arc<RwLock<UIElementWrapper>>,
+    battery_label: Arc<RwLock<UIElementWrapper>>,
+    millis: u64,
+) {
     loop {
         // Get the datetime
         let dt: DateTime<Local> = Local::now();
 
-        if let UIElement::Text { ref mut text, scale: _, foreground: _ } = time_label.write().unwrap().inner {
+        if let UIElement::Text {
+            ref mut text,
+            scale: _,
+            foreground: _,
+        } = time_label.write().unwrap().inner
+        {
             *text = format!("{}", dt.format("%F %r"));
         }
-        if let UIElement::Text { ref mut text, scale: _, foreground: _ } = battery_label.write().unwrap().inner {
-            *text = format!("{0:<128}",
-                            format!("{0} — {1}%",
-                                battery::human_readable_charging_status().unwrap(),
-                                battery::percentage().unwrap()));
+        if let UIElement::Text {
+            ref mut text,
+            scale: _,
+            foreground: _,
+        } = battery_label.write().unwrap().inner
+        {
+            *text = format!(
+                "{0:<128}",
+                format!(
+                    "{0} — {1}%",
+                    battery::human_readable_charging_status().unwrap(),
+                    battery::percentage().unwrap()
+                )
+            );
         }
         app.draw_element("time");
         app.draw_element("battery");
@@ -58,12 +73,22 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
     let framebuffer = app.get_framebuffer_ref();
     let mut prev = PREV_WACOM.lock().unwrap();
     match input {
-        wacom::WacomEvent::Draw { y, x, pressure, tilt_x: _, tilt_y: _ } => {
+        wacom::WacomEvent::Draw {
+            y,
+            x,
+            pressure,
+            tilt_x: _,
+            tilt_y: _,
+        } => {
             let mut rad = 3.8 * (pressure as f32) / 4096.;
             if prev.0 >= 0 && prev.1 >= 0 {
                 let rect = framebuffer.draw_line(
-                    y as i32, x as i32,prev.0, prev.1,
-                    rad.ceil() as usize,color::BLACK
+                    y as i32,
+                    x as i32,
+                    prev.0,
+                    prev.1,
+                    rad.ceil() as usize,
+                    color::BLACK,
                 );
                 framebuffer.partial_refresh(
                     &rect,
@@ -82,7 +107,13 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
                 *prev = (-1, -1);
             }
         }
-        wacom::WacomEvent::Hover { y: _, x: _, distance, tilt_x: _, tilt_y: _ } => {
+        wacom::WacomEvent::Hover {
+            y: _,
+            x: _,
+            distance,
+            tilt_x: _,
+            tilt_y: _,
+        } => {
             // If the pen is hovering, don't record its coordinates as the origin of the next line
             if distance > 1 {
                 *prev = (-1, -1);
@@ -96,18 +127,22 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
 fn on_touch_handler(app: &mut appctx::ApplicationContext, input: multitouch::MultitouchEvent) {
     let framebuffer = app.get_framebuffer_ref();
     match input {
-        multitouch::MultitouchEvent::Touch { gesture_seq, finger_id, y, x } => {
+        multitouch::MultitouchEvent::Touch {
+            gesture_seq,
+            finger_id,
+            y,
+            x,
+        } => {
             let action = { DRAW_ON_TOUCH.lock().unwrap().clone() };
             let rect = match action {
-               1 => framebuffer.draw_bezier((x as f32, y as f32),
-                                            ((x + 155) as f32, (y + 14) as f32),
-                                            ((x + 200) as f32, (y + 200) as f32),
-                                            color::BLACK),
-               2 => framebuffer.draw_circle(y as usize,
-                                            x as usize,
-                                            20,
-                                            color::BLACK),
-               _ => return,
+                1 => framebuffer.draw_bezier(
+                    (x as f32, y as f32),
+                    ((x + 155) as f32, (y + 14) as f32),
+                    ((x + 200) as f32, (y + 200) as f32),
+                    color::BLACK,
+                ),
+                2 => framebuffer.draw_circle(y as usize, x as usize, 20, color::BLACK),
+                _ => return,
             };
             framebuffer.partial_refresh(
                 &rect,
@@ -138,14 +173,14 @@ fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent)
         gpio::PhysicalButton::LEFT => {
             let mut data = DRAW_ON_TOUCH.lock().unwrap();
             *data = (*data + 1) % 3;
-            return
-        },
+            return;
+        }
         gpio::PhysicalButton::MIDDLE => {
             app.clear(true);
-        },
+        }
         gpio::PhysicalButton::RIGHT => {
             app.clear(false);
-        },
+        }
     };
 
     app.draw_elements();
@@ -195,17 +230,22 @@ fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent)
     //    );
 }
 
-fn on_touch_exit_to_xochitl(_app: &mut appctx::ApplicationContext,
-                            _element: Arc<RwLock<UIElementWrapper>>) {
+fn on_touch_exit_to_xochitl(
+    _app: &mut appctx::ApplicationContext,
+    _element: Arc<RwLock<UIElementWrapper>>,
+) {
     Command::new("systemctl")
         .arg("start")
         .arg("xochitl")
-        .spawn().unwrap();
+        .spawn()
+        .unwrap();
     std::process::exit(0);
 }
 
-fn on_touch_rustlogo(app: &mut appctx::ApplicationContext,
-                     _element: Arc<RwLock<UIElementWrapper>>) {
+fn on_touch_rustlogo(
+    app: &mut appctx::ApplicationContext,
+    _element: Arc<RwLock<UIElementWrapper>>,
+) {
     let framebuffer = app.get_framebuffer_ref();
     let new_press_count = {
         let mut v = G_COUNTER.lock().unwrap();
@@ -221,16 +261,15 @@ fn on_touch_rustlogo(app: &mut appctx::ApplicationContext,
         waveform_mode::WAVEFORM_MODE_GC16_FAST
     };
 
-    let rect = framebuffer.draw_text(
-        240,
-        1140,
-        format!("{0}", new_press_count),
-        65,
-        color::BLACK
+    let rect = framebuffer.draw_text(240, 1140, format!("{0}", new_press_count), 65, color::BLACK);
+    framebuffer.partial_refresh(
+        &rect,
+        PartialRefreshMode::Wait,
+        waveform,
+        display_temp::TEMP_USE_MAX,
+        dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+        0,
     );
-    framebuffer.partial_refresh(&rect, PartialRefreshMode::Wait,
-                                waveform, display_temp::TEMP_USE_MAX,
-                                dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH, 0);
 }
 
 lazy_static! {
@@ -247,139 +286,181 @@ fn main() {
 
     // Takes callback functions as arguments
     // They are called with the event and the &mut framebuffer
-    let mut app : appctx::ApplicationContext = appctx::ApplicationContext::new(
-        on_button_press,
-        on_wacom_input,
-        on_touch_handler,
-    );
+    let mut app: appctx::ApplicationContext =
+        appctx::ApplicationContext::new(on_button_press, on_wacom_input, on_touch_handler);
 
     // Alternatively we could have called `app.execute_lua("fb.clear()")`
     app.clear(true);
 
     // A rudimentary way to declare a scene and layout
-    app.add_element("logo", Arc::new(RwLock::new(UIElementWrapper {
-        y: 10, x: 900,
-        refresh: UIConstraintRefresh::Refresh,
+    app.add_element(
+        "logo",
+        Arc::new(RwLock::new(UIElementWrapper {
+            y: 10,
+            x: 900,
+            refresh: UIConstraintRefresh::Refresh,
 
-        /* We could have alternatively done this:
+            /* We could have alternatively done this:
 
            // Create a clickable region for multitouch input and associate it with its handler fn
            app.create_active_region(10, 900, 240, 480, on_touch_rustlogo);
         */
-        onclick: Some(on_touch_rustlogo),
-        inner: UIElement::Image {
-            img: image::load_from_memory(include_bytes!("../assets/rustlang.bmp")).unwrap(),
-        },
-        ..Default::default()
-    })));
-    app.add_element("exitToXochitl", Arc::new(RwLock::new(UIElementWrapper {
-        y: 55, x: 20,
-        refresh: UIConstraintRefresh::Refresh,
+            onclick: Some(on_touch_rustlogo),
+            inner: UIElement::Image {
+                img: image::load_from_memory(include_bytes!("../assets/rustlang.bmp")).unwrap(),
+            },
+            ..Default::default()
+        })),
+    );
+    app.add_element(
+        "exitToXochitl",
+        Arc::new(RwLock::new(UIElementWrapper {
+            y: 55,
+            x: 20,
+            refresh: UIConstraintRefresh::Refresh,
 
-        onclick: Some(on_touch_exit_to_xochitl),
-        inner: UIElement::Text {
-            foreground: color::BLACK,
-            text: "[TOUCH TO EXIT TO REMARKABLE]".to_owned(),
-            scale: 35,
-        },
-        ..Default::default()
-    })));
-    app.add_element("availAt", Arc::new(RwLock::new(UIElementWrapper {
-        y: 650, x: 100,
-        refresh: UIConstraintRefresh::Refresh,
-        inner: UIElement::Text {
-            foreground: color::BLACK,
-            text: "Available at:".to_owned(),
-            scale: 70,
-        },
-        ..Default::default()
-    })));
-    app.add_element("github", Arc::new(RwLock::new(UIElementWrapper {
-        y: 720, x: 100,
-        refresh: UIConstraintRefresh::Refresh,
-        inner: UIElement::Text {
-            foreground: color::BLACK,
-            text: "github.com/canselcik/libremarkable".to_owned(),
-            scale: 60,
-        },
-        ..Default::default()
-    })));
-    app.add_element("l1", Arc::new(RwLock::new(UIElementWrapper {
-        y: 350, x: 100,
-        refresh: UIConstraintRefresh::Refresh,
-        inner: UIElement::Text {
-            foreground: color::BLACK,
-            text: "Low Latency eInk Display Partial Refresh API".to_owned(),
-            scale: 45,
-        },
-        ..Default::default()
-    })));
-    app.add_element("l3", Arc::new(RwLock::new(UIElementWrapper {
-        y: 400, x: 100,
-        refresh: UIConstraintRefresh::Refresh,
-        inner: UIElement::Text {
-            foreground: color::BLACK,
-            text: "Capacitive Multitouch Input Support".to_owned(),
-            scale: 45,
-        },
-        ..Default::default()
-    })));
-    app.add_element("l2", Arc::new(RwLock::new(UIElementWrapper {
-        y: 450, x: 100,
-        refresh: UIConstraintRefresh::Refresh,
-        inner: UIElement::Text {
-            foreground: color::BLACK,
-            text: "Physical Button Support".to_owned(),
-            scale: 45,
-        },
-        ..Default::default()
-    })));
-    app.add_element("l4", Arc::new(RwLock::new(UIElementWrapper {
-        y: 500, x: 100,
-        refresh: UIConstraintRefresh::Refresh,
-        inner: UIElement::Text {
-            foreground: color::BLACK,
-            text: "Wacom Digitizer Support".to_owned(),
-            scale: 45,
-        },
-        ..Default::default()
-    })));
+            onclick: Some(on_touch_exit_to_xochitl),
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "[TOUCH TO EXIT TO REMARKABLE]".to_owned(),
+                scale: 35,
+            },
+            ..Default::default()
+        })),
+    );
+    app.add_element(
+        "availAt",
+        Arc::new(RwLock::new(UIElementWrapper {
+            y: 650,
+            x: 100,
+            refresh: UIConstraintRefresh::Refresh,
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "Available at:".to_owned(),
+                scale: 70,
+            },
+            ..Default::default()
+        })),
+    );
+    app.add_element(
+        "github",
+        Arc::new(RwLock::new(UIElementWrapper {
+            y: 720,
+            x: 100,
+            refresh: UIConstraintRefresh::Refresh,
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "github.com/canselcik/libremarkable".to_owned(),
+                scale: 60,
+            },
+            ..Default::default()
+        })),
+    );
+    app.add_element(
+        "l1",
+        Arc::new(RwLock::new(UIElementWrapper {
+            y: 350,
+            x: 100,
+            refresh: UIConstraintRefresh::Refresh,
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "Low Latency eInk Display Partial Refresh API".to_owned(),
+                scale: 45,
+            },
+            ..Default::default()
+        })),
+    );
+    app.add_element(
+        "l3",
+        Arc::new(RwLock::new(UIElementWrapper {
+            y: 400,
+            x: 100,
+            refresh: UIConstraintRefresh::Refresh,
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "Capacitive Multitouch Input Support".to_owned(),
+                scale: 45,
+            },
+            ..Default::default()
+        })),
+    );
+    app.add_element(
+        "l2",
+        Arc::new(RwLock::new(UIElementWrapper {
+            y: 450,
+            x: 100,
+            refresh: UIConstraintRefresh::Refresh,
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "Physical Button Support".to_owned(),
+                scale: 45,
+            },
+            ..Default::default()
+        })),
+    );
+    app.add_element(
+        "l4",
+        Arc::new(RwLock::new(UIElementWrapper {
+            y: 500,
+            x: 100,
+            refresh: UIConstraintRefresh::Refresh,
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "Wacom Digitizer Support".to_owned(),
+                scale: 45,
+            },
+            ..Default::default()
+        })),
+    );
 
-    app.add_element("tooltipLeft", Arc::new(RwLock::new(UIElementWrapper {
-        y: 1850, x: 15,
-        refresh: UIConstraintRefresh::Refresh,
-        inner: UIElement::Text {
-            foreground: color::BLACK,
-            text: "Toggle Touch".to_owned(),
-            scale: 50,
-        },
-        ..Default::default()
-    })));
-    app.add_element("tooltipMiddle", Arc::new(RwLock::new(UIElementWrapper {
-        y: 1850, x: 550,
-        refresh: UIConstraintRefresh::Refresh,
-        inner: UIElement::Text {
-            foreground: color::BLACK,
-            text: "Redraw Layout".to_owned(),
-            scale: 50,
-        },
-        ..Default::default()
-    })));
-    app.add_element("tooltipRight", Arc::new(RwLock::new(UIElementWrapper {
-        y: 1850, x: 1085,
-        refresh: UIConstraintRefresh::Refresh,
-        inner: UIElement::Text {
-            foreground: color::BLACK,
-            text: "Quick Redraw".to_owned(), // maybe quick redraw for the demo or waveform change?
-            scale: 50,
-        },
-        ..Default::default()
-    })));
+    app.add_element(
+        "tooltipLeft",
+        Arc::new(RwLock::new(UIElementWrapper {
+            y: 1850,
+            x: 15,
+            refresh: UIConstraintRefresh::Refresh,
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "Toggle Touch".to_owned(),
+                scale: 50,
+            },
+            ..Default::default()
+        })),
+    );
+    app.add_element(
+        "tooltipMiddle",
+        Arc::new(RwLock::new(UIElementWrapper {
+            y: 1850,
+            x: 550,
+            refresh: UIConstraintRefresh::Refresh,
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "Redraw Layout".to_owned(),
+                scale: 50,
+            },
+            ..Default::default()
+        })),
+    );
+    app.add_element(
+        "tooltipRight",
+        Arc::new(RwLock::new(UIElementWrapper {
+            y: 1850,
+            x: 1085,
+            refresh: UIConstraintRefresh::Refresh,
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "Quick Redraw".to_owned(), // maybe quick redraw for the demo or waveform change?
+                scale: 50,
+            },
+            ..Default::default()
+        })),
+    );
 
     // Create the top bar's time and battery labels. We can mutate these later.
     let dt: DateTime<Local> = Local::now();
     let time_label = Arc::new(RwLock::new(UIElementWrapper {
-        y: 150, x: 100,
+        y: 150,
+        x: 100,
         refresh: UIConstraintRefresh::Refresh,
         inner: UIElement::Text {
             foreground: color::BLACK,
@@ -389,14 +470,19 @@ fn main() {
         ..Default::default()
     }));
     let battery_label = Arc::new(RwLock::new(UIElementWrapper {
-        y: 215, x: 100,
+        y: 215,
+        x: 100,
         refresh: UIConstraintRefresh::Refresh,
         inner: UIElement::Text {
             foreground: color::BLACK,
-            text: format!("{0:<128}",
-                          format!("{0} — {1}%",
-                                  battery::human_readable_charging_status().unwrap(),
-                                  battery::percentage().unwrap())),
+            text: format!(
+                "{0:<128}",
+                format!(
+                    "{0} — {1}%",
+                    battery::human_readable_charging_status().unwrap(),
+                    battery::percentage().unwrap()
+                )
+            ),
             scale: 44,
         },
         ..Default::default()
@@ -413,7 +499,8 @@ fn main() {
         loop_update_topbar(appref, time_label, battery_label, 30 * 1000);
     });
 
-    app.execute_lua(r#"
+    app.execute_lua(
+        r#"
       function draw_box(y, x, height, width, borderpx, bordercolor)
         local maxy = y+height;
         local maxx = x+width;
@@ -439,7 +526,8 @@ fn main() {
 
       -- Update the drawn rect w/ `deep_plot=false` and `wait_for_update_complete=true`
       fb.refresh(top, left, height, width, false, true);
-    "#);
+    "#,
+    );
 
     info!("Init complete. Beginning event dispatch...");
 
