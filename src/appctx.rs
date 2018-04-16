@@ -293,7 +293,8 @@ impl<'a> ApplicationContext<'a> {
         self.running.store(false, Ordering::Relaxed);
     }
 
-    pub fn dispatch_events(&mut self, ringbuffer_size: usize, event_read_chunksize: usize) {
+    pub fn dispatch_events(&mut self, ringbuffer_size: usize, event_read_chunksize: usize,
+                           enable_wacom: bool, enable_multitouch: bool, enable_buttons: bool) {
         let appref = self.upgrade_ref();
 
         let ringbuffer = rb::SpscRb::new(ringbuffer_size);
@@ -304,14 +305,27 @@ impl<'a> ApplicationContext<'a> {
             )
         };
 
-        let w: &mut input::UnifiedInputHandler = unsafe { std::mem::transmute_copy(&&unified) };
-        let wacom_thread = ev::start_evdev("/dev/input/event0".to_owned(), w);
-
-        let t: &mut input::UnifiedInputHandler = unsafe { std::mem::transmute_copy(&&unified) };
-        let touch_thread = ev::start_evdev("/dev/input/event1".to_owned(), t);
-
-        let g: &mut input::UnifiedInputHandler = unsafe { std::mem::transmute_copy(&&unified) };
-        let gpio_thread = ev::start_evdev("/dev/input/event2".to_owned(), g);
+        let wacom_thread = match enable_wacom {
+            false => None,
+            true => {
+                let w: &mut input::UnifiedInputHandler = unsafe { std::mem::transmute_copy(&&unified) };
+                Some(ev::start_evdev("/dev/input/event0".to_owned(), w))
+            },
+        };
+        let touch_thread = match enable_multitouch {
+            false => None,
+            true => {
+                let t: &mut input::UnifiedInputHandler = unsafe { std::mem::transmute_copy(&&unified) };
+                Some(ev::start_evdev("/dev/input/event1".to_owned(), t))
+            },
+        };
+        let gpio_thread = match enable_buttons {
+            false => None,
+            true => {
+                let g: &mut input::UnifiedInputHandler = unsafe { std::mem::transmute_copy(&&unified) };
+                Some(ev::start_evdev("/dev/input/event2".to_owned(), g))
+            },
+        };
 
         // Now we consume the input events;
         let consumer = ringbuffer.consumer();
@@ -360,9 +374,15 @@ impl<'a> ApplicationContext<'a> {
         }
 
         // Wait for all threads to join
-        gpio_thread.join().unwrap();
-        wacom_thread.join().unwrap();
-        touch_thread.join().unwrap();
+        if let Some(w) = wacom_thread {
+            w.join().unwrap();
+        }
+        if let Some(t) = touch_thread {
+            t.join().unwrap();
+        }
+        if let Some(g) = gpio_thread {
+            g.join().unwrap();
+        }
     }
 
     pub fn find_active_region(&self, y: u16, x: u16) -> Option<(&ActiveRegionHandler, ItemId)> {

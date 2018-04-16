@@ -532,6 +532,6 @@ fn main() {
     info!("Init complete. Beginning event dispatch...");
 
     // Blocking call to process events from digitizer + touchscreen + physical buttons
-    app.dispatch_events(8192, 1);
+    app.dispatch_events(8192, 1, true, true, true);
     clock_thread.join().unwrap();
 }
