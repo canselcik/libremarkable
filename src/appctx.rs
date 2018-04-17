@@ -7,7 +7,6 @@ use std::ops::DerefMut;
 use std::collections::HashMap;
 
 use image;
-
 use input;
 use input::ev;
 
@@ -305,21 +304,21 @@ impl<'a> ApplicationContext<'a> {
             )
         };
 
-        let wacom_thread = match enable_wacom {
+        let wacom_ctx = match enable_wacom {
             false => None,
             true => {
                 let w: &mut input::UnifiedInputHandler = unsafe { std::mem::transmute_copy(&&unified) };
                 Some(ev::start_evdev("/dev/input/event0".to_owned(), w))
             },
         };
-        let touch_thread = match enable_multitouch {
+        let touch_ctx = match enable_multitouch {
             false => None,
             true => {
                 let t: &mut input::UnifiedInputHandler = unsafe { std::mem::transmute_copy(&&unified) };
                 Some(ev::start_evdev("/dev/input/event1".to_owned(), t))
             },
         };
-        let gpio_thread = match enable_buttons {
+        let gpio_ctx = match enable_buttons {
             false => None,
             true => {
                 let g: &mut input::UnifiedInputHandler = unsafe { std::mem::transmute_copy(&&unified) };
@@ -374,14 +373,14 @@ impl<'a> ApplicationContext<'a> {
         }
 
         // Wait for all threads to join
-        if let Some(w) = wacom_thread {
-            w.join().unwrap();
+        if let Some(w) = wacom_ctx {
+            w.join();
         }
-        if let Some(t) = touch_thread {
-            t.join().unwrap();
+        if let Some(t) = touch_ctx {
+            t.join();
         }
-        if let Some(g) = gpio_thread {
-            g.join().unwrap();
+        if let Some(g) = gpio_ctx {
+            g.join();
         }
     }
 
