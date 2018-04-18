@@ -392,27 +392,18 @@ impl<'a> ApplicationContext<'a> {
         }
     }
 
-    pub fn dispatch_events(&mut self, enable_wacom: bool, enable_multitouch: bool, enable_buttons: bool) {
+    pub fn dispatch_events(&mut self, activate_wacom: bool, activate_multitouch: bool, activate_buttons: bool) {
         let appref = self.upgrade_ref();
 
-        self.wacom_ctx = match enable_wacom {
-            false => None,
-            true => {
-                Some(ev::start_evdev("/dev/input/event0".to_owned(), &self.input_handler))
-            },
-        };
-        self.touch_ctx = match enable_multitouch {
-            false => None,
-            true => {
-                Some(ev::start_evdev("/dev/input/event1".to_owned(), &self.input_handler))
-            },
-        };
-        self.button_ctx = match enable_buttons {
-            false => None,
-            true => {
-                Some(ev::start_evdev("/dev/input/event2".to_owned(), &self.input_handler))
-            },
-        };
+        if activate_wacom {
+            self.activate_input_device(InputDevice::Wacom);
+        }
+        if activate_multitouch {
+            self.activate_input_device(InputDevice::Multitouch);
+        }
+        if activate_buttons {
+            self.activate_input_device(InputDevice::GPIO);
+        }
 
         // Now we consume the input events
         let consumer = self.input_handler.get_consumer();
