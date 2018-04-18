@@ -332,6 +332,27 @@ impl<'a> ApplicationContext<'a> {
         }
     }
 
+    /// Returns true if the device is now enabled. If it was enabled prior
+    /// to calling this function, this function will return `true`.
+    pub fn activate_input_device(&mut self, t: InputDevice) -> bool {
+        // Return true if already enabled
+        if self.is_input_device_active(t) {
+            return true;
+        }
+
+        let (path, slot) = match t {
+            InputDevice::Wacom => ("/dev/input/event0".to_owned(), &mut self.wacom_ctx),
+            InputDevice::Multitouch => ("/dev/input/event1".to_owned(), &mut self.touch_ctx),
+            InputDevice::GPIO => ("/dev/input/event2".to_owned(), &mut self.button_ctx),
+            _ => return false,
+        };
+
+        // Now we know it isn't active, let's create and spawn
+        // the producer thread
+        slot.get_or_insert(ev::start_evdev(path, &self.input_handler));
+        return true;
+    }
+
     /// Returns true if the given `InputDevice` is active, as in
     /// there is an `EvDevContext` for it and that context has a
     /// currently running `epoll` thread
