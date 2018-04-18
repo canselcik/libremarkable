@@ -19,7 +19,7 @@ pub enum InputDevice {
     Unknown,
 }
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Clone)]
 pub enum InputEvent {
     WacomEvent { event: wacom::WacomEvent },
     MultitouchEvent { event: multitouch::MultitouchEvent },

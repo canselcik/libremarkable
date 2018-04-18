@@ -303,11 +303,20 @@ impl<'a> ApplicationContext<'a> {
     /// Sets an atomic flag to disable event dispatch. Exiting event dispatch loop will cause
     /// dispatch_events(..) function to reach completion.
     pub fn stop(&mut self) {
+        // Deactivate the input devices even though they may not be active.
+        // This will stop the production of the input events.
+        self.deactivate_input_device(InputDevice::Multitouch);
+        self.deactivate_input_device(InputDevice::GPIO);
+        self.deactivate_input_device(InputDevice::Wacom);
+
+        // This will make us stop consuming and dispatching the InputEvents.
         self.running.store(false, Ordering::Relaxed);
     }
 
     /// Returns true if the device is now disabled. If it was disabled prior
     /// to calling this function, this function will return `true`.
+    /// Does not actually block until the device is inactive, only signals
+    /// to exit the epoll loop and clean up
     pub fn deactivate_input_device(&mut self, t: InputDevice) -> bool {
         // Return true if already disabled
         if !self.is_input_device_active(t) {
