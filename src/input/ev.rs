@@ -30,7 +30,7 @@ impl EvDevContext {
         self.running.load(Ordering::Relaxed)
     }
 
-    pub fn stop(&mut self){
+    pub fn stop(&mut self) {
         self.running.store(false, Ordering::Relaxed);
     }
 }

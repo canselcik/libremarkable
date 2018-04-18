@@ -12,6 +12,14 @@ pub mod gpio;
 pub mod multitouch;
 
 #[derive(PartialEq, Copy, Clone)]
+pub enum InputDevice {
+    Wacom,
+    Multitouch,
+    GPIO,
+    Unknown,
+}
+
+#[derive(PartialEq, Copy, Clone)]
 pub enum InputEvent {
     WacomEvent { event: wacom::WacomEvent },
     MultitouchEvent { event: multitouch::MultitouchEvent },

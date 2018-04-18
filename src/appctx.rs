@@ -30,7 +30,7 @@ use framebuffer::FramebufferBase;
 use framebuffer::FramebufferDraw;
 use framebuffer::FramebufferRefresh;
 
-use input::InputEvent;
+use input::{InputEvent, InputDevice};
 use input::wacom::WacomEvent;
 use input::gpio::GPIOEvent;
 use input::multitouch::MultitouchEvent;
@@ -40,15 +40,24 @@ unsafe impl<'a> Sync for ApplicationContext<'a> {}
 
 pub struct ApplicationContext<'a> {
     framebuffer: Box<core::Framebuffer<'a>>,
-    running: AtomicBool,
-    lua: UnsafeCell<Lua<'a>>,
-    on_button: fn(&mut ApplicationContext, GPIOEvent),
-    on_wacom: fn(&mut ApplicationContext, WacomEvent),
-    on_touch: fn(&mut ApplicationContext, MultitouchEvent),
-    active_regions: QuadTree<ActiveRegionHandler>,
-    ui_elements: HashMap<String, Arc<RwLock<UIElementWrapper>>>,
     yres: u32,
     xres: u32,
+
+    running: AtomicBool,
+
+    lua: UnsafeCell<Lua<'a>>,
+
+    button_ctx: Option<ev::EvDevContext>,
+    on_button: fn(&mut ApplicationContext, GPIOEvent),
+
+    wacom_ctx: Option<ev::EvDevContext>,
+    on_wacom: fn(&mut ApplicationContext, WacomEvent),
+
+    touch_ctx: Option<ev::EvDevContext>,
+    on_touch: fn(&mut ApplicationContext, MultitouchEvent),
+
+    active_regions: QuadTree<ActiveRegionHandler>,
+    ui_elements: HashMap<String, Arc<RwLock<UIElementWrapper>>>,
 }
 
 impl<'a> ApplicationContext<'a> {
@@ -84,6 +93,9 @@ impl<'a> ApplicationContext<'a> {
         let yres = framebuffer.var_screen_info.yres;
         let xres = framebuffer.var_screen_info.xres;
         let mut res = ApplicationContext {
+            wacom_ctx: None,
+            button_ctx: None,
+            touch_ctx: None,
             framebuffer,
             xres,
             yres,
@@ -288,8 +300,66 @@ impl<'a> ApplicationContext<'a> {
         };
     }
 
+    /// Sets an atomic flag to disable event dispatch. Exiting event dispatch loop will cause
+    /// dispatch_events(..) function to reach completion.
     pub fn stop(&mut self) {
         self.running.store(false, Ordering::Relaxed);
+    }
+
+    /// Returns true if the device is now disabled. If it was disabled prior
+    /// to calling this function, this function will return `true`.
+    pub fn deactivate_input_device(&mut self, t: InputDevice) -> bool {
+        // Return true if already disabled
+        if !self.is_input_device_active(t) {
+            return true;
+        }
+
+        // Now we know that the device is active, we can move the context out of
+        // the option and stop it.
+        let mut dev = match t {
+            InputDevice::Wacom => self.wacom_ctx.take(),
+            InputDevice::Multitouch => self.touch_ctx.take(),
+            InputDevice::GPIO => self.button_ctx.take(),
+            _ => return false,
+        };
+
+        match dev {
+            None => true,
+            Some(ref mut ctx) => {
+                ctx.stop();
+                true
+            }
+        }
+    }
+
+    /// Returns true if the given `InputDevice` is active, as in
+    /// there is an `EvDevContext` for it and that context has a
+    /// currently running `epoll` thread
+    pub fn is_input_device_active(&self, t: InputDevice) -> bool {
+        match t {
+            InputDevice::Unknown => false,
+            InputDevice::GPIO => {
+                if let Some(ref ctx) = self.button_ctx {
+                    ctx.running()
+                } else {
+                    false
+                }
+            },
+            InputDevice::Multitouch => {
+                if let Some(ref ctx) = self.touch_ctx {
+                    ctx.running()
+                } else {
+                    false
+                }
+            },
+            InputDevice::Wacom => {
+                if let Some(ref ctx) = self.wacom_ctx {
+                    ctx.running()
+                } else {
+                    false
+                }
+            },
+        }
     }
 
     pub fn dispatch_events(&mut self, ringbuffer_size: usize, event_read_chunksize: usize,
@@ -299,26 +369,27 @@ impl<'a> ApplicationContext<'a> {
         let ringbuffer = rb::SpscRb::new(ringbuffer_size);
         let producer = ringbuffer.producer();
         let unified = unsafe {
+            // Recklessly upgrade the lifetime
             std::mem::transmute::<input::UnifiedInputHandler, input::UnifiedInputHandler<'static>>(
                 input::UnifiedInputHandler::new(&producer),
             )
         };
 
-        let wacom_ctx = match enable_wacom {
+        self.wacom_ctx = match enable_wacom {
             false => None,
             true => {
                 let w: &mut input::UnifiedInputHandler = unsafe { std::mem::transmute_copy(&&unified) };
                 Some(ev::start_evdev("/dev/input/event0".to_owned(), w))
             },
         };
-        let touch_ctx = match enable_multitouch {
+        self.touch_ctx = match enable_multitouch {
             false => None,
             true => {
                 let t: &mut input::UnifiedInputHandler = unsafe { std::mem::transmute_copy(&&unified) };
                 Some(ev::start_evdev("/dev/input/event1".to_owned(), t))
             },
         };
-        let gpio_ctx = match enable_buttons {
+        self.button_ctx = match enable_buttons {
             false => None,
             true => {
                 let g: &mut input::UnifiedInputHandler = unsafe { std::mem::transmute_copy(&&unified) };
@@ -373,13 +444,13 @@ impl<'a> ApplicationContext<'a> {
         }
 
         // Wait for all threads to join
-        if let Some(w) = wacom_ctx {
+        if let Some(w) = self.wacom_ctx.take() {
             w.join();
         }
-        if let Some(t) = touch_ctx {
+        if let Some(t) = self.touch_ctx.take() {
             t.join();
         }
-        if let Some(g) = gpio_ctx {
+        if let Some(g) = self.button_ctx.take() {
             g.join();
         }
     }
