@@ -6,8 +6,6 @@ use input::InputEvent;
 
 use evdev::raw::input_event;
 
-use rb::RbProducer;
-
 use framebuffer::common::{DISPLAYHEIGHT, DISPLAYWIDTH, WACOMHEIGHT, WACOMWIDTH};
 
 const WACOM_HSCALAR: f32 = (DISPLAYWIDTH as f32) / (WACOMWIDTH as f32);
@@ -68,7 +66,7 @@ pub enum WacomEvent {
     Unknown,
 }
 
-impl<'a> UnifiedInputHandler<'a> {
+impl UnifiedInputHandler {
     pub fn wacom_handler(&mut self, ev: &input_event) {
         match ev._type {
             0 => { /* sync */ }
@@ -79,9 +77,7 @@ impl<'a> UnifiedInputHandler<'a> {
                         pen: unsafe { std::mem::transmute_copy(&ev.code) },
                         state: ev.value != 0,
                     };
-                    self.ringbuffer
-                        .write(&[InputEvent::WacomEvent { event }])
-                        .unwrap();
+                    self.tx.send(InputEvent::WacomEvent { event }).unwrap();
                 } else {
                     error!(
                         "Unknown key event code for Wacom [type: {0} code: {1} value: {2}]",
@@ -122,9 +118,7 @@ impl<'a> UnifiedInputHandler<'a> {
                                 tilt_y: self.wacom.last_ytilt.load(Ordering::Relaxed),
                             }
                         };
-                        self.ringbuffer
-                            .write(&[InputEvent::WacomEvent { event }])
-                            .unwrap();
+                        self.tx.send(InputEvent::WacomEvent { event }).unwrap();
                     }
                     26 => {
                         // xtilt -9000 to 9000
@@ -152,9 +146,7 @@ impl<'a> UnifiedInputHandler<'a> {
                             tilt_x: self.wacom.last_xtilt.load(Ordering::Relaxed),
                             tilt_y: self.wacom.last_ytilt.load(Ordering::Relaxed),
                         };
-                        self.ringbuffer
-                            .write(&[InputEvent::WacomEvent { event }])
-                            .unwrap();
+                        self.tx.send(InputEvent::WacomEvent { event }).unwrap();
                     }
                     0x0 => {
                         // x and y are inverted due to remarkable

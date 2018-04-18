@@ -34,6 +34,7 @@ impl Default for InputEvent {
 }
 
 use evdev;
+use std;
 
 /// Trait to implement to be dispatched evdev events by the `start_evdev` function
 pub trait EvdevHandler {
@@ -41,29 +42,39 @@ pub trait EvdevHandler {
     fn on_event(&mut self, device: &String, event: evdev::raw::input_event);
 }
 
-unsafe impl<'a> Send for UnifiedInputHandler<'a> {}
-unsafe impl<'a> Sync for UnifiedInputHandler<'a> {}
+unsafe impl Send for UnifiedInputHandler {}
+unsafe impl Sync for UnifiedInputHandler {}
 
-use rb;
-pub struct UnifiedInputHandler<'a> {
+pub struct UnifiedInputHandler {
     pub wacom: wacom::WacomState,
     pub gpio: gpio::GPIOState,
     pub mt: multitouch::MultitouchState,
-    pub ringbuffer: &'a rb::Producer<InputEvent>,
+    pub tx: std::sync::mpsc::Sender<InputEvent>,
+    pub rx: std::sync::mpsc::Receiver<InputEvent>,
 }
 
-impl<'a> UnifiedInputHandler<'a> {
-    pub fn new(ringbuffer: &rb::Producer<InputEvent>) -> UnifiedInputHandler {
-        return UnifiedInputHandler {
+impl UnifiedInputHandler {
+    pub fn new() -> UnifiedInputHandler {
+        let (tx, rx) = std::sync::mpsc::channel();
+        UnifiedInputHandler {
             gpio: gpio::GPIOState::new(),
             wacom: wacom::WacomState::new(),
             mt: multitouch::MultitouchState::new(),
-            ringbuffer,
-        };
+            rx,
+            tx,
+        }
+    }
+
+    pub fn get_producer(&mut self) -> &mut std::sync::mpsc::Sender<InputEvent> {
+        &mut self.tx
+    }
+
+    pub fn get_consumer(&self) -> &std::sync::mpsc::Receiver<InputEvent> {
+        &self.rx
     }
 }
 
-impl<'a> EvdevHandler for UnifiedInputHandler<'a> {
+impl<'a> EvdevHandler for UnifiedInputHandler {
     fn on_init(&mut self, name: String, _device: &mut evdev::Device) {
         info!("'{0}' input device EPOLL initialized", name);
     }

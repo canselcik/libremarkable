@@ -10,10 +10,6 @@ use image;
 use input;
 use input::ev;
 
-use rb;
-use rb::RB;
-use rb::RbConsumer;
-
 use framebuffer::common::*;
 
 use ui_extensions::luaext;
@@ -46,6 +42,8 @@ pub struct ApplicationContext<'a> {
     running: AtomicBool,
 
     lua: UnsafeCell<Lua<'a>>,
+
+    input_handler: input::UnifiedInputHandler,
 
     button_ctx: Option<ev::EvDevContext>,
     on_button: fn(&mut ApplicationContext, GPIOEvent),
@@ -92,6 +90,7 @@ impl<'a> ApplicationContext<'a> {
         let framebuffer = Box::new(core::Framebuffer::new("/dev/fb0"));
         let yres = framebuffer.var_screen_info.yres;
         let xres = framebuffer.var_screen_info.xres;
+
         let mut res = ApplicationContext {
             wacom_ctx: None,
             button_ctx: None,
@@ -101,6 +100,7 @@ impl<'a> ApplicationContext<'a> {
             yres,
             running: AtomicBool::new(false),
             lua: UnsafeCell::new(Lua::new()),
+            input_handler: input::UnifiedInputHandler::new(),
             on_button,
             on_wacom,
             on_touch,
@@ -362,84 +362,66 @@ impl<'a> ApplicationContext<'a> {
         }
     }
 
-    pub fn dispatch_events(&mut self, ringbuffer_size: usize, event_read_chunksize: usize,
-                           enable_wacom: bool, enable_multitouch: bool, enable_buttons: bool) {
+    pub fn dispatch_events(&mut self, enable_wacom: bool, enable_multitouch: bool, enable_buttons: bool) {
         let appref = self.upgrade_ref();
-
-        let ringbuffer = rb::SpscRb::new(ringbuffer_size);
-        let producer = ringbuffer.producer();
-        let unified = unsafe {
-            // Recklessly upgrade the lifetime
-            std::mem::transmute::<input::UnifiedInputHandler, input::UnifiedInputHandler<'static>>(
-                input::UnifiedInputHandler::new(&producer),
-            )
-        };
 
         self.wacom_ctx = match enable_wacom {
             false => None,
             true => {
-                let w: &mut input::UnifiedInputHandler = unsafe { std::mem::transmute_copy(&&unified) };
-                Some(ev::start_evdev("/dev/input/event0".to_owned(), w))
+                Some(ev::start_evdev("/dev/input/event0".to_owned(), &self.input_handler))
             },
         };
         self.touch_ctx = match enable_multitouch {
             false => None,
             true => {
-                let t: &mut input::UnifiedInputHandler = unsafe { std::mem::transmute_copy(&&unified) };
-                Some(ev::start_evdev("/dev/input/event1".to_owned(), t))
+                Some(ev::start_evdev("/dev/input/event1".to_owned(), &self.input_handler))
             },
         };
         self.button_ctx = match enable_buttons {
             false => None,
             true => {
-                let g: &mut input::UnifiedInputHandler = unsafe { std::mem::transmute_copy(&&unified) };
-                Some(ev::start_evdev("/dev/input/event2".to_owned(), g))
+                Some(ev::start_evdev("/dev/input/event2".to_owned(), &self.input_handler))
             },
         };
 
-        // Now we consume the input events;
-        let consumer = ringbuffer.consumer();
-        let mut buf = vec![InputEvent::Unknown {}; event_read_chunksize];
-
+        // Now we consume the input events
+        let consumer = self.input_handler.get_consumer();
         self.running.store(true, Ordering::Relaxed);
 
         let mut last_active_region_gesture_id: i32 = -1;
         while self.running.load(Ordering::Relaxed) {
-            let _read = consumer.read_blocking(&mut buf).unwrap();
-            for &ev in buf.iter() {
-                match ev {
-                    InputEvent::GPIO { event } => {
-                        (self.on_button)(appref, event);
-                    }
-                    InputEvent::MultitouchEvent { event } => {
-                        // Check for and notify clickable active regions for multitouch events
-                        match event {
-                            MultitouchEvent::Touch {
-                                gesture_seq,
-                                finger_id: _,
-                                y,
-                                x,
-                            } => {
-                                let gseq = gesture_seq as i32;
-                                if last_active_region_gesture_id != gseq {
-                                    match self.find_active_region(y, x) {
-                                        Some((h, _)) => {
-                                            (h.handler)(appref, Arc::clone(&h.element));
-                                        }
-                                        _ => {}
-                                    };
-                                    last_active_region_gesture_id = gseq;
-                                }
-                            }
-                            _ => {}
-                        };
-                        (self.on_touch)(appref, event);
-                    }
-                    InputEvent::WacomEvent { event } => {
-                        (self.on_wacom)(appref, event);
-                    }
-                    _ => {}
+            match consumer.recv().unwrap() {
+                InputEvent::GPIO { event } => {
+                    (self.on_button)(appref, event);
                 }
+                InputEvent::MultitouchEvent { event } => {
+                    // Check for and notify clickable active regions for multitouch events
+                    match event {
+                        MultitouchEvent::Touch {
+                            gesture_seq,
+                            finger_id: _,
+                            y,
+                            x,
+                        } => {
+                            let gseq = gesture_seq as i32;
+                            if last_active_region_gesture_id != gseq {
+                                match self.find_active_region(y, x) {
+                                    Some((h, _)) => {
+                                        (h.handler)(appref, Arc::clone(&h.element));
+                                    }
+                                    _ => {}
+                                };
+                                last_active_region_gesture_id = gseq;
+                            }
+                        }
+                        _ => {}
+                    };
+                    (self.on_touch)(appref, event);
+                }
+                InputEvent::WacomEvent { event } => {
+                    (self.on_wacom)(appref, event);
+                }
+                _ => {}
             }
         }
 

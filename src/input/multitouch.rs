@@ -4,8 +4,6 @@ use input::{InputEvent, UnifiedInputHandler};
 
 use evdev::raw::input_event;
 
-use rb::RbProducer;
-
 const MT_HSCALAR: f32 = (DISPLAYWIDTH as f32) / (MTWIDTH as f32);
 const MT_VSCALAR: f32 = (DISPLAYHEIGHT as f32) / (MTHEIGHT as f32);
 
@@ -42,7 +40,7 @@ pub enum MultitouchEvent {
     Unknown,
 }
 
-impl<'a> UnifiedInputHandler<'a> {
+impl UnifiedInputHandler {
     pub fn multitouch_handler(&mut self, ev: &input_event) {
         match ev._type {
             0 => { /* sync */ }
@@ -69,9 +67,7 @@ impl<'a> UnifiedInputHandler<'a> {
                             x,
                         };
 
-                        self.ringbuffer
-                            .write(&[InputEvent::MultitouchEvent { event }])
-                            .unwrap();
+                        self.tx.send(InputEvent::MultitouchEvent { event }).unwrap();
                     }
                     52 | 48 | 58 => debug!(
                         "unknown_absolute_touch_event(code={0}, value={1})",

@@ -2,6 +2,7 @@ use evdev;
 use epoll;
 use std;
 use input;
+use input::EvdevHandler;
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -15,7 +16,7 @@ impl EvDevContext {
     /// Returns true if we were able to wait until the termination
     /// of the epoll thread. It will always return true since
     /// we have only one strong reference to the `JoinHandle<T>`.
-    /// This method consumes the `EvDevContext`.
+    ///
     pub fn join(self) -> bool {
         match Arc::try_unwrap(self.handle) {
             Ok(handle) => {
@@ -40,12 +41,17 @@ impl EvDevContext {
 ///    `handler` must implement the `EvDevHandler` trait so that it
 ///    can get callbacks `on_init` and `on_event`.
 ///
-pub fn start_evdev<H: input::EvdevHandler + Send>(
+#[allow(mutable_transmutes)]
+pub fn start_evdev<H: input::EvdevHandler + Send + Sync>(
     path: String,
-    handler: &'static mut H,
+    handler: &H,
 ) -> EvDevContext {
     let running = Arc::new(AtomicBool::new(true));
     let shared_running = Arc::clone(&running);
+    let handler_ref = unsafe {
+        std::mem::transmute::<&H, &'static mut input::UnifiedInputHandler>(&handler)
+    };
+
     let handle = Arc::new(std::thread::spawn(move || {
         let mut dev = evdev::Device::open(&path).unwrap();
         let devn = unsafe {
@@ -65,7 +71,7 @@ pub fn start_evdev<H: input::EvdevHandler + Send>(
         epoll::ctl(epfd, epoll::ControlOptions::EPOLL_CTL_ADD, dev.fd(), v[0]).unwrap();
 
         // init callback
-        handler.on_init(devn.clone(), &mut dev);
+        handler_ref.on_init(devn.clone(), &mut dev);
 
         while shared_running.load(Ordering::Relaxed) {
             // -1 indefinite wait but it is okay because our EPOLL FD is watching on ALL input devices at once
@@ -76,7 +82,7 @@ pub fn start_evdev<H: input::EvdevHandler + Send>(
 
             for ev in dev.events_no_sync().unwrap() {
                 // event callback
-                handler.on_event(&devn, ev);
+                handler_ref.on_event(&devn, ev);
             }
         }
     }));

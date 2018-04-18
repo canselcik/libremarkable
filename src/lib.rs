@@ -17,7 +17,6 @@ pub extern crate epoll;
 pub extern crate evdev;
 pub extern crate image;
 pub extern crate line_drawing;
-pub extern crate rb;
 
 /// One of the core components, allowing output and refresh of the EInk display
 pub mod framebuffer;

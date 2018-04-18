@@ -1,6 +1,5 @@
 use input::{InputEvent, UnifiedInputHandler};
 use evdev::raw::input_event;
-use rb::RbProducer;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum PhysicalButton {
@@ -26,7 +25,7 @@ impl GPIOState {
     }
 }
 
-impl<'a> UnifiedInputHandler<'a> {
+impl UnifiedInputHandler {
     pub fn gpio_handler(&mut self, ev: &input_event) {
         match ev._type {
             0 => { /* safely ignored. sync event*/ }
@@ -60,9 +59,7 @@ impl<'a> UnifiedInputHandler<'a> {
                     true => GPIOEvent::Press { button: p },
                     false => GPIOEvent::Unpress { button: p },
                 };
-                self.ringbuffer
-                    .write(&[InputEvent::GPIO { event }])
-                    .unwrap();
+                self.tx.send(InputEvent::GPIO { event }).unwrap();
             }
             _ => {
                 // Shouldn't happen
