@@ -24,7 +24,7 @@ use libremarkable::ui_extensions::element::{UIConstraintRefresh, UIElement, UIEl
 use libremarkable::framebuffer::refresh::PartialRefreshMode;
 use libremarkable::framebuffer::{FramebufferDraw, FramebufferRefresh};
 
-use libremarkable::input::{gpio, multitouch, wacom};
+use libremarkable::input::{gpio, multitouch, wacom, InputDevice};
 use libremarkable::battery;
 
 use std::process::Command;
@@ -36,31 +36,33 @@ fn loop_update_topbar(
     millis: u64,
 ) {
     loop {
-        // Get the datetime
-        let dt: DateTime<Local> = Local::now();
+        {
+            // Get the datetime
+            let dt: DateTime<Local> = Local::now();
 
-        if let UIElement::Text {
-            ref mut text,
-            scale: _,
-            foreground: _,
-        } = time_label.write().unwrap().inner
-        {
-            *text = format!("{}", dt.format("%F %r"));
-        }
-        if let UIElement::Text {
-            ref mut text,
-            scale: _,
-            foreground: _,
-        } = battery_label.write().unwrap().inner
-        {
-            *text = format!(
-                "{0:<128}",
-                format!(
-                    "{0} — {1}%",
-                    battery::human_readable_charging_status().unwrap(),
-                    battery::percentage().unwrap()
-                )
-            );
+            if let UIElement::Text {
+                ref mut text,
+                scale: _,
+                foreground: _,
+            } = time_label.write().unwrap().inner
+                {
+                    *text = format!("{}", dt.format("%F %r"));
+                }
+            if let UIElement::Text {
+                ref mut text,
+                scale: _,
+                foreground: _,
+            } = battery_label.write().unwrap().inner
+                {
+                    *text = format!(
+                        "{0:<128}",
+                        format!(
+                            "{0} — {1}%",
+                            battery::human_readable_charging_status().unwrap(),
+                            battery::percentage().unwrap()
+                        )
+                    );
+                }
         }
         app.draw_element("time");
         app.draw_element("battery");
@@ -171,8 +173,10 @@ fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent)
 
     match btn {
         gpio::PhysicalButton::LEFT => {
-            let mut data = DRAW_ON_TOUCH.lock().unwrap();
-            *data = (*data + 1) % 3;
+            match app.is_input_device_active(InputDevice::Multitouch) {
+                true => app.deactivate_input_device(InputDevice::Multitouch),
+                false => app.activate_input_device(InputDevice::Multitouch),
+            };
             return;
         }
         gpio::PhysicalButton::MIDDLE => {
@@ -272,10 +276,32 @@ fn on_touch_rustlogo(
     );
 }
 
+fn on_change_draw_type(app: &mut appctx::ApplicationContext,
+                       element: Arc<RwLock<UIElementWrapper>>,
+) {
+    {
+        let mut data = DRAW_ON_TOUCH.lock().unwrap();
+        *data = (*data + 1) % 3;
+
+        if let UIElement::Text {
+            ref mut text,
+            scale: _,
+            foreground: _,
+        } = element.write().unwrap().inner
+            {
+                *text = format!("Touch Mode: {0}", match *data {
+                    1 => "Bezier",
+                    2 => "Circles",
+                    _ => "None",
+                })
+            }
+    }
+    // Make sure you aren't trying to draw the element while you are holding a write lock.
+    // It doesn't seem to cause a deadlock however it may cause higher lock contention.
+    app.draw_element("tooltipLeft");
+}
+
 lazy_static! {
-    // 0 -> None
-    // 1 -> Circles
-    // 2 -> Bezier
     static ref DRAW_ON_TOUCH: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
     static ref PREV_WACOM: Arc<Mutex<(i32, i32)>> = Arc::new(Mutex::new((-1, -1)));
     static ref G_COUNTER: Mutex<u32> = Mutex::new(0);
@@ -419,9 +445,10 @@ fn main() {
             y: 1850,
             x: 15,
             refresh: UIConstraintRefresh::Refresh,
+            onclick: Some(on_change_draw_type),
             inner: UIElement::Text {
                 foreground: color::BLACK,
-                text: "Toggle Touch".to_owned(),
+                text: "Toggle Touch (None)".to_owned(),
                 scale: 50,
             },
             ..Default::default()

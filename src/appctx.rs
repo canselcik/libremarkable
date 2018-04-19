@@ -250,6 +250,13 @@ impl<'a> ApplicationContext<'a> {
         }
     }
 
+    pub fn get_element_by_name(&mut self, name: &str) -> Option<Arc<RwLock<UIElementWrapper>>> {
+        match self.ui_elements.get(name) {
+            None => None,
+            Some(element) => Some(Arc::clone(element)),
+        }
+    }
+
     pub fn draw_elements(&mut self) {
         let mut elems: std::vec::Vec<Arc<RwLock<UIElementWrapper>>> = self.ui_elements
             .iter()
