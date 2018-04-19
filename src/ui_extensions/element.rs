@@ -110,7 +110,7 @@ impl UIElementWrapper {
                         common::waveform_mode::WAVEFORM_MODE_DU,
                         common::display_temp::TEMP_USE_REMARKABLE_DRAW,
                         common::dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                        0,
+                        0, false,
                     );
                 }
 

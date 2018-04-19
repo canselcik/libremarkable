@@ -96,7 +96,7 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
                     waveform_mode::WAVEFORM_MODE_DU,
                     display_temp::TEMP_USE_REMARKABLE_DRAW,
                     dither_mode::EPDC_FLAG_EXP1,
-                    DRAWING_QUANT_BIT,
+                    DRAWING_QUANT_BIT, false,
                 );
             }
             *prev = (y as i32, x as i32);
@@ -150,7 +150,7 @@ fn on_touch_handler(app: &mut appctx::ApplicationContext, input: multitouch::Mul
                 waveform_mode::WAVEFORM_MODE_DU,
                 display_temp::TEMP_USE_REMARKABLE_DRAW,
                 dither_mode::EPDC_FLAG_USE_DITHERING_ALPHA,
-                DRAWING_QUANT_BIT,
+                DRAWING_QUANT_BIT, false,
             );
         }
         _ => {}
@@ -268,7 +268,7 @@ fn on_touch_rustlogo(
         waveform,
         display_temp::TEMP_USE_MAX,
         dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-        0,
+        0, false,
     );
 }
 

@@ -86,6 +86,7 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
         temperature: common::display_temp,
         dither_mode: common::dither_mode,
         quant_bit: i32,
+        force_full_refresh: bool,
     ) -> u32 {
         let mut update_region = region.clone();
 
@@ -111,8 +112,14 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
             update_region.height -= max_y - (common::DISPLAYHEIGHT as u32);
         }
 
+        let update_mode = if force_full_refresh {
+            common::update_mode::UPDATE_MODE_FULL as u32
+        } else {
+            common::update_mode::UPDATE_MODE_PARTIAL as u32
+        };
+
         let whole = mxcfb_update_data {
-            update_mode: common::update_mode::UPDATE_MODE_PARTIAL as u32,
+            update_mode,
             update_marker: *self.marker.get_mut() as u32,
             waveform_mode: waveform_mode as u32,
             temp: temperature as i32,

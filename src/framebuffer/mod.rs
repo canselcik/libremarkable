@@ -113,6 +113,9 @@ pub trait FramebufferRefresh {
     /// and return a `marker` which can then later be fed to `wait_refresh_complete` to wait
     /// for its completion. In `DryRun`, it will return the `collision_test` result.
     ///
+    /// `force_full_refresh` allows rare cases where you may want to do a full refresh on a
+    /// partial region. 99.9% of of the time, you want this set to `false`.
+    ///
     /// Some additional points to note:
     ///
     ///    1) PxP must process 8x8 pixel blocks, and all pixels in each block
@@ -139,6 +142,7 @@ pub trait FramebufferRefresh {
         temperature: common::display_temp,
         dither_mode: common::dither_mode,
         quant_bit: i32,
+        force_full_refresh: bool,
     ) -> u32;
 
     /// Takes a marker returned by `partial_refresh` and blocks until that

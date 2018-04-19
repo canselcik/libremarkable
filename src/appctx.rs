@@ -169,7 +169,7 @@ impl<'a> ApplicationContext<'a> {
                     waveform_mode::WAVEFORM_MODE_GC16_FAST,
                     display_temp::TEMP_USE_REMARKABLE_DRAW,
                     dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                    0,
+                    0, false,
                 ),
             _ => return draw_area,
         };
@@ -200,7 +200,7 @@ impl<'a> ApplicationContext<'a> {
                     waveform_mode::WAVEFORM_MODE_GC16_FAST,
                     display_temp::TEMP_USE_REMARKABLE_DRAW,
                     dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                    0,
+                    0, false,
                 ),
             _ => return draw_area,
         };
@@ -291,7 +291,7 @@ impl<'a> ApplicationContext<'a> {
                 waveform_mode::WAVEFORM_MODE_GC16_FAST,
                 display_temp::TEMP_USE_AMBIENT,
                 dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                0,
+                0, false,
             ),
             true => framebuffer.full_refresh(
                 waveform_mode::WAVEFORM_MODE_INIT,
