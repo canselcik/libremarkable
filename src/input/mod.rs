@@ -38,8 +38,8 @@ use std;
 
 /// Trait to implement to be dispatched evdev events by the `start_evdev` function
 pub trait EvdevHandler {
-    fn on_init(&mut self, name: String, device: &mut evdev::Device);
-    fn on_event(&mut self, device: &String, event: evdev::raw::input_event);
+    fn on_init(&mut self, path: String);
+    fn on_event(&mut self, device: InputDevice, event: evdev::raw::input_event);
 }
 
 unsafe impl Send for UnifiedInputHandler {}
@@ -75,15 +75,15 @@ impl UnifiedInputHandler {
 }
 
 impl<'a> EvdevHandler for UnifiedInputHandler {
-    fn on_init(&mut self, name: String, _device: &mut evdev::Device) {
-        info!("'{0}' input device EPOLL initialized", name);
+    fn on_init(&mut self, path: String) {
+        info!("Input device at path '{0}' EPOLL initialized", path);
     }
 
-    fn on_event(&mut self, device: &String, ev: evdev::raw::input_event) {
-        match device.as_ref() {
-            "Wacom I2C Digitizer" => self.wacom_handler(&ev),
-            "cyttsp5_mt" => self.multitouch_handler(&ev),
-            "gpio-keys" => self.gpio_handler(&ev),
+    fn on_event(&mut self, device: InputDevice, ev: evdev::raw::input_event) {
+        match device {
+            InputDevice::Wacom => self.wacom_handler(&ev),
+            InputDevice::Multitouch => self.multitouch_handler(&ev),
+            InputDevice::GPIO => self.gpio_handler(&ev),
             _ => {}
         }
     }
