@@ -24,6 +24,8 @@ impl EvDevContext {
         self.exited.load(Ordering::Relaxed)
     }
 
+    /// After exit is requested, there will be one more event read from the device before
+    /// it is closed.
     pub fn exit_requested(&self) -> bool {
         self.exit_requested.load(Ordering::Relaxed)
     }

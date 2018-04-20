@@ -42,7 +42,7 @@ pub struct ApplicationContext<'a> {
     running: AtomicBool,
 
     lua: UnsafeCell<Lua<'a>>,
-    input_handler: UnsafeCell<input::UnifiedInputHandler>,
+    input_handler: Box<input::UnifiedInputHandler>,
 
     button_ctx: RwLock<Option<ev::EvDevContext>>,
     on_button: fn(&mut ApplicationContext, GPIOEvent),
@@ -80,7 +80,7 @@ impl<'a> ApplicationContext<'a> {
     pub fn get_input_handler_ref(&mut self) -> &'static mut input::UnifiedInputHandler {
         unsafe {
             std::mem::transmute::<_, &'static mut input::UnifiedInputHandler>(
-                self.input_handler.get(),
+                self.input_handler.deref_mut(),
             )
         }
     }
@@ -107,7 +107,7 @@ impl<'a> ApplicationContext<'a> {
             yres,
             running: AtomicBool::new(false),
             lua: UnsafeCell::new(Lua::new()),
-            input_handler: UnsafeCell::new(input::UnifiedInputHandler::new()),
+            input_handler: Box::new(input::UnifiedInputHandler::new()),
             on_button,
             on_wacom,
             on_touch,
