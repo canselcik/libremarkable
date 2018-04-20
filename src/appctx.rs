@@ -26,7 +26,7 @@ use framebuffer::FramebufferBase;
 use framebuffer::FramebufferDraw;
 use framebuffer::FramebufferRefresh;
 
-use input::{InputEvent, InputDevice};
+use input::{InputDevice, InputEvent};
 use input::wacom::WacomEvent;
 use input::gpio::GPIOEvent;
 use input::multitouch::MultitouchEvent;
@@ -77,8 +77,12 @@ impl<'a> ApplicationContext<'a> {
         unsafe { std::mem::transmute::<_, &'a mut Lua<'static>>(self.lua.get()) }
     }
 
-    pub fn get_input_handler_ref(&mut self) -> &'static mut input::UnifiedInputHandler{
-        unsafe { std::mem::transmute::<_, &'static mut input::UnifiedInputHandler>(self.input_handler.get()) }
+    pub fn get_input_handler_ref(&mut self) -> &'static mut input::UnifiedInputHandler {
+        unsafe {
+            std::mem::transmute::<_, &'static mut input::UnifiedInputHandler>(
+                self.input_handler.get(),
+            )
+        }
     }
 
     pub fn get_dimensions(self) -> (u32, u32) {
@@ -169,7 +173,8 @@ impl<'a> ApplicationContext<'a> {
                     waveform_mode::WAVEFORM_MODE_GC16_FAST,
                     display_temp::TEMP_USE_REMARKABLE_DRAW,
                     dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                    0, false,
+                    0,
+                    false,
                 ),
             _ => return draw_area,
         };
@@ -200,7 +205,8 @@ impl<'a> ApplicationContext<'a> {
                     waveform_mode::WAVEFORM_MODE_GC16_FAST,
                     display_temp::TEMP_USE_REMARKABLE_DRAW,
                     dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                    0, false,
+                    0,
+                    false,
                 ),
             _ => return draw_area,
         };
@@ -298,7 +304,8 @@ impl<'a> ApplicationContext<'a> {
                 waveform_mode::WAVEFORM_MODE_GC16_FAST,
                 display_temp::TEMP_USE_AMBIENT,
                 dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                0, false,
+                0,
+                false,
             ),
             true => framebuffer.full_refresh(
                 waveform_mode::WAVEFORM_MODE_INIT,
@@ -391,7 +398,12 @@ impl<'a> ApplicationContext<'a> {
         }
     }
 
-    pub fn dispatch_events(&mut self, activate_wacom: bool, activate_multitouch: bool, activate_buttons: bool) {
+    pub fn dispatch_events(
+        &mut self,
+        activate_wacom: bool,
+        activate_multitouch: bool,
+        activate_buttons: bool,
+    ) {
         let appref = self.upgrade_ref();
 
         if activate_wacom {

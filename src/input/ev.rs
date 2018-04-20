@@ -53,7 +53,8 @@ impl EvDevContext {
             Ok(mut dev) => {
                 let mut v = vec![
                     epoll::Event {
-                        events: (epoll::Events::EPOLLET | epoll::Events::EPOLLIN | epoll::Events::EPOLLPRI)
+                        events: (epoll::Events::EPOLLET | epoll::Events::EPOLLIN
+                            | epoll::Events::EPOLLPRI)
                             .bits(),
                         data: 0,
                     },
@@ -76,13 +77,12 @@ impl EvDevContext {
                         handler.on_event(self.device.clone(), ev);
                     }
                 }
-            },
+            }
             Err(err) => {
                 println!("ERR: {0}", err);
-            },
+            }
         };
         self.exited.store(true, Ordering::Relaxed);
-
     }
 
     /// Non-blocking function that will open the provided path and wait for more data with epoll
@@ -96,5 +96,4 @@ impl EvDevContext {
             arc.run(handler);
         });
     }
-
 }

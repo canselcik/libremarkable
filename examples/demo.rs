@@ -45,24 +45,24 @@ fn loop_update_topbar(
                 scale: _,
                 foreground: _,
             } = time_label.write().unwrap().inner
-                {
-                    *text = format!("{}", dt.format("%F %r"));
-                }
+            {
+                *text = format!("{}", dt.format("%F %r"));
+            }
             if let UIElement::Text {
                 ref mut text,
                 scale: _,
                 foreground: _,
             } = battery_label.write().unwrap().inner
-                {
-                    *text = format!(
-                        "{0:<128}",
-                        format!(
-                            "{0} — {1}%",
-                            battery::human_readable_charging_status().unwrap(),
-                            battery::percentage().unwrap()
-                        )
-                    );
-                }
+            {
+                *text = format!(
+                    "{0:<128}",
+                    format!(
+                        "{0} — {1}%",
+                        battery::human_readable_charging_status().unwrap(),
+                        battery::percentage().unwrap()
+                    )
+                );
+            }
         }
         app.draw_element("time");
         app.draw_element("battery");
@@ -98,7 +98,8 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
                     waveform_mode::WAVEFORM_MODE_DU,
                     display_temp::TEMP_USE_REMARKABLE_DRAW,
                     dither_mode::EPDC_FLAG_EXP1,
-                    DRAWING_QUANT_BIT, false,
+                    DRAWING_QUANT_BIT,
+                    false,
                 );
             }
             *prev = (y as i32, x as i32);
@@ -152,7 +153,8 @@ fn on_touch_handler(app: &mut appctx::ApplicationContext, input: multitouch::Mul
                 waveform_mode::WAVEFORM_MODE_DU,
                 display_temp::TEMP_USE_REMARKABLE_DRAW,
                 dither_mode::EPDC_FLAG_USE_DITHERING_ALPHA,
-                DRAWING_QUANT_BIT, false,
+                DRAWING_QUANT_BIT,
+                false,
             );
         }
         _ => {}
@@ -272,12 +274,14 @@ fn on_touch_rustlogo(
         waveform,
         display_temp::TEMP_USE_MAX,
         dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-        0, false,
+        0,
+        false,
     );
 }
 
-fn on_change_draw_type(app: &mut appctx::ApplicationContext,
-                       element: Arc<RwLock<UIElementWrapper>>,
+fn on_change_draw_type(
+    app: &mut appctx::ApplicationContext,
+    element: Arc<RwLock<UIElementWrapper>>,
 ) {
     {
         let mut data = DRAW_ON_TOUCH.lock().unwrap();
@@ -288,13 +292,16 @@ fn on_change_draw_type(app: &mut appctx::ApplicationContext,
             scale: _,
             foreground: _,
         } = element.write().unwrap().inner
-            {
-                *text = format!("Touch Mode: {0}", match *data {
+        {
+            *text = format!(
+                "Touch Mode: {0}",
+                match *data {
                     1 => "Bezier",
                     2 => "Circles",
                     _ => "None",
-                })
-            }
+                }
+            )
+        }
     }
     // Make sure you aren't trying to draw the element while you are holding a write lock.
     // It doesn't seem to cause a deadlock however it may cause higher lock contention.

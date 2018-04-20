@@ -57,7 +57,8 @@ pub fn lua_refresh(
                     waveform_mode::WAVEFORM_MODE_DU,
                     display_temp::TEMP_USE_REMARKABLE_DRAW,
                     dither_mode::EPDC_FLAG_EXP1,
-                    DRAWING_QUANT_BIT, false,
+                    DRAWING_QUANT_BIT,
+                    false,
                 ),
                 true => framebuffer.partial_refresh(
                     &rect,
@@ -68,7 +69,8 @@ pub fn lua_refresh(
                     waveform_mode::WAVEFORM_MODE_GC16_FAST,
                     display_temp::TEMP_USE_PAPYRUS,
                     dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                    0, false,
+                    0,
+                    false,
                 ),
             };
         }
