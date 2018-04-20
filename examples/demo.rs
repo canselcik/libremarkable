@@ -12,14 +12,13 @@ use chrono::{DateTime, Local};
 
 use std::time::Duration;
 use std::thread::sleep;
-use std::sync::Mutex;
-use std::sync::{Arc, RwLock};
+use std::sync::{Mutex, Arc};
 
 use libremarkable::image;
 use libremarkable::framebuffer::common::*;
 
 use libremarkable::appctx;
-use libremarkable::ui_extensions::element::{UIConstraintRefresh, UIElement, UIElementWrapper};
+use libremarkable::ui_extensions::element::{UIConstraintRefresh, UIElement, UIElementWrapper, UIElementHandle};
 
 use libremarkable::framebuffer::refresh::PartialRefreshMode;
 use libremarkable::framebuffer::{FramebufferDraw, FramebufferRefresh};
@@ -31,42 +30,39 @@ use std::process::Command;
 
 fn loop_update_topbar(
     app: &mut appctx::ApplicationContext,
-    time_label: Arc<RwLock<UIElementWrapper>>,
-    battery_label: Arc<RwLock<UIElementWrapper>>,
     millis: u64,
 ) {
+    let time_label = app.get_element_by_name("time").unwrap();
+    let battery_label = app.get_element_by_name("battery").unwrap();
     loop {
-        {
-            // Get the datetime
-            let dt: DateTime<Local> = Local::now();
+        // Get the datetime
+        let dt: DateTime<Local> = Local::now();
 
-            if let UIElement::Text {
-                ref mut text,
-                scale: _,
-                foreground: _,
-            } = time_label.write().unwrap().inner
-            {
-                *text = format!("{}", dt.format("%F %r"));
-            }
-            if let UIElement::Text {
-                ref mut text,
-                scale: _,
-                foreground: _,
-            } = battery_label.write().unwrap().inner
-            {
-                *text = format!(
-                    "{0:<128}",
-                    format!(
-                        "{0} — {1}%",
-                        battery::human_readable_charging_status().unwrap(),
-                        battery::percentage().unwrap()
-                    )
-                );
-            }
+        if let UIElement::Text {
+            ref mut text,
+            scale: _,
+            foreground: _,
+        } = time_label.write().inner
+        {
+            *text = format!("{}", dt.format("%F %r"));
+        }
+        if let UIElement::Text {
+            ref mut text,
+            scale: _,
+            foreground: _,
+        } = battery_label.write().inner
+        {
+            *text = format!(
+                "{0:<128}",
+                format!(
+                    "{0} — {1}%",
+                    battery::human_readable_charging_status().unwrap(),
+                    battery::percentage().unwrap()
+                )
+            );
         }
         app.draw_element("time");
         app.draw_element("battery");
-
         sleep(Duration::from_millis(millis));
     }
 }
@@ -238,7 +234,7 @@ fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent)
 
 fn on_touch_exit_to_xochitl(
     _app: &mut appctx::ApplicationContext,
-    _element: Arc<RwLock<UIElementWrapper>>,
+    _element: UIElementHandle,
 ) {
     Command::new("systemctl")
         .arg("start")
@@ -250,7 +246,7 @@ fn on_touch_exit_to_xochitl(
 
 fn on_touch_rustlogo(
     app: &mut appctx::ApplicationContext,
-    _element: Arc<RwLock<UIElementWrapper>>,
+    _element: UIElementHandle,
 ) {
     let framebuffer = app.get_framebuffer_ref();
     let new_press_count = {
@@ -281,7 +277,7 @@ fn on_touch_rustlogo(
 
 fn on_change_draw_type(
     app: &mut appctx::ApplicationContext,
-    element: Arc<RwLock<UIElementWrapper>>,
+    element: UIElementHandle,
 ) {
     {
         let mut data = DRAW_ON_TOUCH.lock().unwrap();
@@ -291,7 +287,7 @@ fn on_change_draw_type(
             ref mut text,
             scale: _,
             foreground: _,
-        } = element.write().unwrap().inner
+        } = element.write().inner
         {
             *text = format!(
                 "Touch Mode: {0}",
@@ -328,7 +324,7 @@ fn main() {
     // A rudimentary way to declare a scene and layout
     app.add_element(
         "logo",
-        Arc::new(RwLock::new(UIElementWrapper {
+        UIElementWrapper {
             y: 10,
             x: 900,
             refresh: UIConstraintRefresh::Refresh,
@@ -343,11 +339,11 @@ fn main() {
                 img: image::load_from_memory(include_bytes!("../assets/rustlang.bmp")).unwrap(),
             },
             ..Default::default()
-        })),
-    );
+    });
+
     app.add_element(
         "exitToXochitl",
-        Arc::new(RwLock::new(UIElementWrapper {
+        UIElementWrapper {
             y: 55,
             x: 20,
             refresh: UIConstraintRefresh::Refresh,
@@ -359,11 +355,10 @@ fn main() {
                 scale: 35,
             },
             ..Default::default()
-        })),
-    );
+    });
     app.add_element(
         "availAt",
-        Arc::new(RwLock::new(UIElementWrapper {
+        UIElementWrapper {
             y: 650,
             x: 100,
             refresh: UIConstraintRefresh::Refresh,
@@ -373,11 +368,10 @@ fn main() {
                 scale: 70,
             },
             ..Default::default()
-        })),
-    );
+    });
     app.add_element(
         "github",
-        Arc::new(RwLock::new(UIElementWrapper {
+        UIElementWrapper {
             y: 720,
             x: 100,
             refresh: UIConstraintRefresh::Refresh,
@@ -387,11 +381,10 @@ fn main() {
                 scale: 60,
             },
             ..Default::default()
-        })),
-    );
+    });
     app.add_element(
         "l1",
-        Arc::new(RwLock::new(UIElementWrapper {
+        UIElementWrapper {
             y: 350,
             x: 100,
             refresh: UIConstraintRefresh::Refresh,
@@ -401,11 +394,10 @@ fn main() {
                 scale: 45,
             },
             ..Default::default()
-        })),
-    );
+    });
     app.add_element(
         "l3",
-        Arc::new(RwLock::new(UIElementWrapper {
+        UIElementWrapper {
             y: 400,
             x: 100,
             refresh: UIConstraintRefresh::Refresh,
@@ -415,11 +407,10 @@ fn main() {
                 scale: 45,
             },
             ..Default::default()
-        })),
-    );
+    });
     app.add_element(
         "l2",
-        Arc::new(RwLock::new(UIElementWrapper {
+        UIElementWrapper {
             y: 450,
             x: 100,
             refresh: UIConstraintRefresh::Refresh,
@@ -429,11 +420,10 @@ fn main() {
                 scale: 45,
             },
             ..Default::default()
-        })),
-    );
+    });
     app.add_element(
         "l4",
-        Arc::new(RwLock::new(UIElementWrapper {
+        UIElementWrapper {
             y: 500,
             x: 100,
             refresh: UIConstraintRefresh::Refresh,
@@ -443,12 +433,11 @@ fn main() {
                 scale: 45,
             },
             ..Default::default()
-        })),
-    );
+    });
 
     app.add_element(
         "tooltipLeft",
-        Arc::new(RwLock::new(UIElementWrapper {
+        UIElementWrapper {
             y: 1850,
             x: 15,
             refresh: UIConstraintRefresh::Refresh,
@@ -459,11 +448,10 @@ fn main() {
                 scale: 50,
             },
             ..Default::default()
-        })),
-    );
+    });
     app.add_element(
         "tooltipMiddle",
-        Arc::new(RwLock::new(UIElementWrapper {
+        UIElementWrapper {
             y: 1850,
             x: 550,
             refresh: UIConstraintRefresh::Refresh,
@@ -473,11 +461,10 @@ fn main() {
                 scale: 50,
             },
             ..Default::default()
-        })),
-    );
+    });
     app.add_element(
         "tooltipRight",
-        Arc::new(RwLock::new(UIElementWrapper {
+        UIElementWrapper {
             y: 1850,
             x: 1085,
             refresh: UIConstraintRefresh::Refresh,
@@ -487,23 +474,11 @@ fn main() {
                 scale: 50,
             },
             ..Default::default()
-        })),
-    );
+    });
 
     // Create the top bar's time and battery labels. We can mutate these later.
     let dt: DateTime<Local> = Local::now();
-    let time_label = Arc::new(RwLock::new(UIElementWrapper {
-        y: 150,
-        x: 100,
-        refresh: UIConstraintRefresh::Refresh,
-        inner: UIElement::Text {
-            foreground: color::BLACK,
-            text: format!("{}", dt.format("%F %r")),
-            scale: 75,
-        },
-        ..Default::default()
-    }));
-    let battery_label = Arc::new(RwLock::new(UIElementWrapper {
+    app.add_element("battery", UIElementWrapper {
         y: 215,
         x: 100,
         refresh: UIConstraintRefresh::Refresh,
@@ -520,9 +495,18 @@ fn main() {
             scale: 44,
         },
         ..Default::default()
-    }));
-    app.add_element("time", Arc::clone(&time_label));
-    app.add_element("battery", Arc::clone(&battery_label));
+    });
+    app.add_element("time", UIElementWrapper {
+        y: 150,
+        x: 100,
+        refresh: UIConstraintRefresh::Refresh,
+        inner: UIElement::Text {
+            foreground: color::BLACK,
+            text: format!("{}", dt.format("%F %r")),
+            scale: 75,
+        },
+        ..Default::default()
+    });
 
     // Draw the scene
     app.draw_elements();
@@ -530,7 +514,7 @@ fn main() {
     // Get a &mut to the framebuffer object, exposing many convenience functions
     let appref = app.upgrade_ref();
     let clock_thread = std::thread::spawn(move || {
-        loop_update_topbar(appref, time_label, battery_label, 30 * 1000);
+        loop_update_topbar(appref, 30 * 1000);
     });
 
     app.execute_lua(

@@ -1,5 +1,5 @@
 use std;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::hash::{Hash, Hasher};
 
 use image;
@@ -12,12 +12,12 @@ use framebuffer::common::{color, mxcfb_rect};
 
 use appctx;
 
-pub type ActiveRegionFunction = fn(&mut appctx::ApplicationContext, Arc<RwLock<UIElementWrapper>>);
+pub type ActiveRegionFunction = fn(&mut appctx::ApplicationContext, UIElementHandle);
 
 #[derive(Clone)]
 pub struct ActiveRegionHandler {
     pub handler: ActiveRegionFunction,
-    pub element: Arc<RwLock<UIElementWrapper>>,
+    pub element: UIElementHandle,
 }
 
 impl<'a> std::fmt::Debug for ActiveRegionHandler {
@@ -38,6 +38,10 @@ impl Default for UIConstraintRefresh {
         UIConstraintRefresh::Refresh
     }
 }
+
+
+#[derive(Clone)]
+pub struct UIElementHandle(Arc<RwLock<UIElementWrapper>>);
 
 #[derive(Clone, Default)]
 pub struct UIElementWrapper {
@@ -75,6 +79,22 @@ pub enum UIElement {
         img: image::DynamicImage,
     },
     Unspecified,
+}
+
+impl UIElementHandle {
+    pub fn read(&self) -> RwLockReadGuard<UIElementWrapper> {
+        self.0.read().unwrap()
+    }
+
+    pub fn write(&self) -> RwLockWriteGuard<UIElementWrapper> {
+        self.0.write().unwrap()
+    }
+
+    pub fn new(elem: UIElementWrapper) -> UIElementHandle {
+        UIElementHandle(
+            Arc::new(RwLock::new(elem))
+        )
+    }
 }
 
 impl UIElementWrapper {
@@ -148,7 +168,7 @@ impl UIElementWrapper {
                         rect.height as u16,
                         rect.width as u16,
                         h.handler,
-                        Arc::clone(&h.element),
+                        h.element.clone(),
                     );
                 }
             }

@@ -1,6 +1,6 @@
 use std;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, RwLock};
+use std::sync::RwLock;
 use std::cell::UnsafeCell;
 use std::ops::DerefMut;
 
@@ -14,7 +14,7 @@ use framebuffer::common::*;
 
 use ui_extensions::luaext;
 use ui_extensions::element::{ActiveRegionFunction, ActiveRegionHandler, UIConstraintRefresh,
-                             UIElementWrapper};
+                             UIElementWrapper, UIElementHandle};
 use hlua;
 use hlua::Lua;
 
@@ -54,7 +54,7 @@ pub struct ApplicationContext<'a> {
     on_touch: fn(&mut ApplicationContext, MultitouchEvent),
 
     active_regions: QuadTree<ActiveRegionHandler>,
-    ui_elements: HashMap<String, Arc<RwLock<UIElementWrapper>>>,
+    ui_elements: HashMap<String, UIElementHandle>,
 }
 
 impl<'a> ApplicationContext<'a> {
@@ -220,12 +220,13 @@ impl<'a> ApplicationContext<'a> {
         return draw_area;
     }
 
-    pub fn add_element(&mut self, name: &str, element: Arc<RwLock<UIElementWrapper>>) -> bool {
+    pub fn add_element(&mut self, name: &str, element: UIElementWrapper) -> Option<UIElementHandle> {
         match self.ui_elements.contains_key(name) {
-            true => false,
+            true => None,
             false => {
-                self.ui_elements.insert(name.to_owned(), element);
-                true
+                let elem = UIElementHandle::new(element);
+                self.ui_elements.insert(name.to_owned(), elem.clone());
+                Some(elem)
             }
         }
     }
@@ -239,41 +240,35 @@ impl<'a> ApplicationContext<'a> {
         match self.ui_elements.get(name) {
             None => false,
             Some(element) => {
-                let h = {
-                    let l = element.read().unwrap();
-                    l.onclick
-                };
+                let h = element.read().onclick;
                 let handler = match h {
                     Some(handler) => Some(ActiveRegionHandler {
                         handler,
-                        element: Arc::clone(element),
+                        element: element.clone(),
                     }),
                     _ => None,
                 };
-                element.write().unwrap().draw(appref, handler);
+                element.write().draw(appref, handler);
                 true
             }
         }
     }
 
-    pub fn get_element_by_name(&mut self, name: &str) -> Option<Arc<RwLock<UIElementWrapper>>> {
+    pub fn get_element_by_name(&mut self, name: &str) -> Option<UIElementHandle> {
         match self.ui_elements.get(name) {
             None => None,
-            Some(element) => Some(Arc::clone(element)),
+            Some(element) => Some(element.clone()),
         }
     }
 
     pub fn draw_elements(&mut self) {
-        let mut elems: std::vec::Vec<Arc<RwLock<UIElementWrapper>>> = self.ui_elements
+        let mut elems: std::vec::Vec<UIElementHandle> = self.ui_elements
             .iter()
-            .map(|(_key, value)| Arc::clone(&value))
+            .map(|(_key, value)| value.clone())
             .collect();
 
         for element in &mut elems {
-            let h = {
-                let l = element.read().unwrap();
-                l.onclick
-            };
+            let h = element.read().onclick;
             let handler = match h {
                 Some(handler) => Some(ActiveRegionHandler {
                     handler,
@@ -281,7 +276,7 @@ impl<'a> ApplicationContext<'a> {
                 }),
                 _ => None,
             };
-            element.write().unwrap().draw(self, handler);
+            element.write().draw(self, handler);
         }
     }
     pub fn clear(&mut self, deep: bool) {
@@ -439,7 +434,7 @@ impl<'a> ApplicationContext<'a> {
                             if last_active_region_gesture_id != gseq {
                                 match self.find_active_region(y, x) {
                                     Some((h, _)) => {
-                                        (h.handler)(appref, Arc::clone(&h.element));
+                                        (h.handler)(appref, h.element.clone());
                                     }
                                     _ => {}
                                 };
@@ -492,7 +487,7 @@ impl<'a> ApplicationContext<'a> {
         height: u16,
         width: u16,
         handler: ActiveRegionFunction,
-        element: Arc<RwLock<UIElementWrapper>>,
+        element: UIElementHandle,
     ) {
         self.active_regions.insert_with_box(
             ActiveRegionHandler { handler, element },
