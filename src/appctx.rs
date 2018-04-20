@@ -14,7 +14,7 @@ use framebuffer::common::*;
 
 use ui_extensions::luaext;
 use ui_extensions::element::{ActiveRegionFunction, ActiveRegionHandler, UIConstraintRefresh,
-                             UIElementWrapper, UIElementHandle};
+                             UIElementHandle, UIElementWrapper};
 use hlua;
 use hlua::Lua;
 
@@ -220,7 +220,11 @@ impl<'a> ApplicationContext<'a> {
         return draw_area;
     }
 
-    pub fn add_element(&mut self, name: &str, element: UIElementWrapper) -> Option<UIElementHandle> {
+    pub fn add_element(
+        &mut self,
+        name: &str,
+        element: UIElementWrapper,
+    ) -> Option<UIElementHandle> {
         match self.ui_elements.contains_key(name) {
             true => None,
             false => {

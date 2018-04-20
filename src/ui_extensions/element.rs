@@ -39,7 +39,6 @@ impl Default for UIConstraintRefresh {
     }
 }
 
-
 #[derive(Clone)]
 pub struct UIElementHandle(Arc<RwLock<UIElementWrapper>>);
 
@@ -91,9 +90,7 @@ impl UIElementHandle {
     }
 
     pub fn new(elem: UIElementWrapper) -> UIElementHandle {
-        UIElementHandle(
-            Arc::new(RwLock::new(elem))
-        )
+        UIElementHandle(Arc::new(RwLock::new(elem)))
     }
 }
 

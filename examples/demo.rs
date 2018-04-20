@@ -12,13 +12,14 @@ use chrono::{DateTime, Local};
 
 use std::time::Duration;
 use std::thread::sleep;
-use std::sync::{Mutex, Arc};
+use std::sync::{Arc, Mutex};
 
 use libremarkable::image;
 use libremarkable::framebuffer::common::*;
 
 use libremarkable::appctx;
-use libremarkable::ui_extensions::element::{UIConstraintRefresh, UIElement, UIElementWrapper, UIElementHandle};
+use libremarkable::ui_extensions::element::{UIConstraintRefresh, UIElement, UIElementHandle,
+                                            UIElementWrapper};
 
 use libremarkable::framebuffer::refresh::PartialRefreshMode;
 use libremarkable::framebuffer::{FramebufferDraw, FramebufferRefresh};
@@ -28,10 +29,7 @@ use libremarkable::battery;
 
 use std::process::Command;
 
-fn loop_update_topbar(
-    app: &mut appctx::ApplicationContext,
-    millis: u64,
-) {
+fn loop_update_topbar(app: &mut appctx::ApplicationContext, millis: u64) {
     let time_label = app.get_element_by_name("time").unwrap();
     let battery_label = app.get_element_by_name("battery").unwrap();
     loop {
@@ -232,10 +230,7 @@ fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent)
     //    );
 }
 
-fn on_touch_exit_to_xochitl(
-    _app: &mut appctx::ApplicationContext,
-    _element: UIElementHandle,
-) {
+fn on_touch_exit_to_xochitl(_app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
     Command::new("systemctl")
         .arg("start")
         .arg("xochitl")
@@ -244,10 +239,7 @@ fn on_touch_exit_to_xochitl(
     std::process::exit(0);
 }
 
-fn on_touch_rustlogo(
-    app: &mut appctx::ApplicationContext,
-    _element: UIElementHandle,
-) {
+fn on_touch_rustlogo(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
     let framebuffer = app.get_framebuffer_ref();
     let new_press_count = {
         let mut v = G_COUNTER.lock().unwrap();
@@ -275,10 +267,7 @@ fn on_touch_rustlogo(
     );
 }
 
-fn on_change_draw_type(
-    app: &mut appctx::ApplicationContext,
-    element: UIElementHandle,
-) {
+fn on_change_draw_type(app: &mut appctx::ApplicationContext, element: UIElementHandle) {
     {
         let mut data = DRAW_ON_TOUCH.lock().unwrap();
         *data = (*data + 1) % 3;
@@ -339,7 +328,8 @@ fn main() {
                 img: image::load_from_memory(include_bytes!("../assets/rustlang.bmp")).unwrap(),
             },
             ..Default::default()
-    });
+        },
+    );
 
     app.add_element(
         "exitToXochitl",
@@ -355,7 +345,8 @@ fn main() {
                 scale: 35,
             },
             ..Default::default()
-    });
+        },
+    );
     app.add_element(
         "availAt",
         UIElementWrapper {
@@ -368,7 +359,8 @@ fn main() {
                 scale: 70,
             },
             ..Default::default()
-    });
+        },
+    );
     app.add_element(
         "github",
         UIElementWrapper {
@@ -381,7 +373,8 @@ fn main() {
                 scale: 60,
             },
             ..Default::default()
-    });
+        },
+    );
     app.add_element(
         "l1",
         UIElementWrapper {
@@ -394,7 +387,8 @@ fn main() {
                 scale: 45,
             },
             ..Default::default()
-    });
+        },
+    );
     app.add_element(
         "l3",
         UIElementWrapper {
@@ -407,7 +401,8 @@ fn main() {
                 scale: 45,
             },
             ..Default::default()
-    });
+        },
+    );
     app.add_element(
         "l2",
         UIElementWrapper {
@@ -420,7 +415,8 @@ fn main() {
                 scale: 45,
             },
             ..Default::default()
-    });
+        },
+    );
     app.add_element(
         "l4",
         UIElementWrapper {
@@ -433,7 +429,8 @@ fn main() {
                 scale: 45,
             },
             ..Default::default()
-    });
+        },
+    );
 
     app.add_element(
         "tooltipLeft",
@@ -448,7 +445,8 @@ fn main() {
                 scale: 50,
             },
             ..Default::default()
-    });
+        },
+    );
     app.add_element(
         "tooltipMiddle",
         UIElementWrapper {
@@ -461,7 +459,8 @@ fn main() {
                 scale: 50,
             },
             ..Default::default()
-    });
+        },
+    );
     app.add_element(
         "tooltipRight",
         UIElementWrapper {
@@ -474,39 +473,46 @@ fn main() {
                 scale: 50,
             },
             ..Default::default()
-    });
+        },
+    );
 
     // Create the top bar's time and battery labels. We can mutate these later.
     let dt: DateTime<Local> = Local::now();
-    app.add_element("battery", UIElementWrapper {
-        y: 215,
-        x: 100,
-        refresh: UIConstraintRefresh::Refresh,
-        inner: UIElement::Text {
-            foreground: color::BLACK,
-            text: format!(
-                "{0:<128}",
-                format!(
-                    "{0} — {1}%",
-                    battery::human_readable_charging_status().unwrap(),
-                    battery::percentage().unwrap()
-                )
-            ),
-            scale: 44,
+    app.add_element(
+        "battery",
+        UIElementWrapper {
+            y: 215,
+            x: 100,
+            refresh: UIConstraintRefresh::Refresh,
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: format!(
+                    "{0:<128}",
+                    format!(
+                        "{0} — {1}%",
+                        battery::human_readable_charging_status().unwrap(),
+                        battery::percentage().unwrap()
+                    )
+                ),
+                scale: 44,
+            },
+            ..Default::default()
         },
-        ..Default::default()
-    });
-    app.add_element("time", UIElementWrapper {
-        y: 150,
-        x: 100,
-        refresh: UIConstraintRefresh::Refresh,
-        inner: UIElement::Text {
-            foreground: color::BLACK,
-            text: format!("{}", dt.format("%F %r")),
-            scale: 75,
+    );
+    app.add_element(
+        "time",
+        UIElementWrapper {
+            y: 150,
+            x: 100,
+            refresh: UIConstraintRefresh::Refresh,
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: format!("{}", dt.format("%F %r")),
+                scale: 75,
+            },
+            ..Default::default()
         },
-        ..Default::default()
-    });
+    );
 
     // Draw the scene
     app.draw_elements();
