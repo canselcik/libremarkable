@@ -1,23 +1,31 @@
 CC = arm-linux-gnueabihf-gcc
 AR = arm-linux-gnueabihf-ar
+CFLAGS += -fPIC -g
+CFLAGS += -I$(FREETYPE_PATH)/usr/local/include
+CFLAGS += -I$(FREETYPE_PATH)/usr/local/include/freetype2
+CFLAGS += -std=c99
+LDFLAGS = $(FREETYPE_PATH)/usr/local/lib/libfreetype.a
+
+CONFIG?=config.mk
+
+include $(CONFIG)
+
 SOURCES = fb.c refresh.c serde.c bitmap.c freetype.c
 OBJECTS = $(SOURCES:.c=.o)
 FREETYPE_PATH = ../libfreetype/install
-CCFLAGS = -fPIC -g -I$(FREETYPE_PATH)/usr/local/include -I$(FREETYPE_PATH)/usr/local/include/freetype2
-LDFLAGS = $(FREETYPE_PATH)/usr/local/lib/libfreetype.a
 
 all: static shared
 
-static: $(OBJECTS)
-	$(CC) -shared $(CCFLAGS) $(OBJECTS) $(LDFLAGS) -o libremarkable.so 
-
 shared: $(OBJECTS)
+	$(CC) -shared $(CCFLAGS) $(OBJECTS) $(LDFLAGS) -o libremarkable.so
+
+static: $(OBJECTS)
 	$(AR) -rsc libremarkable.a $(OBJECTS) $(LDFLAGS)
 
 %.o: %.c
-	$(CC) -c $(CCFLAGS) $< -o $@
+	$(CC) -c $(CFLAGS) $< -o $@
 
 clean:
-	rm -rvf *.o || true
-	rm -rvf *.so || true
-	rm -rvf *.a || true
+	$(RM) *.o
+	$(RM) *.so
+	$(RM) *.a
