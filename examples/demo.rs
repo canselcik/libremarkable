@@ -40,14 +40,17 @@ fn loop_update_topbar(app: &mut appctx::ApplicationContext, millis: u64) {
             ref mut text,
             scale: _,
             foreground: _,
+            border_px: _,
         } = time_label.write().inner
         {
             *text = format!("{}", dt.format("%F %r"));
         }
+
         if let UIElement::Text {
             ref mut text,
             scale: _,
             foreground: _,
+            border_px: _,
         } = battery_label.write().inner
         {
             *text = format!(
@@ -276,6 +279,7 @@ fn on_change_draw_type(app: &mut appctx::ApplicationContext, element: UIElementH
             ref mut text,
             scale: _,
             foreground: _,
+            border_px: _,
         } = element.write().inner
         {
             *text = format!(
@@ -320,9 +324,9 @@ fn main() {
 
             /* We could have alternatively done this:
 
-           // Create a clickable region for multitouch input and associate it with its handler fn
-           app.create_active_region(10, 900, 240, 480, on_touch_rustlogo);
-        */
+               // Create a clickable region for multitouch input and associate it with its handler fn
+               app.create_active_region(10, 900, 240, 480, on_touch_rustlogo);
+            */
             onclick: Some(on_touch_rustlogo),
             inner: UIElement::Image {
                 img: image::load_from_memory(include_bytes!("../assets/rustlang.bmp")).unwrap(),
@@ -335,14 +339,15 @@ fn main() {
         "exitToXochitl",
         UIElementWrapper {
             y: 55,
-            x: 20,
+            x: 550,
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: Some(on_touch_exit_to_xochitl),
             inner: UIElement::Text {
                 foreground: color::BLACK,
-                text: "[TOUCH TO EXIT TO REMARKABLE]".to_owned(),
+                text: "EXIT TO REMARKABLE".to_owned(),
                 scale: 35,
+                border_px: 3,
             },
             ..Default::default()
         },
@@ -357,6 +362,7 @@ fn main() {
                 foreground: color::BLACK,
                 text: "Available at:".to_owned(),
                 scale: 70,
+                border_px: 0,
             },
             ..Default::default()
         },
@@ -371,6 +377,7 @@ fn main() {
                 foreground: color::BLACK,
                 text: "github.com/canselcik/libremarkable".to_owned(),
                 scale: 60,
+                border_px: 0,
             },
             ..Default::default()
         },
@@ -385,6 +392,7 @@ fn main() {
                 foreground: color::BLACK,
                 text: "Low Latency eInk Display Partial Refresh API".to_owned(),
                 scale: 45,
+                border_px: 0,
             },
             ..Default::default()
         },
@@ -399,6 +407,7 @@ fn main() {
                 foreground: color::BLACK,
                 text: "Capacitive Multitouch Input Support".to_owned(),
                 scale: 45,
+                border_px: 0,
             },
             ..Default::default()
         },
@@ -413,6 +422,7 @@ fn main() {
                 foreground: color::BLACK,
                 text: "Physical Button Support".to_owned(),
                 scale: 45,
+                border_px: 0,
             },
             ..Default::default()
         },
@@ -427,6 +437,7 @@ fn main() {
                 foreground: color::BLACK,
                 text: "Wacom Digitizer Support".to_owned(),
                 scale: 45,
+                border_px: 0,
             },
             ..Default::default()
         },
@@ -443,6 +454,7 @@ fn main() {
                 foreground: color::BLACK,
                 text: "Toggle Touch (None)".to_owned(),
                 scale: 50,
+                border_px: 0,
             },
             ..Default::default()
         },
@@ -457,6 +469,7 @@ fn main() {
                 foreground: color::BLACK,
                 text: "Redraw Layout".to_owned(),
                 scale: 50,
+                border_px: 0,
             },
             ..Default::default()
         },
@@ -471,6 +484,7 @@ fn main() {
                 foreground: color::BLACK,
                 text: "Quick Redraw".to_owned(), // maybe quick redraw for the demo or waveform change?
                 scale: 50,
+                border_px: 0,
             },
             ..Default::default()
         },
@@ -495,6 +509,7 @@ fn main() {
                     )
                 ),
                 scale: 44,
+                border_px: 0,
             },
             ..Default::default()
         },
@@ -509,6 +524,7 @@ fn main() {
                 foreground: color::BLACK,
                 text: format!("{}", dt.format("%F %r")),
                 scale: 75,
+                border_px: 0,
             },
             ..Default::default()
         },

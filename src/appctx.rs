@@ -160,11 +160,30 @@ impl<'a> ApplicationContext<'a> {
         x: usize,
         c: color,
         scale: usize,
+        border_px: usize,
+        border_padding: usize,
         text: String,
         refresh: UIConstraintRefresh,
     ) -> mxcfb_rect {
         let framebuffer = self.get_framebuffer_ref();
-        let draw_area: mxcfb_rect = framebuffer.draw_text(y, x, text, scale, c);
+        let mut draw_area: mxcfb_rect = framebuffer.draw_text(y, x, text, scale, c);
+
+        // Draw the border if border_px is set to a non-default value
+        if border_px > 0 {
+            draw_area.top -= border_padding as u32;
+            draw_area.left -= border_padding as u32;
+            draw_area.height += 2 * border_padding as u32;
+            draw_area.width += 2 * border_padding as u32;
+            framebuffer.draw_rect(
+                draw_area.top as usize,
+                draw_area.left as usize,
+                draw_area.height as usize,
+                draw_area.width as usize,
+                border_px,
+                c,
+            );
+        }
+
         let marker = match refresh {
             UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer
                 .partial_refresh(

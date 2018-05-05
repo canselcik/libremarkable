@@ -67,6 +67,16 @@ pub trait FramebufferDraw {
         size: usize,
         col: common::color,
     ) -> common::mxcfb_rect;
+    /// Draws a 1px border rectangle of `height` and `width` at `(y, x)` with `border_px` border thickness
+    fn draw_rect(
+        &mut self,
+        y: usize,
+        x: usize,
+        height: usize,
+        width: usize,
+        border_px: usize,
+        c: common::color,
+    );
     /// Fills rectangle of `height` and `width` at `(y, x)`
     fn fill_rect(&mut self, y: usize, x: usize, height: usize, width: usize, c: common::color);
     /// Clears the framebuffer however does not perform a refresh

@@ -73,6 +73,7 @@ pub enum UIElement {
         text: String,
         scale: usize,
         foreground: color,
+        border_px: usize,
     },
     Image {
         img: image::DynamicImage,
@@ -138,12 +139,23 @@ impl UIElementWrapper {
         };
 
         // TODO: Move this to inside the app and then have it call the UIElement's draw
+        // TODO: Also perhaps make border_padding configurable
         let rect = match self.inner {
             UIElement::Text {
                 ref text,
                 scale,
                 foreground,
-            } => app.display_text(y, x, foreground, scale, text.to_string(), refresh),
+                border_px,
+            } => app.display_text(
+                y,
+                x,
+                foreground,
+                scale,
+                border_px,
+                8,
+                text.to_string(),
+                refresh,
+            ),
             UIElement::Image { ref img } => app.display_image(&img, y, x, refresh),
             UIElement::Unspecified => return,
         };

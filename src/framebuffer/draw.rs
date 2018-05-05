@@ -255,6 +255,56 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         };
     }
 
+    fn draw_rect(
+        &mut self,
+        y: usize,
+        x: usize,
+        height: usize,
+        width: usize,
+        border_px: usize,
+        c: color,
+    ) {
+        // top horizontal
+        self.draw_line(
+            y as i32,
+            x as i32,
+            y as i32,
+            (x + width) as i32,
+            border_px,
+            c,
+        );
+
+        // left vertical
+        self.draw_line(
+            y as i32,
+            x as i32,
+            (y + height) as i32,
+            x as i32,
+            border_px,
+            c,
+        );
+
+        // bottom horizontal
+        self.draw_line(
+            (y + height) as i32,
+            x as i32,
+            (y + height) as i32,
+            (x + width) as i32,
+            border_px,
+            c,
+        );
+
+        // right vertical
+        self.draw_line(
+            y as i32,
+            (x + width) as i32,
+            (y + height) as i32,
+            (x + width) as i32,
+            border_px,
+            c,
+        );
+    }
+
     fn fill_rect(&mut self, y: usize, x: usize, height: usize, width: usize, c: color) {
         for ypos in y..y + height {
             for xpos in x..x + width {
