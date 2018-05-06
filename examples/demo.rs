@@ -172,10 +172,32 @@ fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent)
 
     match btn {
         gpio::PhysicalButton::LEFT => {
-            match app.is_input_device_active(InputDevice::Multitouch) {
-                true => app.deactivate_input_device(InputDevice::Multitouch),
-                false => app.activate_input_device(InputDevice::Multitouch),
+            let new_state = match app.is_input_device_active(InputDevice::Multitouch) {
+                true => {
+                    app.deactivate_input_device(InputDevice::Multitouch);
+                    "Enable Touch"
+                }
+                false => {
+                    app.activate_input_device(InputDevice::Multitouch);
+                    "Disable Touch"
+                }
             };
+
+            match app.get_element_by_name("tooltipLeft") {
+                Some(ref elem) => {
+                    if let UIElement::Text {
+                        ref mut text,
+                        scale: _,
+                        foreground: _,
+                        border_px: _,
+                    } = elem.write().inner
+                    {
+                        *text = new_state.to_string();
+                    }
+                }
+                None => {}
+            }
+            app.draw_element("tooltipLeft");
             return;
         }
         gpio::PhysicalButton::MIDDLE => {
@@ -294,7 +316,7 @@ fn on_change_draw_type(app: &mut appctx::ApplicationContext, element: UIElementH
     }
     // Make sure you aren't trying to draw the element while you are holding a write lock.
     // It doesn't seem to cause a deadlock however it may cause higher lock contention.
-    app.draw_element("tooltipLeft");
+    app.draw_element("touchMode");
 }
 
 lazy_static! {
@@ -330,6 +352,24 @@ fn main() {
             onclick: Some(on_touch_rustlogo),
             inner: UIElement::Image {
                 img: image::load_from_memory(include_bytes!("../assets/rustlang.bmp")).unwrap(),
+            },
+            ..Default::default()
+        },
+    );
+
+    app.add_element(
+        "touchMode",
+        UIElementWrapper {
+            y: 1000,
+            x: 1000,
+            refresh: UIConstraintRefresh::Refresh,
+
+            onclick: Some(on_change_draw_type),
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "Touch Mode: None".to_owned(),
+                scale: 45,
+                border_px: 5,
             },
             ..Default::default()
         },
@@ -449,10 +489,10 @@ fn main() {
             y: 1850,
             x: 15,
             refresh: UIConstraintRefresh::Refresh,
-            onclick: Some(on_change_draw_type),
+            onclick: None,
             inner: UIElement::Text {
                 foreground: color::BLACK,
-                text: "Toggle Touch (None)".to_owned(),
+                text: "Disable Touch".to_owned(),
                 scale: 50,
                 border_px: 0,
             },
