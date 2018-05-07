@@ -13,6 +13,7 @@ use chrono::{DateTime, Local};
 use std::time::Duration;
 use std::thread::sleep;
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use libremarkable::image;
 use libremarkable::framebuffer::common::*;
@@ -80,6 +81,11 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
             tilt_y: _,
         } => {
             let mut rad = 3.8 * (pressure as f32) / 4096.;
+            let mut color = color::BLACK;
+            if ERASE_MODE.load(Ordering::Relaxed) {
+                rad *= 3.0;
+                color = color::WHITE;
+            }
             if prev.0 >= 0 && prev.1 >= 0 {
                 let rect = framebuffer.draw_line(
                     y as i32,
@@ -87,7 +93,7 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
                     prev.0,
                     prev.1,
                     rad.ceil() as usize,
-                    color::BLACK,
+                    color,
                 );
                 framebuffer.partial_refresh(
                     &rect,
@@ -292,6 +298,23 @@ fn on_touch_rustlogo(app: &mut appctx::ApplicationContext, _element: UIElementHa
     );
 }
 
+fn on_toggle_eraser(app: &mut appctx::ApplicationContext, element: UIElementHandle) {
+    {
+        let newstate = !ERASE_MODE.load(Ordering::Relaxed);
+        ERASE_MODE.store(newstate, Ordering::Relaxed);
+        if let UIElement::Text {
+            ref mut text,
+            scale: _,
+            foreground: _,
+            border_px: _,
+        } = element.write().inner
+        {
+            *text = format!("Erase: {0}", if newstate { "On" } else { "Off" })
+        }
+    }
+    app.draw_element("eraseToggle");
+}
+
 fn on_change_draw_type(app: &mut appctx::ApplicationContext, element: UIElementHandle) {
     {
         let mut data = DRAW_ON_TOUCH.lock().unwrap();
@@ -321,6 +344,7 @@ fn on_change_draw_type(app: &mut appctx::ApplicationContext, element: UIElementH
 
 lazy_static! {
     static ref DRAW_ON_TOUCH: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
+    static ref ERASE_MODE: AtomicBool = AtomicBool::new(false);
     static ref PREV_WACOM: Arc<Mutex<(i32, i32)>> = Arc::new(Mutex::new((-1, -1)));
     static ref G_COUNTER: Mutex<u32> = Mutex::new(0);
 }
@@ -374,7 +398,23 @@ fn main() {
             ..Default::default()
         },
     );
+    app.add_element(
+        "eraseToggle",
+        UIElementWrapper {
+            y: 1060,
+            x: 1000,
+            refresh: UIConstraintRefresh::Refresh,
 
+            onclick: Some(on_toggle_eraser),
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "Erase: Off".to_owned(),
+                scale: 45,
+                border_px: 5,
+            },
+            ..Default::default()
+        },
+    );
     app.add_element(
         "exitToXochitl",
         UIElementWrapper {
