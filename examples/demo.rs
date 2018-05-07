@@ -13,7 +13,8 @@ use chrono::{DateTime, Local};
 use std::time::Duration;
 use std::thread::sleep;
 use std::sync::{Arc, Mutex};
-use std::sync::atomic::{AtomicBool, Ordering};
+
+use std::sync::atomic::{AtomicBool, Ordering, AtomicUsize};
 
 use libremarkable::image;
 use libremarkable::framebuffer::common::*;
@@ -80,7 +81,7 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
             tilt_x: _,
             tilt_y: _,
         } => {
-            let mut rad = 3.8 * (pressure as f32) / 4096.;
+            let mut rad = SIZE_MULTIPLIER.load(Ordering::Relaxed) as f32 * (pressure as f32) / 4096.;
             let mut color = color::BLACK;
             if ERASE_MODE.load(Ordering::Relaxed) {
                 rad *= 3.0;
@@ -315,6 +316,52 @@ fn on_toggle_eraser(app: &mut appctx::ApplicationContext, element: UIElementHand
     app.draw_element("eraseToggle");
 }
 
+fn on_decrease_size(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
+    let current = SIZE_MULTIPLIER.load(Ordering::Relaxed);
+    if current <= 1 {
+        return;
+    }
+    let new = current - 1;
+    SIZE_MULTIPLIER.store(new, Ordering::Relaxed);
+
+    let element = app.get_element_by_name("displaySize").unwrap();
+    {
+        if let UIElement::Text {
+            ref mut text,
+            scale: _,
+            foreground: _,
+            border_px: _,
+        } = element.write().inner
+        {
+            *text = format!("size: {0}", new)
+        }
+    }
+    app.draw_element("displaySize");
+}
+
+fn on_increase_size(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
+    let current = SIZE_MULTIPLIER.load(Ordering::Relaxed);
+    if current >= 99 {
+        return;
+    }
+    let new = current + 1;
+    SIZE_MULTIPLIER.store(new, Ordering::Relaxed);
+
+    let element = app.get_element_by_name("displaySize").unwrap();
+    {
+        if let UIElement::Text {
+            ref mut text,
+            scale: _,
+            foreground: _,
+            border_px: _,
+        } = element.write().inner
+            {
+                *text = format!("size: {0}", new)
+            }
+    }
+    app.draw_element("displaySize");
+}
+
 fn on_change_draw_type(app: &mut appctx::ApplicationContext, element: UIElementHandle) {
     {
         let mut data = DRAW_ON_TOUCH.lock().unwrap();
@@ -345,6 +392,7 @@ fn on_change_draw_type(app: &mut appctx::ApplicationContext, element: UIElementH
 lazy_static! {
     static ref DRAW_ON_TOUCH: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
     static ref ERASE_MODE: AtomicBool = AtomicBool::new(false);
+    static ref SIZE_MULTIPLIER: AtomicUsize = AtomicUsize::new(4);
     static ref PREV_WACOM: Arc<Mutex<(i32, i32)>> = Arc::new(Mutex::new((-1, -1)));
     static ref G_COUNTER: Mutex<u32> = Mutex::new(0);
 }
@@ -410,6 +458,53 @@ fn main() {
                 foreground: color::BLACK,
                 text: "Erase: Off".to_owned(),
                 scale: 45,
+                border_px: 5,
+            },
+            ..Default::default()
+        },
+    );
+    app.add_element(
+        "decreaseSize",
+        UIElementWrapper {
+            y: 1120,
+            x: 1000,
+            refresh: UIConstraintRefresh::Refresh,
+            onclick: Some(on_decrease_size),
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "-".to_owned(),
+                scale: 90,
+                border_px: 5,
+            },
+            ..Default::default()
+        },
+    );
+    app.add_element(
+        "displaySize",
+        UIElementWrapper {
+            y: 1120,
+            x: 1070,
+            refresh: UIConstraintRefresh::Refresh,
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "size: 4".to_owned(),
+                scale: 45,
+                border_px: 0,
+            },
+            ..Default::default()
+        },
+    );
+    app.add_element(
+        "increaseSize",
+        UIElementWrapper {
+            y: 1120,
+            x: 1250,
+            refresh: UIConstraintRefresh::Refresh,
+            onclick: Some(on_increase_size),
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "+".to_owned(),
+                scale: 90,
                 border_px: 5,
             },
             ..Default::default()
