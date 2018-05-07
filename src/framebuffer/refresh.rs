@@ -18,7 +18,7 @@ macro_rules! max {
 /// The smaller it is, the more likely we are to have display artifacts.
 /// 16 or 32 also seems like a decent minimum as this accelerates the initial processing,
 /// and therefore minimizing collisions through a different mechanism.
-const MIN_SEND_UPDATE_DIMENSION_PX: u32 = 32;
+const MIN_SEND_UPDATE_DIMENSION_PX: u32 = 16;
 
 pub enum PartialRefreshMode {
     DryRun,
