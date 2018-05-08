@@ -178,7 +178,7 @@ fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent)
     }
 
     match btn {
-        gpio::PhysicalButton::LEFT => {
+        gpio::PhysicalButton::RIGHT => {
             let new_state = match app.is_input_device_active(InputDevice::Multitouch) {
                 true => {
                     app.deactivate_input_device(InputDevice::Multitouch);
@@ -190,7 +190,7 @@ fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent)
                 }
             };
 
-            match app.get_element_by_name("tooltipLeft") {
+            match app.get_element_by_name("tooltipRight") {
                 Some(ref elem) => {
                     if let UIElement::Text {
                         ref mut text,
@@ -204,13 +204,13 @@ fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent)
                 }
                 None => {}
             }
-            app.draw_element("tooltipLeft");
+            app.draw_element("tooltipRight");
             return;
         }
         gpio::PhysicalButton::MIDDLE => {
             app.clear(true);
         }
-        gpio::PhysicalButton::RIGHT => {
+        gpio::PhysicalButton::LEFT => {
             app.clear(false);
         }
     };
@@ -362,6 +362,54 @@ fn on_increase_size(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
     app.draw_element("displaySize");
 }
 
+fn on_increase_refresh_dim(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
+    let current = app.get_min_update_dimension();
+    if current >= 512 {
+        return;
+    }
+    let new = current * 2;
+    app.set_min_update_dimension(new);
+
+    let element = app.get_element_by_name("displayRefreshDim").unwrap();
+    {
+        if let UIElement::Text {
+            ref mut text,
+            scale: _,
+            foreground: _,
+            border_px: _,
+        } = element.write().inner
+            {
+                *text = format!("{0}x{0}", new)
+            }
+    }
+    app.draw_element("displayRefreshDim");
+}
+
+
+fn on_decrease_refresh_dim(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
+    let current = app.get_min_update_dimension();
+    if current <= 1 {
+        return;
+    }
+    let new = current / 2;
+    app.set_min_update_dimension(new);
+
+    let element = app.get_element_by_name("displayRefreshDim").unwrap();
+    {
+        if let UIElement::Text {
+            ref mut text,
+            scale: _,
+            foreground: _,
+            border_px: _,
+        } = element.write().inner
+            {
+                *text = format!("{0}x{0}", new)
+            }
+    }
+    app.draw_element("displayRefreshDim");
+}
+
+
 fn on_change_draw_type(app: &mut appctx::ApplicationContext, element: UIElementHandle) {
     {
         let mut data = DRAW_ON_TOUCH.lock().unwrap();
@@ -429,6 +477,7 @@ fn main() {
         },
     );
 
+    // Touch Mode Toggle
     app.add_element(
         "touchMode",
         UIElementWrapper {
@@ -446,6 +495,8 @@ fn main() {
             ..Default::default()
         },
     );
+
+    // Erase Mode Toggle
     app.add_element(
         "eraseToggle",
         UIElementWrapper {
@@ -463,6 +514,8 @@ fn main() {
             ..Default::default()
         },
     );
+
+    // Size Controls
     app.add_element(
         "decreaseSize",
         UIElementWrapper {
@@ -510,6 +563,56 @@ fn main() {
             ..Default::default()
         },
     );
+
+    // Min Refresh Dimension Controls
+    app.add_element(
+        "decreaseRefreshDim",
+        UIElementWrapper {
+            y: 1200,
+            x: 1000,
+            refresh: UIConstraintRefresh::Refresh,
+            onclick: Some(on_decrease_refresh_dim),
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "-".to_owned(),
+                scale: 90,
+                border_px: 5,
+            },
+            ..Default::default()
+        },
+    );
+    app.add_element(
+        "displayRefreshDim",
+        UIElementWrapper {
+            y: 1200,
+            x: 1070,
+            refresh: UIConstraintRefresh::Refresh,
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "16x16".to_owned(),
+                scale: 45,
+                border_px: 0,
+            },
+            ..Default::default()
+        },
+    );
+    app.add_element(
+        "increaseRefreshDim",
+        UIElementWrapper {
+            y: 1200,
+            x: 1250,
+            refresh: UIConstraintRefresh::Refresh,
+            onclick: Some(on_increase_refresh_dim),
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "+".to_owned(),
+                scale: 90,
+                border_px: 5,
+            },
+            ..Default::default()
+        },
+    );
+
     app.add_element(
         "exitToXochitl",
         UIElementWrapper {
@@ -627,7 +730,7 @@ fn main() {
             onclick: None,
             inner: UIElement::Text {
                 foreground: color::BLACK,
-                text: "Disable Touch".to_owned(),
+                text: "Quick Redraw".to_owned(), // maybe quick redraw for the demo or waveform change?
                 scale: 50,
                 border_px: 0,
             },
@@ -657,7 +760,7 @@ fn main() {
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
-                text: "Quick Redraw".to_owned(), // maybe quick redraw for the demo or waveform change?
+                text: "Disable Touch".to_owned(),
                 scale: 50,
                 border_px: 0,
             },

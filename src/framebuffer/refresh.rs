@@ -1,7 +1,7 @@
 use libc;
 
 use std::os::unix::io::AsRawFd;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use framebuffer;
 use framebuffer::common;
@@ -13,12 +13,7 @@ macro_rules! max {
         ($x: expr, $($z: expr),+) => (::std::cmp::max($x, max!($($z),*)));
 }
 
-/// The minimum height/width that we will enforce before each call to MXCFB_SEND_UPDATE
-/// The higher it is, the more likely we are to have collisions between updates.
-/// The smaller it is, the more likely we are to have display artifacts.
-/// 16 or 32 also seems like a decent minimum as this accelerates the initial processing,
-/// and therefore minimizing collisions through a different mechanism.
-const MIN_SEND_UPDATE_DIMENSION_PX: u32 = 16;
+static MIN_SEND_UPDATE_DIMENSION_PX: AtomicUsize = AtomicUsize::new(16);
 
 pub enum PartialRefreshMode {
     DryRun,
@@ -27,6 +22,14 @@ pub enum PartialRefreshMode {
 }
 
 impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
+    fn set_min_update_dimension(&mut self, pixels: usize) {
+        MIN_SEND_UPDATE_DIMENSION_PX.store(pixels, Ordering::Relaxed);
+    }
+
+    fn get_min_update_dimension(&self) -> usize {
+        return MIN_SEND_UPDATE_DIMENSION_PX.load(Ordering::Relaxed);
+    }
+
     fn full_refresh(
         &mut self,
         waveform_mode: common::waveform_mode,
@@ -97,8 +100,9 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
             return 0;
         }
 
-        update_region.width = max!(update_region.width, MIN_SEND_UPDATE_DIMENSION_PX);
-        update_region.height = max!(update_region.height, MIN_SEND_UPDATE_DIMENSION_PX);
+        let min_dimension = MIN_SEND_UPDATE_DIMENSION_PX.load(Ordering::Relaxed) as u32;
+        update_region.width = max!(update_region.width, min_dimension);
+        update_region.height = max!(update_region.height, min_dimension);
 
         // Dont try to refresh OOB horizontally
         let max_x = update_region.left + update_region.width;
