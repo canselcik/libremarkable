@@ -53,6 +53,10 @@ pub enum color {
 }
 
 impl color {
+    pub fn from_native(c: [u8; 4]) -> color {
+        color::NATIVE_COMPONENTS(c[0], c[1], c[2], c[3])
+    }
+
     pub fn as_native(&self) -> [u8; 4] {
         // No need to over-optimize here and return a reference because 4 x u8 (1byte) = 4bytes
         match self {
@@ -71,6 +75,7 @@ impl color {
                 //    blue    : offset = 0,   length =5,      msb_right = 0
                 //
                 // TODO: RGB conversion ~ TO_REMARKABLE_COLOR(r, g, b) = ((r << 11) | (g << 5) | b)
+                // Simply can be referred to as `rgb565_le`.
                 color::GRAY(r).as_native()
             }
         }

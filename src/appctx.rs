@@ -312,6 +312,43 @@ impl<'a> ApplicationContext<'a> {
             element.write().draw(self, handler);
         }
     }
+
+    /// Briefly flash the element's `last_drawn_rect`
+    pub fn flash_element(&mut self, name: &str) {
+        let framebuffer = self.get_framebuffer_ref();
+        match self.get_element_by_name(name) {
+            None => {}
+            Some(locked_element) => {
+                let mut element = locked_element.write();
+                match element.last_drawn_rect {
+                    Some(rect) => {
+                        framebuffer.fill_rect(
+                            rect.top as usize,
+                            rect.left as usize,
+                            rect.height as usize,
+                            rect.width as usize,
+                            color::BLACK,
+                        );
+                        framebuffer.partial_refresh(
+                            &rect,
+                            PartialRefreshMode::Wait,
+                            waveform_mode::WAVEFORM_MODE_DU,
+                            display_temp::TEMP_USE_AMBIENT,
+                            dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                            0,
+                            false,
+                        );
+
+                        // We can pass None as the `handler` here as we know this flashing is not
+                        // changing the positioning of the `UIElementWrapper`.
+                        element.draw(self, None);
+                    }
+                    None => {}
+                }
+            }
+        }
+    }
+
     pub fn clear(&mut self, deep: bool) {
         let framebuffer = self.get_framebuffer_ref();
         let (yres, xres) = (
