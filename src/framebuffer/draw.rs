@@ -1,15 +1,15 @@
 use std;
 
-use libc;
 use image::DynamicImage;
-use rusttype::{point, Scale};
-use line_drawing;
 use image::GenericImage;
+use libc;
+use line_drawing;
+use rusttype::{point, Scale};
 
 use framebuffer;
-use framebuffer::FramebufferIO;
 use framebuffer::common::*;
 use framebuffer::core;
+use framebuffer::FramebufferIO;
 
 macro_rules! min {
         ($x: expr) => ($x);
@@ -189,6 +189,7 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         text: String,
         size: usize,
         col: color,
+        dryrun: bool,
     ) -> mxcfb_rect {
         let scale = Scale {
             x: size as f32,
@@ -231,6 +232,11 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
                 if bbmin_x < min_x {
                     min_x = bbmin_x;
                 }
+
+                if dryrun {
+                    continue;
+                }
+
                 glyph.draw(|x, y, v| {
                     let mult = (1.0 - v).min(1.0);
                     self.write_pixel(

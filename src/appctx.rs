@@ -1,8 +1,8 @@
 use std;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::RwLock;
 use std::cell::UnsafeCell;
 use std::ops::DerefMut;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::RwLock;
 
 use std::collections::HashMap;
 
@@ -12,11 +12,13 @@ use input::ev;
 
 use framebuffer::common::*;
 
-use ui_extensions::luaext;
-use ui_extensions::element::{ActiveRegionFunction, ActiveRegionHandler, UIConstraintRefresh,
-                             UIElementHandle, UIElementWrapper};
 use hlua;
 use hlua::Lua;
+use ui_extensions::element::{
+    ActiveRegionFunction, ActiveRegionHandler, UIConstraintRefresh, UIElementHandle,
+    UIElementWrapper,
+};
+use ui_extensions::luaext;
 
 use aabb_quadtree::{geom, ItemId, QuadTree};
 
@@ -26,10 +28,10 @@ use framebuffer::FramebufferBase;
 use framebuffer::FramebufferDraw;
 use framebuffer::FramebufferRefresh;
 
-use input::{InputDevice, InputEvent};
-use input::wacom::WacomEvent;
 use input::gpio::GPIOEvent;
 use input::multitouch::MultitouchEvent;
+use input::wacom::WacomEvent;
+use input::{InputDevice, InputEvent};
 
 unsafe impl<'a> Send for ApplicationContext<'a> {}
 unsafe impl<'a> Sync for ApplicationContext<'a> {}
@@ -174,7 +176,7 @@ impl<'a> ApplicationContext<'a> {
         refresh: UIConstraintRefresh,
     ) -> mxcfb_rect {
         let framebuffer = self.get_framebuffer_ref();
-        let mut draw_area: mxcfb_rect = framebuffer.draw_text(y, x, text, scale, c);
+        let mut draw_area: mxcfb_rect = framebuffer.draw_text(y, x, text, scale, c, false);
 
         // Draw the border if border_px is set to a non-default value
         if border_px > 0 {

@@ -5,15 +5,16 @@ use libc::ioctl;
 use mmap;
 use mmap::MemoryMap;
 
+use std::fs::{File, OpenOptions};
 use std::os::unix::io::AsRawFd;
 use std::sync::atomic::AtomicU32;
-use std::fs::{File, OpenOptions};
 
 use framebuffer;
+use framebuffer::common::{
+    FBIOGET_FSCREENINFO, FBIOGET_VSCREENINFO, FBIOPUT_VSCREENINFO, MXCFB_DISABLE_EPDC_ACCESS,
+    MXCFB_ENABLE_EPDC_ACCESS, MXCFB_SET_AUTO_UPDATE_MODE, MXCFB_SET_UPDATE_SCHEME,
+};
 use framebuffer::screeninfo::{FixScreeninfo, VarScreeninfo};
-use framebuffer::common::{FBIOGET_FSCREENINFO, FBIOGET_VSCREENINFO, FBIOPUT_VSCREENINFO,
-                          MXCFB_DISABLE_EPDC_ACCESS, MXCFB_ENABLE_EPDC_ACCESS,
-                          MXCFB_SET_AUTO_UPDATE_MODE, MXCFB_SET_UPDATE_SCHEME};
 
 use rusttype::{Font, FontCollection};
 

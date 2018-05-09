@@ -1,5 +1,5 @@
-use input::{InputEvent, UnifiedInputHandler};
 use evdev::raw::input_event;
+use input::{InputEvent, UnifiedInputHandler};
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum PhysicalButton {

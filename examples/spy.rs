@@ -19,26 +19,26 @@ use libremarkable::framebuffer::mxcfb::*;
 use libremarkable::framebuffer::screeninfo::VarScreeninfo;
 
 lazy_static! {
-  static ref DIST_DITHER: Mutex<HashMap<u32, u32>> = {
-    let m = HashMap::new();
-    Mutex::new(m)
-  };
-  static ref DIST_WAVEFORM: Mutex<HashMap<u32, u32>> = {
-    let m = HashMap::new();
-    Mutex::new(m)
-  };
-  static ref DIST_QUANT: Mutex<HashMap<u32, u32>> = {
-    let m = HashMap::new();
-    Mutex::new(m)
-  };
-  static ref DIST_FLAGS: Mutex<HashMap<u32, u32>> = {
-    let m = HashMap::new();
-    Mutex::new(m)
-  };
-  static ref DIST_TEMP: Mutex<HashMap<u32, u32>> = {
-    let m = HashMap::new();
-    Mutex::new(m)
-  };
+    static ref DIST_DITHER: Mutex<HashMap<u32, u32>> = {
+        let m = HashMap::new();
+        Mutex::new(m)
+    };
+    static ref DIST_WAVEFORM: Mutex<HashMap<u32, u32>> = {
+        let m = HashMap::new();
+        Mutex::new(m)
+    };
+    static ref DIST_QUANT: Mutex<HashMap<u32, u32>> = {
+        let m = HashMap::new();
+        Mutex::new(m)
+    };
+    static ref DIST_FLAGS: Mutex<HashMap<u32, u32>> = {
+        let m = HashMap::new();
+        Mutex::new(m)
+    };
+    static ref DIST_TEMP: Mutex<HashMap<u32, u32>> = {
+        let m = HashMap::new();
+        Mutex::new(m)
+    };
 }
 
 #[derive(Debug)]

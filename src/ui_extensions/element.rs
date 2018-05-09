@@ -1,14 +1,14 @@
 use std;
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::hash::{Hash, Hasher};
+use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use image;
 
 use framebuffer::common;
-use framebuffer::FramebufferRefresh;
+use framebuffer::common::{color, mxcfb_rect};
 use framebuffer::refresh::PartialRefreshMode;
 use framebuffer::FramebufferDraw;
-use framebuffer::common::{color, mxcfb_rect};
+use framebuffer::FramebufferRefresh;
 
 use appctx;
 

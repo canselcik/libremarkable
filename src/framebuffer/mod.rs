@@ -66,6 +66,7 @@ pub trait FramebufferDraw {
         text: String,
         size: usize,
         col: common::color,
+        dryrun: bool,
     ) -> common::mxcfb_rect;
     /// Draws a 1px border rectangle of `height` and `width` at `(y, x)` with `border_px` border thickness
     fn draw_rect(

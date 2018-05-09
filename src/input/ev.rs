@@ -1,8 +1,8 @@
-use evdev;
 use epoll;
-use std;
+use evdev;
 use input;
 use input::EvdevHandler;
+use std;
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -53,14 +53,12 @@ impl EvDevContext {
         let res = evdev::Device::open(&path);
         match res {
             Ok(mut dev) => {
-                let mut v = vec![
-                    epoll::Event {
-                        events: (epoll::Events::EPOLLET | epoll::Events::EPOLLIN
-                            | epoll::Events::EPOLLPRI)
-                            .bits(),
-                        data: 0,
-                    },
-                ];
+                let mut v = vec![epoll::Event {
+                    events: (epoll::Events::EPOLLET | epoll::Events::EPOLLIN
+                        | epoll::Events::EPOLLPRI)
+                        .bits(),
+                    data: 0,
+                }];
                 let epfd = epoll::create(false).unwrap();
                 epoll::ctl(epfd, epoll::ControlOptions::EPOLL_CTL_ADD, dev.fd(), v[0]).unwrap();
 

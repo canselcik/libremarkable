@@ -10,24 +10,25 @@ extern crate libremarkable;
 
 use chrono::{DateTime, Local};
 
-use std::time::Duration;
-use std::thread::sleep;
 use std::sync::{Arc, Mutex};
+use std::thread::sleep;
+use std::time::Duration;
 
-use std::sync::atomic::{AtomicBool, Ordering, AtomicUsize};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
-use libremarkable::image;
 use libremarkable::framebuffer::common::*;
+use libremarkable::image;
 
 use libremarkable::appctx;
-use libremarkable::ui_extensions::element::{UIConstraintRefresh, UIElement, UIElementHandle,
-                                            UIElementWrapper};
+use libremarkable::ui_extensions::element::{
+    UIConstraintRefresh, UIElement, UIElementHandle, UIElementWrapper,
+};
 
 use libremarkable::framebuffer::refresh::PartialRefreshMode;
 use libremarkable::framebuffer::{FramebufferDraw, FramebufferRefresh};
 
-use libremarkable::input::{gpio, multitouch, wacom, InputDevice};
 use libremarkable::battery;
+use libremarkable::input::{gpio, multitouch, wacom, InputDevice};
 
 use std::process::Command;
 
@@ -81,7 +82,8 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
             tilt_x: _,
             tilt_y: _,
         } => {
-            let mut rad = SIZE_MULTIPLIER.load(Ordering::Relaxed) as f32 * (pressure as f32) / 4096.;
+            let mut rad =
+                SIZE_MULTIPLIER.load(Ordering::Relaxed) as f32 * (pressure as f32) / 4096.;
             let mut color = color::BLACK;
             if ERASE_MODE.load(Ordering::Relaxed) {
                 rad *= 3.0;
@@ -287,7 +289,14 @@ fn on_touch_rustlogo(app: &mut appctx::ApplicationContext, _element: UIElementHa
         waveform_mode::WAVEFORM_MODE_GC16_FAST
     };
 
-    let rect = framebuffer.draw_text(240, 1140, format!("{0}", new_press_count), 65, color::BLACK);
+    let rect = framebuffer.draw_text(
+        240,
+        1140,
+        format!("{0}", new_press_count),
+        65,
+        color::BLACK,
+        false,
+    );
     framebuffer.partial_refresh(
         &rect,
         PartialRefreshMode::Wait,
@@ -355,9 +364,9 @@ fn on_increase_size(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
             foreground: _,
             border_px: _,
         } = element.write().inner
-            {
-                *text = format!("size: {0}", new)
-            }
+        {
+            *text = format!("size: {0}", new)
+        }
     }
     app.draw_element("displaySize");
 }
@@ -378,13 +387,12 @@ fn on_increase_refresh_dim(app: &mut appctx::ApplicationContext, _: UIElementHan
             foreground: _,
             border_px: _,
         } = element.write().inner
-            {
-                *text = format!("{0}x{0}", new)
-            }
+        {
+            *text = format!("{0}x{0}", new)
+        }
     }
     app.draw_element("displayRefreshDim");
 }
-
 
 fn on_decrease_refresh_dim(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
     let current = app.get_min_update_dimension();
@@ -402,13 +410,12 @@ fn on_decrease_refresh_dim(app: &mut appctx::ApplicationContext, _: UIElementHan
             foreground: _,
             border_px: _,
         } = element.write().inner
-            {
-                *text = format!("{0}x{0}", new)
-            }
+        {
+            *text = format!("{0}x{0}", new)
+        }
     }
     app.draw_element("displayRefreshDim");
 }
-
 
 fn on_change_draw_type(app: &mut appctx::ApplicationContext, element: UIElementHandle) {
     {

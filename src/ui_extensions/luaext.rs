@@ -1,14 +1,14 @@
-use std;
 use hlua;
+use std;
 
 use framebuffer::common::*;
 use framebuffer::core;
 
 use framebuffer::refresh::PartialRefreshMode;
 
-use framebuffer::FramebufferRefresh;
-use framebuffer::FramebufferIO;
 use framebuffer::FramebufferDraw;
+use framebuffer::FramebufferIO;
+use framebuffer::FramebufferRefresh;
 
 /// We reluctantly resort to a static global here to associate the lua context
 /// with the only active framebuffer we will have
@@ -16,11 +16,9 @@ pub static mut G_FB: *mut core::Framebuffer = std::ptr::null_mut();
 
 /// A macro to utilize this static global only inside this file.
 macro_rules! get_current_framebuffer {
-    () => (
-        unsafe {
-            std::mem::transmute::<* mut core::Framebuffer, &mut core::Framebuffer>(G_FB)
-        }
-    )
+    () => {
+        unsafe { std::mem::transmute::<*mut core::Framebuffer, &mut core::Framebuffer>(G_FB) }
+    };
 }
 
 pub fn lua_refresh(
@@ -101,6 +99,7 @@ pub fn lua_draw_text(
                 stext,
                 nsize as usize,
                 color::GRAY(ncolor as u8),
+                false,
             );
         }
         _ => {}

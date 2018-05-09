@@ -1,8 +1,8 @@
 use std;
 use std::sync::atomic::{AtomicU16, Ordering};
 
-use input::UnifiedInputHandler;
 use input::InputEvent;
+use input::UnifiedInputHandler;
 
 use evdev::raw::input_event;
 
