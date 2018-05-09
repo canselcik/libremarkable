@@ -183,6 +183,23 @@ impl UIElementWrapper {
             }
         }
 
+        match self.last_drawn_rect {
+            Some(lastrect) => {
+                if lastrect != rect {
+                    framebuffer.partial_refresh(
+                        &lastrect,
+                        PartialRefreshMode::Async,
+                        common::waveform_mode::WAVEFORM_MODE_DU,
+                        common::display_temp::TEMP_USE_REMARKABLE_DRAW,
+                        common::dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                        0,
+                        false,
+                    );
+                }
+            }
+            None => {}
+        };
+
         // We need to wait until now because we don't know the size of the active region before we
         // actually go ahead and draw it.
         self.last_drawn_rect = Some(rect);
