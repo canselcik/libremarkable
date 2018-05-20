@@ -2,8 +2,7 @@
 
 ## [![https://crates.io/crates/libremarkable](https://img.shields.io/crates/v/libremarkable.svg?style=for-the-badge)](https://crates.io/crates/libremarkable) libremarkable - A Framework for Remarkable Tablet
 
-[![PoC](https://thumbs.gfycat.com/CornyHugeIndianrhinoceros-size_restricted.gif)](https://gfycat.com/CornyHugeIndianRhinoceros)
-[![PoC](https://i.imgur.com/QBn8BvX.jpg)](https://i.imgur.com/DcPJJCo.jpg)
+[![PoC](https://thumbs.gfycat.com/ScholarlyShadyElk-size_restricted.gif)](https://gfycat.com/ScholarlyShadyElk)
 
 Everything from low latency partial updates to the eInk display to at least minimal multitouch, physical button and Wacom Digitizer input is now understood and their minimal to complete implementations can be found in this repository.
 
