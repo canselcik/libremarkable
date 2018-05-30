@@ -148,14 +148,6 @@ impl<'a> ApplicationContext<'a> {
         return res;
     }
 
-    pub fn set_min_update_dimension(&mut self, pixels: usize) {
-        self.framebuffer.set_min_update_dimension(pixels);
-    }
-
-    pub fn get_min_update_dimension(&self) -> usize {
-        self.framebuffer.get_min_update_dimension()
-    }
-
     pub fn execute_lua(&mut self, code: &str) {
         let lua = self.get_lua_ref();
         match lua.execute::<hlua::AnyLuaValue>(&code) {

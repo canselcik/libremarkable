@@ -332,52 +332,6 @@ fn on_increase_size(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
     app.draw_element("displaySize");
 }
 
-fn on_increase_refresh_dim(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
-    let current = app.get_min_update_dimension();
-    if current >= 512 {
-        return;
-    }
-    let new = current * 2;
-    app.set_min_update_dimension(new);
-
-    let element = app.get_element_by_name("displayRefreshDim").unwrap();
-    {
-        if let UIElement::Text {
-            ref mut text,
-            scale: _,
-            foreground: _,
-            border_px: _,
-        } = element.write().inner
-        {
-            *text = format!("{0}x{0}", new)
-        }
-    }
-    app.draw_element("displayRefreshDim");
-}
-
-fn on_decrease_refresh_dim(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
-    let current = app.get_min_update_dimension();
-    if current <= 1 {
-        return;
-    }
-    let new = current / 2;
-    app.set_min_update_dimension(new);
-
-    let element = app.get_element_by_name("displayRefreshDim").unwrap();
-    {
-        if let UIElement::Text {
-            ref mut text,
-            scale: _,
-            foreground: _,
-            border_px: _,
-        } = element.write().inner
-        {
-            *text = format!("{0}x{0}", new)
-        }
-    }
-    app.draw_element("displayRefreshDim");
-}
-
 fn on_change_draw_type(app: &mut appctx::ApplicationContext, element: UIElementHandle) {
     {
         let mut data = DRAW_ON_TOUCH.lock().unwrap();
@@ -546,55 +500,6 @@ fn main() {
             x: 1250,
             refresh: UIConstraintRefresh::Refresh,
             onclick: Some(on_increase_size),
-            inner: UIElement::Text {
-                foreground: color::BLACK,
-                text: "+".to_owned(),
-                scale: 90,
-                border_px: 5,
-            },
-            ..Default::default()
-        },
-    );
-
-    // Min Refresh Dimension Controls
-    app.add_element(
-        "decreaseRefreshDim",
-        UIElementWrapper {
-            y: 1200,
-            x: 1000,
-            refresh: UIConstraintRefresh::Refresh,
-            onclick: Some(on_decrease_refresh_dim),
-            inner: UIElement::Text {
-                foreground: color::BLACK,
-                text: "-".to_owned(),
-                scale: 90,
-                border_px: 5,
-            },
-            ..Default::default()
-        },
-    );
-    app.add_element(
-        "displayRefreshDim",
-        UIElementWrapper {
-            y: 1200,
-            x: 1070,
-            refresh: UIConstraintRefresh::Refresh,
-            inner: UIElement::Text {
-                foreground: color::BLACK,
-                text: "16x16".to_owned(),
-                scale: 45,
-                border_px: 0,
-            },
-            ..Default::default()
-        },
-    );
-    app.add_element(
-        "increaseRefreshDim",
-        UIElementWrapper {
-            y: 1200,
-            x: 1250,
-            refresh: UIConstraintRefresh::Refresh,
-            onclick: Some(on_increase_refresh_dim),
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "+".to_owned(),

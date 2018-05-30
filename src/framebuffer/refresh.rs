@@ -1,19 +1,13 @@
 use libc;
 
 use std::os::unix::io::AsRawFd;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::Ordering;
 
 use framebuffer;
 use framebuffer::common;
 use framebuffer::core;
 use framebuffer::mxcfb::*;
 
-macro_rules! max {
-        ($x: expr) => ($x);
-        ($x: expr, $($z: expr),+) => (::std::cmp::max($x, max!($($z),*)));
-}
-
-static MIN_SEND_UPDATE_DIMENSION_PX: AtomicUsize = AtomicUsize::new(16);
 
 pub enum PartialRefreshMode {
     DryRun,
@@ -22,14 +16,6 @@ pub enum PartialRefreshMode {
 }
 
 impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
-    fn set_min_update_dimension(&mut self, pixels: usize) {
-        MIN_SEND_UPDATE_DIMENSION_PX.store(pixels, Ordering::Relaxed);
-    }
-
-    fn get_min_update_dimension(&self) -> usize {
-        return MIN_SEND_UPDATE_DIMENSION_PX.load(Ordering::Relaxed);
-    }
-
     fn full_refresh(
         &mut self,
         waveform_mode: common::waveform_mode,
@@ -100,9 +86,12 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
             return 0;
         }
 
-        let min_dimension = MIN_SEND_UPDATE_DIMENSION_PX.load(Ordering::Relaxed) as u32;
-        update_region.width = max!(update_region.width, min_dimension);
-        update_region.height = max!(update_region.height, min_dimension);
+        if update_region.width < 1 {
+            update_region.width = 1
+        }
+        if update_region.height < 1 {
+            update_region.height = 1
+        }
 
         // Dont try to refresh OOB horizontally
         let max_x = update_region.left + update_region.width;

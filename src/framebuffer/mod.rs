@@ -107,17 +107,6 @@ pub trait FramebufferBase<'a> {
 
 pub mod refresh;
 pub trait FramebufferRefresh {
-    /// The minimum height/width that we will enforce before each call to MXCFB_SEND_UPDATE
-    /// The higher it is, the more likely we are to have collisions between updates.
-    /// The smaller it is, the more likely we are to have display artifacts.
-    /// 16 or 32 also seems like a decent minimum as this accelerates the initial processing,
-    /// and therefore minimizing collisions through a different mechanism.
-    ///
-    /// This value defaults to 16 and is a global `AtomicUsize`.
-    fn set_min_update_dimension(&mut self, pixels: usize);
-
-    fn get_min_update_dimension(&self) -> usize;
-
     /// Refreshes the entire screen with the provided parameters. If `wait_completion` is
     /// set to true, doesn't return before the refresh has been completed. Returns the marker.
     fn full_refresh(
