@@ -123,11 +123,12 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
             }
         }
 
+        let margin = ((width + 1) / 2) as i32;
         return mxcfb_rect {
-            top: min_y as u32,
-            left: min_x as u32,
-            width: (max_x - min_x) as u32,
-            height: (max_y - min_y) as u32,
+            top: (min_y - margin) as u32,
+            left: (min_x - margin) as u32,
+            width: (max_x - min_x + margin * 2) as u32,
+            height: (max_y - min_y + margin * 2) as u32,
         };
     }
 
