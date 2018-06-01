@@ -217,6 +217,48 @@ impl<'a> ApplicationContext<'a> {
         return draw_area;
     }
 
+    pub fn display_rect(
+        &mut self,
+        y: usize,
+        x: usize,
+        height: usize,
+        width: usize,
+        border_px: usize,
+        border_color: color,
+        refresh: UIConstraintRefresh,
+    ) -> mxcfb_rect {
+        let framebuffer = self.get_framebuffer_ref();
+
+        framebuffer.draw_rect(y, x, height, width, border_px, border_color);
+        let draw_area = mxcfb_rect {
+            top: y as u32,
+            left: x as u32,
+            height: height as u32,
+            width: width as u32,
+        };
+        let marker = match refresh {
+            UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer
+                .partial_refresh(
+                    &draw_area,
+                    PartialRefreshMode::Async,
+                    waveform_mode::WAVEFORM_MODE_GC16_FAST,
+                    display_temp::TEMP_USE_REMARKABLE_DRAW,
+                    dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                    0,
+                    false,
+                ),
+            _ => return draw_area,
+        };
+
+        match refresh {
+            UIConstraintRefresh::RefreshAndWait => {
+                framebuffer.wait_refresh_complete(marker);
+            }
+            _ => {}
+        };
+        return draw_area;
+    }
+
     pub fn display_image(
         &mut self,
         img: &image::DynamicImage,

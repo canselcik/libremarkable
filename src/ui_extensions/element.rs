@@ -78,6 +78,12 @@ pub enum UIElement {
     Image {
         img: image::DynamicImage,
     },
+    Region {
+        height: usize,
+        width: usize,
+        border_color: color,
+        border_px: usize,
+    },
     Unspecified,
 }
 
@@ -157,6 +163,12 @@ impl UIElementWrapper {
                 refresh,
             ),
             UIElement::Image { ref img } => app.display_image(&img, y, x, refresh),
+            UIElement::Region {
+                height,
+                width,
+                border_color,
+                border_px,
+            } => app.display_rect(y, x, height, width, border_px, border_color, refresh),
             UIElement::Unspecified => return,
         };
 
