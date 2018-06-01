@@ -82,6 +82,11 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
             tilt_x: _,
             tilt_y: _,
         } => {
+            if NON_DRAWABLE_REGION.contains_point(y.into(), x.into()) {
+                *prev = (-1, -1);
+                return;
+            }
+
             let mut rad =
                 SIZE_MULTIPLIER.load(Ordering::Relaxed) as f32 * (pressure as f32) / 4096.;
             let mut color = color::BLACK;
@@ -400,6 +405,13 @@ fn on_change_draw_type(app: &mut appctx::ApplicationContext, element: UIElementH
     app.draw_element("touchMode");
 }
 
+const NON_DRAWABLE_REGION: mxcfb_rect = mxcfb_rect {
+    top: 950,
+    left: 980,
+    height: 200,
+    width: 500,
+};
+
 lazy_static! {
     static ref DRAW_ON_TOUCH: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
     static ref ERASE_MODE: AtomicBool = AtomicBool::new(false);
@@ -435,6 +447,23 @@ fn main() {
             onclick: Some(on_touch_rustlogo),
             inner: UIElement::Image {
                 img: image::load_from_memory(include_bytes!("../assets/rustlang.bmp")).unwrap(),
+            },
+            ..Default::default()
+        },
+    );
+
+    app.add_element(
+        "NON_DRAWABLE_REGION",
+        UIElementWrapper {
+            y: NON_DRAWABLE_REGION.top as usize,
+            x: NON_DRAWABLE_REGION.left as usize,
+            refresh: UIConstraintRefresh::NoRefresh,
+            onclick: None,
+            inner: UIElement::Region {
+                height: NON_DRAWABLE_REGION.height as usize,
+                width: NON_DRAWABLE_REGION.width as usize,
+                border_px: 0,
+                border_color: color::BLACK,
             },
             ..Default::default()
         },
