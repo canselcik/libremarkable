@@ -218,50 +218,6 @@ fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent)
     };
 
     app.draw_elements();
-
-    // Alternatively, if we wanted to just clear the bottom half of the screen
-    // we could have done something like this:
-    //     let framebuffer = app.get_framebuffer_ref();
-    //     let (yres, xres) = (framebuffer.var_screen_info.yres,
-    //                         framebuffer.var_screen_info.xres);
-    //     let offset = 45 * yres / 100;
-    //     let height = yres - offset;
-    //     framebuffer.fill_rect(
-    //         offset as usize,
-    //         0,
-    //         height as usize,
-    //         xres as usize,
-    //         REMARKABLE_BRIGHTEST
-    //     );
-    //     framebuffer.partial_refresh(
-    //         &mxcfb_rect {
-    //             top: offset,
-    //             left: 0,
-    //             height,
-    //             width: xres,
-    //         },
-    //         PartialRefreshMode::Wait,
-    //         waveform_mode::WAVEFORM_MODE_INIT,
-    //         display_temp::TEMP_USE_AMBIENT,
-    //         dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-    //         0,
-    //     );
-
-    // If you wanted to draw a rectangle and refresh it, this is how it is done:
-    //    framebuffer.fill_rect(1500, x_offset, 125, 125, color);
-    //    framebuffer.partial_refresh(
-    //        &mxcfb_rect {
-    //            top: 1500,
-    //            left: x_offset as u32,
-    //            height: 125,
-    //            width: 125,
-    //        },
-    //        PartialRefreshMode::Async,
-    //        waveform_mode::WAVEFORM_MODE_DU,
-    //        display_temp::TEMP_USE_PAPYRUS,
-    //        dither_mode::EPDC_FLAG_USE_DITHERING_ALPHA,
-    //        0,
-    //    );
 }
 
 fn on_touch_exit_to_xochitl(_app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
