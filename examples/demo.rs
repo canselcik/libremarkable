@@ -360,9 +360,9 @@ fn on_change_draw_type(app: &mut appctx::ApplicationContext, element: UIElementH
 }
 
 const NON_DRAWABLE_REGION: mxcfb_rect = mxcfb_rect {
-    top: 950,
+    top: 850,
     left: 980,
-    height: 200,
+    height: 300,
     width: 500,
 };
 
@@ -427,7 +427,7 @@ fn main() {
     app.add_element(
         "touchMode",
         UIElementWrapper {
-            y: 1000,
+            y: 900,
             x: 1000,
             refresh: UIConstraintRefresh::Refresh,
 
@@ -446,7 +446,7 @@ fn main() {
     app.add_element(
         "eraseToggle",
         UIElementWrapper {
-            y: 1060,
+            y: 1010,
             x: 1000,
             refresh: UIConstraintRefresh::Refresh,
 
