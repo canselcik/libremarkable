@@ -1,3 +1,4 @@
+#![feature(nll)]
 #[macro_use]
 extern crate lazy_static;
 
@@ -84,6 +85,13 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
         } => {
             if NON_DRAWABLE_REGION.contains_point(y.into(), x.into()) {
                 *prev = (-1, -1);
+                if UNPRESS_OBSERVED.load(Ordering::Relaxed) {
+                    match app.find_active_region(y, x) {
+                        Some((region, _)) => (region.handler)(app, region.element.clone()),
+                        None => {},
+                    };
+                    UNPRESS_OBSERVED.store(false, Ordering::Relaxed);
+                }
                 return;
             }
 
@@ -131,6 +139,7 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
             // If the pen is hovering, don't record its coordinates as the origin of the next line
             if distance > 1 {
                 *prev = (-1, -1);
+                UNPRESS_OBSERVED.store(true, Ordering::Relaxed);
             }
         }
         _ => {}
@@ -370,6 +379,7 @@ lazy_static! {
     static ref DRAW_ON_TOUCH: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
     static ref ERASE_MODE: AtomicBool = AtomicBool::new(false);
     static ref SIZE_MULTIPLIER: AtomicUsize = AtomicUsize::new(4);
+    static ref UNPRESS_OBSERVED: AtomicBool = AtomicBool::new(false);
     static ref PREV_WACOM: Arc<Mutex<(i32, i32)>> = Arc::new(Mutex::new((-1, -1)));
     static ref G_COUNTER: Mutex<u32> = Mutex::new(0);
 }
