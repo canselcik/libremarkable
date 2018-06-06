@@ -85,12 +85,11 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
         } => {
             if NON_DRAWABLE_REGION.contains_point(y.into(), x.into()) {
                 *prev = (-1, -1);
-                if UNPRESS_OBSERVED.load(Ordering::Relaxed) {
+                if UNPRESS_OBSERVED.fetch_and(false, Ordering::Relaxed) {
                     match app.find_active_region(y, x) {
                         Some((region, _)) => (region.handler)(app, region.element.clone()),
                         None => {},
                     };
-                    UNPRESS_OBSERVED.store(false, Ordering::Relaxed);
                 }
                 return;
             }
