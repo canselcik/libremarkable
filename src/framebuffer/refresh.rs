@@ -30,9 +30,10 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
             height: self.var_screen_info.yres,
             width: self.var_screen_info.xres,
         };
+        let marker = self.marker.fetch_add(1, Ordering::Relaxed);
         let whole = mxcfb_update_data {
             update_mode: common::update_mode::UPDATE_MODE_FULL as u32,
-            update_marker: *self.marker.get_mut() as u32,
+            update_marker: marker as u32,
             waveform_mode: waveform_mode as u32,
             temp: temperature as i32,
             flags: 0,
@@ -41,7 +42,6 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
             update_region: screen,
             ..Default::default()
         };
-        self.marker.swap(whole.update_marker + 1, Ordering::Relaxed);
 
         let pt: *const mxcfb_update_data = &whole;
         unsafe {
@@ -111,9 +111,10 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
             common::update_mode::UPDATE_MODE_PARTIAL as u32
         };
 
+        let marker = self.marker.fetch_add(1, Ordering::Relaxed);
         let whole = mxcfb_update_data {
             update_mode,
-            update_marker: *self.marker.get_mut() as u32,
+            update_marker: marker as u32,
             waveform_mode: waveform_mode as u32,
             temp: temperature as i32,
             flags: match mode {
@@ -125,7 +126,6 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
             update_region,
             ..Default::default()
         };
-        self.marker.swap(whole.update_marker + 1, Ordering::Relaxed);
 
         let pt: *const mxcfb_update_data = &whole;
         unsafe {
