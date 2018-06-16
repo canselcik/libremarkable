@@ -87,7 +87,7 @@ impl<'a> ApplicationContext<'a> {
         }
     }
 
-    pub fn get_dimensions(self) -> (u32, u32) {
+    pub fn get_dimensions(&self) -> (u32, u32) {
         (self.yres, self.xres)
     }
 
