@@ -62,8 +62,8 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
         var_screen_info.xres = 1872;
         var_screen_info.yres = 1404;
         var_screen_info.rotate = 1;
-        var_screen_info.width = var_screen_info.xres;
-        var_screen_info.height = var_screen_info.yres;
+        var_screen_info.width = 0xffffffff;
+        var_screen_info.height = 0xffffffff;
         var_screen_info.pixclock = 160000000;
         var_screen_info.left_margin = 32;
         var_screen_info.right_margin = 326;
