@@ -2,6 +2,7 @@ pub mod common;
 pub mod mxcfb;
 pub mod screeninfo;
 
+use ndarray::Array2;
 pub mod io;
 pub trait FramebufferIO {
     /// Writes an arbitrary length frame into the framebuffer
@@ -9,9 +10,17 @@ pub trait FramebufferIO {
     /// Writes a single pixel at `(y, x)` with value `v`
     fn write_pixel(&mut self, y: usize, x: usize, v: common::color);
     /// Reads the value of the pixel at `(y, x)`
-    fn read_pixel(&mut self, y: usize, x: usize) -> common::color;
+    fn read_pixel(&self, y: usize, x: usize) -> common::color;
     /// Reads the value at offset `ofst` from the mmapp'ed framebuffer region
-    fn read_offset(&mut self, ofst: isize) -> u8;
+    fn read_offset(&self, ofst: isize) -> u8;
+    /// Dumps the contents of the specified rectangle into an `ndarray::Array2<common::color>`
+    fn dump_region(&self, rect: common::mxcfb_rect) -> Result<Array2<common::color>, &'static str>;
+    /// Restores into the framebuffer the contents of the specified rectangle from an `ndarray::Array2<common::color>`
+    fn restore_region(
+        &mut self,
+        rect: common::mxcfb_rect,
+        data: &Array2<common::color>,
+    ) -> Result<u32, &'static str>;
 }
 
 use image;

@@ -9,6 +9,10 @@ extern crate log;
 extern crate chrono;
 extern crate libremarkable;
 
+extern crate ndarray;
+
+use ndarray::Array2;
+
 use chrono::{DateTime, Local};
 
 use std::sync::{Arc, Mutex};
@@ -26,7 +30,7 @@ use libremarkable::ui_extensions::element::{
 };
 
 use libremarkable::framebuffer::refresh::PartialRefreshMode;
-use libremarkable::framebuffer::{FramebufferDraw, FramebufferRefresh};
+use libremarkable::framebuffer::{FramebufferDraw, FramebufferIO, FramebufferRefresh};
 
 use libremarkable::battery;
 use libremarkable::input::{gpio, multitouch, wacom, InputDevice};
@@ -88,7 +92,7 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
                 if UNPRESS_OBSERVED.fetch_and(false, Ordering::Relaxed) {
                     match app.find_active_region(y, x) {
                         Some((region, _)) => (region.handler)(app, region.element.clone()),
-                        None => {},
+                        None => {}
                     };
                 }
                 return;
@@ -233,6 +237,52 @@ fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent)
     app.draw_elements();
 }
 
+fn on_screenstate_checkpoint(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
+    let framebuffer = app.get_framebuffer_ref();
+    let dims = app.get_dimensions();
+    let buffer = framebuffer.dump_region(mxcfb_rect {
+        top: 0,
+        left: 0,
+        height: dims.0,
+        width: dims.1,
+    });
+    match buffer {
+        Err(err) => println!("Failed to dump buffer: {0}", err),
+        Ok(buff) => {
+            let mut hist = SCREENSTATE_HISTORY.lock().unwrap();
+            hist.push(buff);
+        }
+    };
+}
+
+fn on_screenstate_prev(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
+    let mut hist = SCREENSTATE_HISTORY.lock().unwrap();
+    if let Some(ref buff) = hist.pop() {
+        let framebuffer = app.get_framebuffer_ref();
+        let dims = app.get_dimensions();
+        let fullscreen = mxcfb_rect {
+            top: 0,
+            left: 0,
+            height: dims.0,
+            width: dims.1,
+        };
+        match framebuffer.restore_region(fullscreen, buff) {
+            Err(e) => println!("Error while restoring region: {0}", e),
+            Ok(_) => {
+                framebuffer.partial_refresh(
+                    &fullscreen,
+                    PartialRefreshMode::Wait,
+                    waveform_mode::WAVEFORM_MODE_DU,
+                    display_temp::TEMP_USE_REMARKABLE_DRAW,
+                    dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                    0,
+                    false,
+                );
+            }
+        };
+    }
+}
+
 fn on_touch_exit_to_xochitl(_app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
     Command::new("systemctl")
         .arg("start")
@@ -368,9 +418,9 @@ fn on_change_draw_type(app: &mut appctx::ApplicationContext, element: UIElementH
 }
 
 const NON_DRAWABLE_REGION: mxcfb_rect = mxcfb_rect {
-    top: 850,
+    top: 720,
     left: 980,
-    height: 300,
+    height: 430,
     width: 500,
 };
 
@@ -381,6 +431,7 @@ lazy_static! {
     static ref UNPRESS_OBSERVED: AtomicBool = AtomicBool::new(false);
     static ref PREV_WACOM: Arc<Mutex<(i32, i32)>> = Arc::new(Mutex::new((-1, -1)));
     static ref G_COUNTER: Mutex<u32> = Mutex::new(0);
+    static ref SCREENSTATE_HISTORY: Mutex<Vec<Array2<color>>> = Mutex::new(Vec::new());
 }
 
 fn main() {
@@ -427,6 +478,44 @@ fn main() {
                 width: NON_DRAWABLE_REGION.width as usize,
                 border_px: 0,
                 border_color: color::BLACK,
+            },
+            ..Default::default()
+        },
+    );
+
+    // Back Button
+    app.add_element(
+        "backButton",
+        UIElementWrapper {
+            y: 800,
+            x: 1000,
+            refresh: UIConstraintRefresh::Refresh,
+
+            onclick: Some(on_screenstate_prev),
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "⟲ Undo".to_owned(),
+                scale: 75,
+                border_px: 5,
+            },
+            ..Default::default()
+        },
+    );
+
+    // Checkpoint Button
+    app.add_element(
+        "checkpointButton",
+        UIElementWrapper {
+            y: 800,
+            x: 1300,
+            refresh: UIConstraintRefresh::Refresh,
+
+            onclick: Some(on_screenstate_checkpoint),
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "∑".to_owned(),
+                scale: 72,
+                border_px: 5,
             },
             ..Default::default()
         },
@@ -560,7 +649,7 @@ fn main() {
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "github.com/canselcik/libremarkable".to_owned(),
-                scale: 60,
+                scale: 55,
                 border_px: 0,
             },
             ..Default::default()
@@ -651,7 +740,7 @@ fn main() {
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
-                text: "Redraw Layout".to_owned(),
+                text: "Full Redraw".to_owned(),
                 scale: 50,
                 border_px: 0,
             },

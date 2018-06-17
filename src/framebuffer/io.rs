@@ -1,5 +1,8 @@
 #![allow(dead_code)]
 use framebuffer;
+use framebuffer::common;
+
+use ndarray::Array2;
 
 impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
     fn write_frame(&mut self, frame: &[u8]) {
@@ -31,7 +34,7 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         }
     }
 
-    fn read_pixel(&mut self, y: usize, x: usize) -> framebuffer::common::color {
+    fn read_pixel(&self, y: usize, x: usize) -> framebuffer::common::color {
         let w = self.var_screen_info.xres as usize;
         let h = self.var_screen_info.yres as usize;
         if y >= h || x >= w {
@@ -50,10 +53,66 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         )
     }
 
-    fn read_offset(&mut self, ofst: isize) -> u8 {
+    fn read_offset(&self, ofst: isize) -> u8 {
         unsafe {
             let begin = self.frame.data() as *mut u8;
             return *(begin.offset(ofst));
         }
+    }
+
+    fn dump_region(&self, rect: common::mxcfb_rect) -> Result<Array2<common::color>, &'static str> {
+        if rect.width == 0 || rect.height == 0 {
+            return Err("Unable to dump a region with zero height/width");
+        }
+        if rect.top + rect.height > self.var_screen_info.height {
+            return Err("Vertically out of bounds");
+        }
+        if rect.left + rect.width > self.var_screen_info.width {
+            return Err("Horizontally out of bounds");
+        }
+
+        let mut array = Array2::default((rect.height as usize, rect.width as usize));
+        for y_offset in 0..rect.height {
+            let mut row = array.row_mut(y_offset as usize);
+            for x_offset in 0..rect.width {
+                let mut pixel = row.get_mut(x_offset as usize).unwrap();
+                *pixel = self.read_pixel(
+                    (rect.top + y_offset) as usize,
+                    (rect.left + x_offset) as usize,
+                );
+            }
+        }
+        return Ok(array);
+    }
+
+    fn restore_region(
+        &mut self,
+        rect: common::mxcfb_rect,
+        data: &Array2<common::color>,
+    ) -> Result<u32, &'static str> {
+        if rect.width == 0 || rect.height == 0 {
+            return Err("Unable to restore a region with zero height/width");
+        }
+        if rect.top + rect.height > self.var_screen_info.height {
+            return Err("Vertically out of bounds");
+        }
+        if rect.left + rect.width > self.var_screen_info.width {
+            return Err("Horizontally out of bounds");
+        }
+
+        let mut written: u32 = 0;
+        for y_offset in 0..rect.height {
+            let row = data.row(y_offset as usize);
+            for x_offset in 0..rect.width {
+                let pixel = row.get(x_offset as usize).unwrap();
+                self.write_pixel(
+                    (rect.top + y_offset) as usize,
+                    (rect.left + x_offset) as usize,
+                    *pixel,
+                );
+                written += 1;
+            }
+        }
+        return Ok(written);
     }
 }

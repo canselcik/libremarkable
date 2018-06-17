@@ -8,7 +8,6 @@ use framebuffer::common;
 use framebuffer::core;
 use framebuffer::mxcfb::*;
 
-
 pub enum PartialRefreshMode {
     DryRun,
     Async,
