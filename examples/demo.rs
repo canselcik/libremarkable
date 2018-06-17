@@ -150,7 +150,7 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
                     // UNDO_SNAPSHOT or REDO_SNAPSHOT message, goes and saves the canvas state
                     // and pushes it into the appropriate stack.
                     std::thread::spawn(move || {
-                        checkpoint_canvasstate(framebuffer, false);
+                        push_canvasstate_to_undostack(framebuffer);
                     });
                 }
             }
@@ -261,16 +261,15 @@ fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent)
     app.draw_elements();
 }
 
-fn checkpoint_canvasstate(framebuffer: &Framebuffer, into_redo_stack: bool) {
+fn push_canvasstate_to_undostack(framebuffer: &Framebuffer) {
     let buffer = framebuffer.dump_region(CANVAS_REGION);
     match buffer {
         Err(err) => println!("Failed to dump buffer: {0}", err),
         Ok(buff) => {
-            let mut hist = if into_redo_stack {
-                REDO_STACK.lock().unwrap()
-            } else {
-                UNDO_STACK.lock().unwrap()
-            };
+            let mut hist = UNDO_STACK.lock().unwrap();
+            while hist.len() > UNDO_REDO_DEPTH {
+                hist.remove(0);
+            }
             hist.push(Arc::new(buff));
         }
     };
@@ -298,8 +297,16 @@ fn on_canvasstate_prev(app: &mut appctx::ApplicationContext, _element: UIElement
                         0,
                         false,
                     );
-                    // Push the popped state into the redo stack
-                    REDO_STACK.lock().unwrap().push(Arc::clone(buff_arc));
+
+                    let mut hist = REDO_STACK.lock().unwrap();
+
+                    // Push the popped state into the redo stack but make sure it doesn't
+                    // grow out of control
+                    while hist.len() > UNDO_REDO_DEPTH {
+                        hist.remove(0);
+                    }
+
+                    hist.push(Arc::clone(buff_arc));
                 }
             };
         }
@@ -328,8 +335,16 @@ fn on_canvasstate_next(app: &mut appctx::ApplicationContext, _element: UIElement
                         0,
                         false,
                     );
-                    // Push the popped state into the undo stack
-                    UNDO_STACK.lock().unwrap().push(Arc::clone(buff_arc));
+
+                    let mut hist = UNDO_STACK.lock().unwrap();
+
+                    // Push the popped state into the undo stack but make sure it doesn't
+                    // grow out of control
+                    while hist.len() > UNDO_REDO_DEPTH {
+                        hist.remove(0);
+                    }
+
+                    hist.push(Arc::clone(buff_arc));
                 }
             };
         }
@@ -476,6 +491,7 @@ const CANVAS_REGION: mxcfb_rect = mxcfb_rect {
     height: 1050,
     width: 1400,
 };
+const UNDO_REDO_DEPTH: usize = 10;
 
 lazy_static! {
     static ref DRAW_ON_TOUCH: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
@@ -899,7 +915,7 @@ fn main() {
     info!("Init complete. Beginning event dispatch...");
 
     // Saving the empty canvasstate so that we can ultimately undo to it
-    checkpoint_canvasstate(app.get_framebuffer_ref(), false);
+    push_canvasstate_to_undostack(app.get_framebuffer_ref());
 
     // Blocking call to process events from digitizer + touchscreen + physical buttons
     app.dispatch_events(true, true, true);
