@@ -87,7 +87,7 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
             tilt_x: _,
             tilt_y: _,
         } => {
-            if NON_DRAWABLE_REGION.contains_point(y.into(), x.into()) {
+            if !CANVAS_REGION.contains_point(y.into(), x.into()) {
                 *prev = (-1, -1);
                 if UNPRESS_OBSERVED.fetch_and(false, Ordering::Relaxed) {
                     match app.find_active_region(y, x) {
@@ -239,13 +239,7 @@ fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent)
 
 fn on_screenstate_checkpoint(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
     let framebuffer = app.get_framebuffer_ref();
-    let dims = app.get_dimensions();
-    let buffer = framebuffer.dump_region(mxcfb_rect {
-        top: 0,
-        left: 0,
-        height: dims.0,
-        width: dims.1,
-    });
+    let buffer = framebuffer.dump_region(CANVAS_REGION);
     match buffer {
         Err(err) => println!("Failed to dump buffer: {0}", err),
         Ok(buff) => {
@@ -259,18 +253,11 @@ fn on_screenstate_prev(app: &mut appctx::ApplicationContext, _element: UIElement
     let mut hist = SCREENSTATE_HISTORY.lock().unwrap();
     if let Some(ref buff) = hist.pop() {
         let framebuffer = app.get_framebuffer_ref();
-        let dims = app.get_dimensions();
-        let fullscreen = mxcfb_rect {
-            top: 0,
-            left: 0,
-            height: dims.0,
-            width: dims.1,
-        };
-        match framebuffer.restore_region(fullscreen, buff) {
+        match framebuffer.restore_region(CANVAS_REGION, buff) {
             Err(e) => println!("Error while restoring region: {0}", e),
             Ok(_) => {
                 framebuffer.partial_refresh(
-                    &fullscreen,
+                    &CANVAS_REGION,
                     PartialRefreshMode::Wait,
                     waveform_mode::WAVEFORM_MODE_DU,
                     display_temp::TEMP_USE_REMARKABLE_DRAW,
@@ -417,11 +404,11 @@ fn on_change_draw_type(app: &mut appctx::ApplicationContext, element: UIElementH
     app.draw_element("touchMode");
 }
 
-const NON_DRAWABLE_REGION: mxcfb_rect = mxcfb_rect {
-    top: 720,
-    left: 980,
-    height: 430,
-    width: 500,
+const CANVAS_REGION: mxcfb_rect = mxcfb_rect {
+    top: 750,
+    left: 1,
+    height: 1050,
+    width: 1400,
 };
 
 lazy_static! {
@@ -466,17 +453,18 @@ fn main() {
         },
     );
 
+    // Draw the borders for the canvas region
     app.add_element(
-        "NON_DRAWABLE_REGION",
+        "canvasRegion",
         UIElementWrapper {
-            y: NON_DRAWABLE_REGION.top as usize,
-            x: NON_DRAWABLE_REGION.left as usize,
-            refresh: UIConstraintRefresh::NoRefresh,
+            y: CANVAS_REGION.top as usize,
+            x: CANVAS_REGION.left as usize,
+            refresh: UIConstraintRefresh::RefreshAndWait,
             onclick: None,
             inner: UIElement::Region {
-                height: NON_DRAWABLE_REGION.height as usize,
-                width: NON_DRAWABLE_REGION.width as usize,
-                border_px: 0,
+                height: CANVAS_REGION.height as usize,
+                width: CANVAS_REGION.width as usize,
+                border_px: 2,
                 border_color: color::BLACK,
             },
             ..Default::default()
@@ -487,7 +475,7 @@ fn main() {
     app.add_element(
         "backButton",
         UIElementWrapper {
-            y: 800,
+            y: 400,
             x: 1000,
             refresh: UIConstraintRefresh::Refresh,
 
@@ -506,7 +494,7 @@ fn main() {
     app.add_element(
         "checkpointButton",
         UIElementWrapper {
-            y: 800,
+            y: 400,
             x: 1300,
             refresh: UIConstraintRefresh::Refresh,
 
@@ -525,7 +513,7 @@ fn main() {
     app.add_element(
         "touchMode",
         UIElementWrapper {
-            y: 900,
+            y: 500,
             x: 1000,
             refresh: UIConstraintRefresh::Refresh,
 
@@ -544,7 +532,7 @@ fn main() {
     app.add_element(
         "eraseToggle",
         UIElementWrapper {
-            y: 1010,
+            y: 610,
             x: 1000,
             refresh: UIConstraintRefresh::Refresh,
 
@@ -563,7 +551,7 @@ fn main() {
     app.add_element(
         "decreaseSize",
         UIElementWrapper {
-            y: 1120,
+            y: 710,
             x: 1000,
             refresh: UIConstraintRefresh::Refresh,
             onclick: Some(on_decrease_size),
@@ -579,7 +567,7 @@ fn main() {
     app.add_element(
         "displaySize",
         UIElementWrapper {
-            y: 1120,
+            y: 710,
             x: 1070,
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
@@ -594,7 +582,7 @@ fn main() {
     app.add_element(
         "increaseSize",
         UIElementWrapper {
-            y: 1120,
+            y: 710,
             x: 1250,
             refresh: UIConstraintRefresh::Refresh,
             onclick: Some(on_increase_size),
@@ -828,14 +816,14 @@ fn main() {
       end
 
       top = 450;
-      left = 820;
-      width = 420;
+      left = 620;
+      width = 320;
       height = 90;
-      borderpx = 5;
+      borderpx = 3;
       draw_box(top, left, height, width, borderpx, 0);
 
       -- Draw black text inside the box. Notice the text is bottom aligned.
-      fb.draw_text(top+55, left+22, '...also supports Lua', 45, 0);
+      fb.draw_text(top+55, left+22, '...also supports Lua', 30, 0);
 
       -- Update the drawn rect w/ `deep_plot=false` and `wait_for_update_complete=true`
       fb.refresh(top, left, height, width, false, true);
