@@ -29,6 +29,7 @@ use libremarkable::ui_extensions::element::{
     UIConstraintRefresh, UIElement, UIElementHandle, UIElementWrapper,
 };
 
+use libremarkable::framebuffer::core::Framebuffer;
 use libremarkable::framebuffer::refresh::PartialRefreshMode;
 use libremarkable::framebuffer::{FramebufferDraw, FramebufferIO, FramebufferRefresh};
 
@@ -77,8 +78,6 @@ fn loop_update_topbar(app: &mut appctx::ApplicationContext, millis: u64) {
 }
 
 fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent) {
-    let framebuffer = app.get_framebuffer_ref();
-    let mut prev = PREV_WACOM.lock().unwrap();
     match input {
         wacom::WacomEvent::Draw {
             y,
@@ -87,6 +86,10 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
             tilt_x: _,
             tilt_y: _,
         } => {
+            let mut prev = PREV_WACOM.lock().unwrap();
+
+            // This is so that we can click the buttons outside the canvas region
+            // normally meant to be touched with a finger using our stylus
             if !CANVAS_REGION.contains_point(y.into(), x.into()) {
                 *prev = (-1, -1);
                 if UNPRESS_OBSERVED.fetch_and(false, Ordering::Relaxed) {
@@ -98,9 +101,13 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
                 return;
             }
 
+            let framebuffer = app.get_framebuffer_ref();
+
             let mut rad =
                 SIZE_MULTIPLIER.load(Ordering::Relaxed) as f32 * (pressure as f32) / 4096.;
             let mut color = color::BLACK;
+
+            // Eraser has a larger radius for ease of removal
             if ERASE_MODE.load(Ordering::Relaxed) {
                 rad *= 3.0;
                 color = color::WHITE;
@@ -123,13 +130,29 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
                     DRAWING_QUANT_BIT,
                     false,
                 );
+                CANVAS_HISTORY_NEEDS_SYNC.store(true, Ordering::Relaxed);
             }
             *prev = (y as i32, x as i32);
         }
         wacom::WacomEvent::InstrumentChange { pen: _, state } => {
             // Stop drawing when instrument has left the vicinity of the screen
             if !state {
+                let mut prev = PREV_WACOM.lock().unwrap();
                 *prev = (-1, -1);
+
+                // If the canvas has changes that we haven't represented in our undo stack,
+                // we will create a checkpoint of the canvasstate and push it.
+                if CANVAS_HISTORY_NEEDS_SYNC.fetch_and(false, Ordering::Relaxed) {
+                    let framebuffer = app.get_framebuffer_ref();
+                    // Spawning a new thread here so that we don't end up blocking the event dispatch
+                    // Works just fine here, however it is far from ideal. It would be preferred to
+                    // have a dedicated thread that we send messages to, that upon receiving an
+                    // UNDO_SNAPSHOT or REDO_SNAPSHOT message, goes and saves the canvas state
+                    // and pushes it into the appropriate stack.
+                    std::thread::spawn(move || {
+                        checkpoint_canvasstate(framebuffer, false);
+                    });
+                }
             }
         }
         wacom::WacomEvent::Hover {
@@ -141,6 +164,7 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
         } => {
             // If the pen is hovering, don't record its coordinates as the origin of the next line
             if distance > 1 {
+                let mut prev = PREV_WACOM.lock().unwrap();
                 *prev = (-1, -1);
                 UNPRESS_OBSERVED.store(true, Ordering::Relaxed);
             }
@@ -237,37 +261,79 @@ fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent)
     app.draw_elements();
 }
 
-fn on_screenstate_checkpoint(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
-    let framebuffer = app.get_framebuffer_ref();
+fn checkpoint_canvasstate(framebuffer: &Framebuffer, into_redo_stack: bool) {
     let buffer = framebuffer.dump_region(CANVAS_REGION);
     match buffer {
         Err(err) => println!("Failed to dump buffer: {0}", err),
         Ok(buff) => {
-            let mut hist = SCREENSTATE_HISTORY.lock().unwrap();
-            hist.push(buff);
+            let mut hist = if into_redo_stack {
+                REDO_STACK.lock().unwrap()
+            } else {
+                UNDO_STACK.lock().unwrap()
+            };
+            hist.push(Arc::new(buff));
         }
     };
 }
 
-fn on_screenstate_prev(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
-    let mut hist = SCREENSTATE_HISTORY.lock().unwrap();
-    if let Some(ref buff) = hist.pop() {
-        let framebuffer = app.get_framebuffer_ref();
-        match framebuffer.restore_region(CANVAS_REGION, buff) {
-            Err(e) => println!("Error while restoring region: {0}", e),
-            Ok(_) => {
-                framebuffer.partial_refresh(
-                    &CANVAS_REGION,
-                    PartialRefreshMode::Wait,
-                    waveform_mode::WAVEFORM_MODE_DU,
-                    display_temp::TEMP_USE_REMARKABLE_DRAW,
-                    dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                    0,
-                    false,
-                );
-            }
-        };
-    }
+fn on_canvasstate_prev(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
+    let prev_state = {
+        let mut hist = UNDO_STACK.lock().unwrap();
+        hist.pop()
+    };
+
+    match prev_state {
+        None => {}
+        Some(ref buff_arc) => {
+            let framebuffer = app.get_framebuffer_ref();
+            match framebuffer.restore_region(CANVAS_REGION, buff_arc) {
+                Err(e) => println!("Error while restoring region: {0}", e),
+                Ok(_) => {
+                    framebuffer.partial_refresh(
+                        &CANVAS_REGION,
+                        PartialRefreshMode::Async,
+                        waveform_mode::WAVEFORM_MODE_DU,
+                        display_temp::TEMP_USE_REMARKABLE_DRAW,
+                        dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                        0,
+                        false,
+                    );
+                    // Push the popped state into the redo stack
+                    REDO_STACK.lock().unwrap().push(Arc::clone(buff_arc));
+                }
+            };
+        }
+    };
+}
+
+fn on_canvasstate_next(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
+    let next_state = {
+        let mut hist = REDO_STACK.lock().unwrap();
+        hist.pop()
+    };
+
+    match next_state {
+        None => {}
+        Some(ref buff_arc) => {
+            let framebuffer = app.get_framebuffer_ref();
+            match framebuffer.restore_region(CANVAS_REGION, buff_arc) {
+                Err(e) => println!("Error while restoring region: {0}", e),
+                Ok(_) => {
+                    framebuffer.partial_refresh(
+                        &CANVAS_REGION,
+                        PartialRefreshMode::Async,
+                        waveform_mode::WAVEFORM_MODE_DU,
+                        display_temp::TEMP_USE_REMARKABLE_DRAW,
+                        dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                        0,
+                        false,
+                    );
+                    // Push the popped state into the undo stack
+                    UNDO_STACK.lock().unwrap().push(Arc::clone(buff_arc));
+                }
+            };
+        }
+    };
 }
 
 fn on_touch_exit_to_xochitl(_app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
@@ -418,7 +484,9 @@ lazy_static! {
     static ref UNPRESS_OBSERVED: AtomicBool = AtomicBool::new(false);
     static ref PREV_WACOM: Arc<Mutex<(i32, i32)>> = Arc::new(Mutex::new((-1, -1)));
     static ref G_COUNTER: Mutex<u32> = Mutex::new(0);
-    static ref SCREENSTATE_HISTORY: Mutex<Vec<Array2<color>>> = Mutex::new(Vec::new());
+    static ref UNDO_STACK: Mutex<Vec<Arc<Array2<color>>>> = Mutex::new(Vec::new());
+    static ref REDO_STACK: Mutex<Vec<Arc<Array2<color>>>> = Mutex::new(Vec::new());
+    static ref CANVAS_HISTORY_NEEDS_SYNC: AtomicBool = AtomicBool::new(false);
 }
 
 fn main() {
@@ -471,38 +539,36 @@ fn main() {
         },
     );
 
-    // Back Button
+    // Undo/Redo Controls
     app.add_element(
-        "backButton",
+        "undoButton",
         UIElementWrapper {
             y: 400,
             x: 1000,
             refresh: UIConstraintRefresh::Refresh,
 
-            onclick: Some(on_screenstate_prev),
+            onclick: Some(on_canvasstate_prev),
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "⟲ Undo".to_owned(),
-                scale: 75,
+                scale: 55,
                 border_px: 5,
             },
             ..Default::default()
         },
     );
-
-    // Checkpoint Button
     app.add_element(
-        "checkpointButton",
+        "redoButton",
         UIElementWrapper {
             y: 400,
-            x: 1300,
+            x: 1210,
             refresh: UIConstraintRefresh::Refresh,
 
-            onclick: Some(on_screenstate_checkpoint),
+            onclick: Some(on_canvasstate_next),
             inner: UIElement::Text {
                 foreground: color::BLACK,
-                text: "∑".to_owned(),
-                scale: 72,
+                text: "⟳ Redo".to_owned(),
+                scale: 55,
                 border_px: 5,
             },
             ..Default::default()
@@ -831,6 +897,9 @@ fn main() {
     );
 
     info!("Init complete. Beginning event dispatch...");
+
+    // Saving the empty canvasstate so that we can ultimately undo to it
+    checkpoint_canvasstate(app.get_framebuffer_ref(), false);
 
     // Blocking call to process events from digitizer + touchscreen + physical buttons
     app.dispatch_events(true, true, true);
