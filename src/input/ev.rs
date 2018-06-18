@@ -1,15 +1,15 @@
 use epoll;
 use evdev;
 use input;
-use input::EvdevHandler;
 use std;
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-#[derive(Clone)]
 pub struct EvDevContext {
     device: input::InputDevice,
+    pub state: input::InputDeviceState,
+    pub tx: std::sync::mpsc::Sender<input::InputEvent>,
     exit_requested: Arc<AtomicBool>,
     exited: Arc<AtomicBool>,
     started: Arc<AtomicBool>,
@@ -34,24 +34,35 @@ impl EvDevContext {
         self.exit_requested.store(true, Ordering::Relaxed);
     }
 
-    pub fn new(device: input::InputDevice) -> EvDevContext {
+    pub fn new(
+        device: input::InputDevice,
+        tx: std::sync::mpsc::Sender<input::InputEvent>,
+    ) -> EvDevContext {
         EvDevContext {
             device,
+            tx,
+            state: input::InputDeviceState::new(device),
             started: Arc::new(AtomicBool::new(false)),
             exit_requested: Arc::new(AtomicBool::new(false)),
             exited: Arc::new(AtomicBool::new(false)),
         }
     }
 
-    fn run(&self, handler: &'static mut input::UnifiedInputHandler) {
+    /// Non-blocking function that will open the provided path and wait for more data with epoll
+    pub fn start(&mut self) {
+        self.started.store(true, Ordering::Relaxed);
+        self.exited.store(false, Ordering::Relaxed);
+        self.exit_requested.store(false, Ordering::Relaxed);
+
         let path = match self.device {
             input::InputDevice::Wacom => "/dev/input/event0",
             input::InputDevice::Multitouch => "/dev/input/event1",
             input::InputDevice::GPIO => "/dev/input/event2",
-            _ => return,
+            _ => unreachable!(),
         };
-        let res = evdev::Device::open(&path);
-        match res {
+
+        match evdev::Device::open(&path) {
+            Err(e) => error!("Error while reading events from epoll fd: {0}", e),
             Ok(mut dev) => {
                 let mut v = vec![epoll::Event {
                     events: (epoll::Events::EPOLLET | epoll::Events::EPOLLIN
@@ -63,37 +74,47 @@ impl EvDevContext {
                 epoll::ctl(epfd, epoll::ControlOptions::EPOLL_CTL_ADD, dev.fd(), v[0]).unwrap();
 
                 // init callback
-                handler.on_init(path.to_string());
-                while !self.exit_requested.load(Ordering::Relaxed) {
-                    // -1 indefinite wait but it is okay because our EPOLL FD
-                    // is watching on ALL input devices at once.
-                    let res = epoll::wait(epfd, -1, &mut v[0..1]).unwrap();
-                    if res != 1 {
-                        warn!("epoll_wait returned {0}", res);
+                info!("Init complete for {0}", String::from(path));
+
+                let exit_req = Arc::clone(&self.exit_requested);
+                let exited = Arc::clone(&self.exited);
+                let device = self.device.clone();
+                let state = self.state.clone();
+                let tx = self.tx.clone();
+                let _ = std::thread::spawn(move || {
+                    while !exit_req.load(Ordering::Relaxed) {
+                        // -1 indefinite wait but it is okay because our EPOLL FD
+                        // is watching on ALL input devices at once.
+                        let res = epoll::wait(epfd, -1, &mut v[0..1]).unwrap();
+                        if res != 1 {
+                            warn!("epoll_wait returned {0}", res);
+                        }
+
+                        for ev in dev.events_no_sync().unwrap() {
+                            // event callback
+                            let decoded_event = match device {
+                                input::InputDevice::Multitouch => {
+                                    input::multitouch::decode(&ev, &state)
+                                }
+                                input::InputDevice::Wacom => input::wacom::decode(&ev, &state),
+                                input::InputDevice::GPIO => input::gpio::decode(&ev, &state),
+                                _ => unreachable!(),
+                            };
+                            match decoded_event {
+                                Some(event) => match tx.send(event) {
+                                    Ok(_) => {}
+                                    Err(e) => error!(
+                                        "Failed to write InputEvent into the channel: {0}",
+                                        e
+                                    ),
+                                },
+                                None => {}
+                            };
+                        }
                     }
-
-                    for ev in dev.events_no_sync().unwrap() {
-                        // event callback
-                        handler.on_event(self.device.clone(), ev);
-                    }
-                }
+                    exited.store(true, Ordering::Relaxed);
+                });
             }
-            Err(err) => {
-                println!("ERR: {0}", err);
-            }
-        };
-        self.exited.store(true, Ordering::Relaxed);
-    }
-
-    /// Non-blocking function that will open the provided path and wait for more data with epoll
-    pub fn start(&self, handler: &'static mut input::UnifiedInputHandler) {
-        self.started.store(true, Ordering::Relaxed);
-        self.exited.store(false, Ordering::Relaxed);
-        self.exit_requested.store(false, Ordering::Relaxed);
-
-        let arc = Arc::new(self.clone());
-        let _ = std::thread::spawn(move || {
-            arc.run(handler);
-        });
+        }
     }
 }

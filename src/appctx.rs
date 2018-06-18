@@ -7,7 +7,6 @@ use std::sync::RwLock;
 use std::collections::HashMap;
 
 use image;
-use input;
 use input::ev;
 
 use framebuffer::common::*;
@@ -44,7 +43,9 @@ pub struct ApplicationContext<'a> {
     running: AtomicBool,
 
     lua: UnsafeCell<Lua<'a>>,
-    input_handler: Box<input::UnifiedInputHandler>,
+
+    input_tx: std::sync::mpsc::Sender<InputEvent>,
+    input_rx: std::sync::mpsc::Receiver<InputEvent>,
 
     button_ctx: RwLock<Option<ev::EvDevContext>>,
     on_button: fn(&mut ApplicationContext, GPIOEvent),
@@ -79,14 +80,6 @@ impl<'a> ApplicationContext<'a> {
         unsafe { std::mem::transmute::<_, &'a mut Lua<'static>>(self.lua.get()) }
     }
 
-    pub fn get_input_handler_ref(&mut self) -> &'static mut input::UnifiedInputHandler {
-        unsafe {
-            std::mem::transmute::<_, &'static mut input::UnifiedInputHandler>(
-                self.input_handler.deref_mut(),
-            )
-        }
-    }
-
     pub fn get_dimensions(&self) -> (u32, u32) {
         (self.yres, self.xres)
     }
@@ -100,6 +93,7 @@ impl<'a> ApplicationContext<'a> {
         let yres = framebuffer.var_screen_info.yres;
         let xres = framebuffer.var_screen_info.xres;
 
+        let (input_tx, input_rx) = std::sync::mpsc::channel();
         let mut res = ApplicationContext {
             wacom_ctx: RwLock::new(None),
             button_ctx: RwLock::new(None),
@@ -109,7 +103,8 @@ impl<'a> ApplicationContext<'a> {
             yres,
             running: AtomicBool::new(false),
             lua: UnsafeCell::new(Lua::new()),
-            input_handler: Box::new(input::UnifiedInputHandler::new()),
+            input_rx,
+            input_tx,
             on_button,
             on_wacom,
             on_touch,
@@ -468,7 +463,6 @@ impl<'a> ApplicationContext<'a> {
 
         // Now we know it isn't active, let's create and spawn
         // the producer thread
-        let input_handler_ref = self.get_input_handler_ref();
         let mut dev = match t {
             InputDevice::Wacom => self.wacom_ctx.write().unwrap(),
             InputDevice::Multitouch => self.touch_ctx.write().unwrap(),
@@ -476,9 +470,14 @@ impl<'a> ApplicationContext<'a> {
             _ => return false,
         };
 
-        *dev = Some(ev::EvDevContext::new(t));
-        dev.as_ref().unwrap().start(input_handler_ref);
-        return true;
+        *dev = Some(ev::EvDevContext::new(t, self.input_tx.clone()));
+        match dev.as_mut() {
+            Some(ref mut device) => {
+                device.start();
+                return true;
+            }
+            None => return false,
+        };
     }
 
     /// Returns true if the given `InputDevice` is active, as in
@@ -516,12 +515,11 @@ impl<'a> ApplicationContext<'a> {
         }
 
         // Now we consume the input events
-        let consumer = self.get_input_handler_ref().get_consumer();
         self.running.store(true, Ordering::Relaxed);
 
         let mut last_active_region_gesture_id: i32 = -1;
         while self.running.load(Ordering::Relaxed) {
-            match consumer.recv() {
+            match self.input_rx.recv() {
                 Err(e) => println!("Error in input event consumer: {0}", e),
                 Ok(event) => match event {
                     InputEvent::GPIO { event } => {
