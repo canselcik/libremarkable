@@ -521,39 +521,42 @@ impl<'a> ApplicationContext<'a> {
 
         let mut last_active_region_gesture_id: i32 = -1;
         while self.running.load(Ordering::Relaxed) {
-            match consumer.recv().unwrap() {
-                InputEvent::GPIO { event } => {
-                    (self.on_button)(appref, event);
-                }
-                InputEvent::MultitouchEvent { event } => {
-                    // Check for and notify clickable active regions for multitouch events
-                    match event {
-                        MultitouchEvent::Touch {
-                            gesture_seq,
-                            finger_id: _,
-                            y,
-                            x,
-                        } => {
-                            let gseq = gesture_seq as i32;
-                            if last_active_region_gesture_id != gseq {
-                                match self.find_active_region(y, x) {
-                                    Some((h, _)) => {
-                                        (h.handler)(appref, h.element.clone());
-                                    }
-                                    _ => {}
-                                };
-                                last_active_region_gesture_id = gseq;
+            match consumer.recv() {
+                Err(e) => println!("Error in input event consumer: {0}", e),
+                Ok(event) => match event {
+                    InputEvent::GPIO { event } => {
+                        (self.on_button)(appref, event);
+                    }
+                    InputEvent::MultitouchEvent { event } => {
+                        // Check for and notify clickable active regions for multitouch events
+                        match event {
+                            MultitouchEvent::Touch {
+                                gesture_seq,
+                                finger_id: _,
+                                y,
+                                x,
+                            } => {
+                                let gseq = gesture_seq as i32;
+                                if last_active_region_gesture_id != gseq {
+                                    match self.find_active_region(y, x) {
+                                        Some((h, _)) => {
+                                            (h.handler)(appref, h.element.clone());
+                                        }
+                                        _ => {}
+                                    };
+                                    last_active_region_gesture_id = gseq;
+                                }
                             }
-                        }
-                        _ => {}
-                    };
-                    (self.on_touch)(appref, event);
-                }
-                InputEvent::WacomEvent { event } => {
-                    (self.on_wacom)(appref, event);
-                }
-                _ => {}
-            }
+                            _ => {}
+                        };
+                        (self.on_touch)(appref, event);
+                    }
+                    InputEvent::WacomEvent { event } => {
+                        (self.on_wacom)(appref, event);
+                    }
+                    _ => {}
+                },
+            };
         }
     }
 
