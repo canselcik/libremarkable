@@ -151,6 +151,11 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
                     // and pushes it into the appropriate stack.
                     std::thread::spawn(move || {
                         push_canvasstate_to_undostack(framebuffer);
+
+                        // Clear the REDO_STACK because otherwise the user can press redo and they will
+                        // lose the changes that they have made to the state that they have previously
+                        // reached by doing undo(s).
+                        REDO_STACK.lock().unwrap().clear();
                     });
                 }
             }
@@ -491,7 +496,11 @@ const CANVAS_REGION: mxcfb_rect = mxcfb_rect {
     height: 1050,
     width: 1400,
 };
-const UNDO_REDO_DEPTH: usize = 10;
+
+// At this depth the maximum memory our process will consume is:
+//    VmHWM:	  183916 kB
+// with each canvas_state taking ~7MB with no compression at all.
+const UNDO_REDO_DEPTH: usize = 20;
 
 lazy_static! {
     static ref DRAW_ON_TOUCH: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
