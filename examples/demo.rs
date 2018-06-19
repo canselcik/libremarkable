@@ -11,8 +11,6 @@ extern crate libremarkable;
 
 extern crate ndarray;
 
-use ndarray::Array2;
-
 use chrono::{DateTime, Local};
 
 use std::sync::{Arc, Mutex};
@@ -29,9 +27,9 @@ use libremarkable::ui_extensions::element::{
     UIConstraintRefresh, UIElement, UIElementHandle, UIElementWrapper,
 };
 
-use libremarkable::framebuffer::core::Framebuffer;
 use libremarkable::framebuffer::refresh::PartialRefreshMode;
 use libremarkable::framebuffer::{FramebufferDraw, FramebufferIO, FramebufferRefresh};
+use libremarkable::framebuffer::storage;
 
 use libremarkable::battery;
 use libremarkable::input::{gpio, multitouch, wacom, InputDevice};
@@ -130,7 +128,6 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
                     DRAWING_QUANT_BIT,
                     false,
                 );
-                CANVAS_HISTORY_NEEDS_SYNC.store(true, Ordering::Relaxed);
             }
             *prev = (y as i32, x as i32);
         }
@@ -139,25 +136,6 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
             if !state {
                 let mut prev = PREV_WACOM.lock().unwrap();
                 *prev = (-1, -1);
-
-                // If the canvas has changes that we haven't represented in our undo stack,
-                // we will create a checkpoint of the canvasstate and push it.
-                if CANVAS_HISTORY_NEEDS_SYNC.fetch_and(false, Ordering::Relaxed) {
-                    let framebuffer = app.get_framebuffer_ref();
-                    // Spawning a new thread here so that we don't end up blocking the event dispatch
-                    // Works just fine here, however it is far from ideal. It would be preferred to
-                    // have a dedicated thread that we send messages to, that upon receiving an
-                    // UNDO_SNAPSHOT or REDO_SNAPSHOT message, goes and saves the canvas state
-                    // and pushes it into the appropriate stack.
-                    std::thread::spawn(move || {
-                        push_canvasstate_to_undostack(framebuffer);
-
-                        // Clear the REDO_STACK because otherwise the user can press redo and they will
-                        // lose the changes that they have made to the state that they have previously
-                        // reached by doing undo(s).
-                        REDO_STACK.lock().unwrap().clear();
-                    });
-                }
             }
         }
         wacom::WacomEvent::Hover {
@@ -266,31 +244,25 @@ fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent)
     app.draw_elements();
 }
 
-fn push_canvasstate_to_undostack(framebuffer: &Framebuffer) {
+fn on_save_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
+    let framebuffer = app.get_framebuffer_ref();
     let buffer = framebuffer.dump_region(CANVAS_REGION);
     match buffer {
         Err(err) => println!("Failed to dump buffer: {0}", err),
         Ok(buff) => {
-            let mut hist = UNDO_STACK.lock().unwrap();
-            while hist.len() > UNDO_REDO_DEPTH {
-                hist.remove(0);
-            }
-            hist.push(Arc::new(buff));
+            let mut hist = SAVED_CANVAS.lock().unwrap();
+            *hist = Some(storage::CompressedCanvasState::new(&buff));
         }
     };
 }
 
-fn on_canvasstate_prev(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
-    let prev_state = {
-        let mut hist = UNDO_STACK.lock().unwrap();
-        hist.pop()
-    };
-
-    match prev_state {
-        None => {}
-        Some(ref buff_arc) => {
+fn on_load_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
+    match *SAVED_CANVAS.lock().unwrap() {
+        None => {},
+        Some(ref compressed_state) => {
             let framebuffer = app.get_framebuffer_ref();
-            match framebuffer.restore_region(CANVAS_REGION, buff_arc) {
+            let decompressed = compressed_state.decompress();
+            match framebuffer.restore_region(CANVAS_REGION, &decompressed) {
                 Err(e) => println!("Error while restoring region: {0}", e),
                 Ok(_) => {
                     framebuffer.partial_refresh(
@@ -302,54 +274,6 @@ fn on_canvasstate_prev(app: &mut appctx::ApplicationContext, _element: UIElement
                         0,
                         false,
                     );
-
-                    let mut hist = REDO_STACK.lock().unwrap();
-
-                    // Push the popped state into the redo stack but make sure it doesn't
-                    // grow out of control
-                    while hist.len() > UNDO_REDO_DEPTH {
-                        hist.remove(0);
-                    }
-
-                    hist.push(Arc::clone(buff_arc));
-                }
-            };
-        }
-    };
-}
-
-fn on_canvasstate_next(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
-    let next_state = {
-        let mut hist = REDO_STACK.lock().unwrap();
-        hist.pop()
-    };
-
-    match next_state {
-        None => {}
-        Some(ref buff_arc) => {
-            let framebuffer = app.get_framebuffer_ref();
-            match framebuffer.restore_region(CANVAS_REGION, buff_arc) {
-                Err(e) => println!("Error while restoring region: {0}", e),
-                Ok(_) => {
-                    framebuffer.partial_refresh(
-                        &CANVAS_REGION,
-                        PartialRefreshMode::Async,
-                        waveform_mode::WAVEFORM_MODE_DU,
-                        display_temp::TEMP_USE_REMARKABLE_DRAW,
-                        dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                        0,
-                        false,
-                    );
-
-                    let mut hist = UNDO_STACK.lock().unwrap();
-
-                    // Push the popped state into the undo stack but make sure it doesn't
-                    // grow out of control
-                    while hist.len() > UNDO_REDO_DEPTH {
-                        hist.remove(0);
-                    }
-
-                    hist.push(Arc::clone(buff_arc));
                 }
             };
         }
@@ -490,17 +414,15 @@ fn on_change_draw_type(app: &mut appctx::ApplicationContext, element: UIElementH
     app.draw_element("touchMode");
 }
 
+// will have the following size at rest:
+//   snapshot raw: 5896 kB
+//   zstd: 10 kB
 const CANVAS_REGION: mxcfb_rect = mxcfb_rect {
     top: 750,
-    left: 1,
+    left: 0,
     height: 1050,
-    width: 1400,
+    width: 1404,
 };
-
-// At this depth the maximum memory our process will consume is:
-//    VmHWM:	  183916 kB
-// with each canvas_state taking ~7MB with no compression at all.
-const UNDO_REDO_DEPTH: usize = 20;
 
 lazy_static! {
     static ref DRAW_ON_TOUCH: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
@@ -509,9 +431,7 @@ lazy_static! {
     static ref UNPRESS_OBSERVED: AtomicBool = AtomicBool::new(false);
     static ref PREV_WACOM: Arc<Mutex<(i32, i32)>> = Arc::new(Mutex::new((-1, -1)));
     static ref G_COUNTER: Mutex<u32> = Mutex::new(0);
-    static ref UNDO_STACK: Mutex<Vec<Arc<Array2<color>>>> = Mutex::new(Vec::new());
-    static ref REDO_STACK: Mutex<Vec<Arc<Array2<color>>>> = Mutex::new(Vec::new());
-    static ref CANVAS_HISTORY_NEEDS_SYNC: AtomicBool = AtomicBool::new(false);
+    static ref SAVED_CANVAS: Mutex<Option<storage::CompressedCanvasState>> = Mutex::new(None);
 }
 
 fn main() {
@@ -564,18 +484,18 @@ fn main() {
         },
     );
 
-    // Undo/Redo Controls
+    // Save/Restore Controls
     app.add_element(
-        "undoButton",
+        "saveButton",
         UIElementWrapper {
             y: 400,
             x: 1000,
             refresh: UIConstraintRefresh::Refresh,
 
-            onclick: Some(on_canvasstate_prev),
+            onclick: Some(on_save_canvas),
             inner: UIElement::Text {
                 foreground: color::BLACK,
-                text: "⟲ Undo".to_owned(),
+                text: "✓ Save".to_owned(),
                 scale: 55,
                 border_px: 5,
             },
@@ -583,16 +503,16 @@ fn main() {
         },
     );
     app.add_element(
-        "redoButton",
+        "restoreButton",
         UIElementWrapper {
             y: 400,
             x: 1210,
             refresh: UIConstraintRefresh::Refresh,
 
-            onclick: Some(on_canvasstate_next),
+            onclick: Some(on_load_canvas),
             inner: UIElement::Text {
                 foreground: color::BLACK,
-                text: "⟳ Redo".to_owned(),
+                text: "⟲ Load".to_owned(),
                 scale: 55,
                 border_px: 5,
             },
@@ -922,9 +842,6 @@ fn main() {
     );
 
     info!("Init complete. Beginning event dispatch...");
-
-    // Saving the empty canvasstate so that we can ultimately undo to it
-    push_canvasstate_to_undostack(app.get_framebuffer_ref());
 
     // Blocking call to process events from digitizer + touchscreen + physical buttons
     app.dispatch_events(true, true, true);

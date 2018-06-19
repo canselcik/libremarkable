@@ -3,6 +3,8 @@ pub mod mxcfb;
 pub mod screeninfo;
 
 use ndarray::Array2;
+pub mod storage;
+
 pub mod io;
 pub trait FramebufferIO {
     /// Writes an arbitrary length frame into the framebuffer

@@ -13,6 +13,7 @@ extern crate libc;
 extern crate mmap;
 extern crate ndarray;
 extern crate rusttype;
+extern crate zstd;
 
 pub extern crate epoll;
 pub extern crate evdev;
