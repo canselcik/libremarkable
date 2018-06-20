@@ -9,8 +9,6 @@ extern crate log;
 extern crate chrono;
 extern crate libremarkable;
 
-extern crate ndarray;
-
 use chrono::{DateTime, Local};
 
 use std::sync::{Arc, Mutex};

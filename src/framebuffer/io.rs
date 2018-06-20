@@ -2,7 +2,7 @@
 use framebuffer;
 use framebuffer::common;
 
-use ndarray::Array2;
+use image::{Rgba,ImageBuffer};
 
 impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
     fn write_frame(&mut self, frame: &[u8]) {
@@ -60,7 +60,8 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         }
     }
 
-    fn dump_region(&self, rect: common::mxcfb_rect) -> Result<Array2<common::color>, &'static str> {
+
+    fn dump_region(&self, rect: common::mxcfb_rect) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, &'static str> {
         if rect.width == 0 || rect.height == 0 {
             return Err("Unable to dump a region with zero height/width");
         }
@@ -71,24 +72,20 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
             return Err("Horizontally out of bounds");
         }
 
-        let mut array = Array2::default((rect.height as usize, rect.width as usize));
-        for y_offset in 0..rect.height {
-            let mut row = array.row_mut(y_offset as usize);
-            for x_offset in 0..rect.width {
-                let mut pixel = row.get_mut(x_offset as usize).unwrap();
-                *pixel = self.read_pixel(
-                    (rect.top + y_offset) as usize,
-                    (rect.left + x_offset) as usize,
-                );
-            }
+        let mut buffer: ImageBuffer<Rgba<u8>, Vec<u8>> = ImageBuffer::new(rect.width, rect.height);
+        for (x, y, pixel) in buffer.enumerate_pixels_mut() {
+            *pixel = Rgba {
+                data: self.read_pixel((rect.top + y) as usize,
+                                      (rect.left + x) as usize).as_native(),
+            };
         }
-        return Ok(array);
+        return Ok(buffer);
     }
 
     fn restore_region(
         &mut self,
         rect: common::mxcfb_rect,
-        data: &Array2<common::color>,
+        data: &ImageBuffer<Rgba<u8>, Vec<u8>>,
     ) -> Result<u32, &'static str> {
         if rect.width == 0 || rect.height == 0 {
             return Err("Unable to restore a region with zero height/width");
@@ -101,17 +98,13 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         }
 
         let mut written: u32 = 0;
-        for y_offset in 0..rect.height {
-            let row = data.row(y_offset as usize);
-            for x_offset in 0..rect.width {
-                let pixel = row.get(x_offset as usize).unwrap();
-                self.write_pixel(
-                    (rect.top + y_offset) as usize,
-                    (rect.left + x_offset) as usize,
-                    *pixel,
-                );
-                written += 1;
-            }
+        for (x, y, pixel) in data.enumerate_pixels() {
+            self.write_pixel(
+                (rect.top + y) as usize,
+                (rect.left + x) as usize,
+                common::color::from_native(pixel.data),
+            );
+            written += 1;
         }
         return Ok(written);
     }

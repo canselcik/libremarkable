@@ -2,7 +2,6 @@ pub mod common;
 pub mod mxcfb;
 pub mod screeninfo;
 
-use ndarray::Array2;
 pub mod storage;
 
 pub mod io;
@@ -15,17 +14,19 @@ pub trait FramebufferIO {
     fn read_pixel(&self, y: usize, x: usize) -> common::color;
     /// Reads the value at offset `ofst` from the mmapp'ed framebuffer region
     fn read_offset(&self, ofst: isize) -> u8;
-    /// Dumps the contents of the specified rectangle into an `ndarray::Array2<common::color>`
-    fn dump_region(&self, rect: common::mxcfb_rect) -> Result<Array2<common::color>, &'static str>;
-    /// Restores into the framebuffer the contents of the specified rectangle from an `ndarray::Array2<common::color>`
+    /// Dumps the contents of the specified rectangle into an `image::ImageBuffer<Rgba<u8>, Vec<u8>>`
+    fn dump_region(&self, rect: common::mxcfb_rect) -> Result<image::ImageBuffer<Rgba<u8>, Vec<u8>>, &'static str>;
+    /// Restores into the framebuffer the contents of the specified rectangle from an `image::ImageBuffer<Rgba<u8>, Vec<u8>>`
     fn restore_region(
         &mut self,
         rect: common::mxcfb_rect,
-        data: &Array2<common::color>,
+        data: &image::ImageBuffer<Rgba<u8>, Vec<u8>>,
     ) -> Result<u32, &'static str>;
 }
 
 use image;
+use image::Rgba;
+
 pub mod draw;
 pub trait FramebufferDraw {
     /// Draws `img` at y=top, x=left coordinates with 1:1 scaling

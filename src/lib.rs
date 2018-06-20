@@ -11,7 +11,6 @@ extern crate aabb_quadtree;
 extern crate hlua;
 extern crate libc;
 extern crate mmap;
-extern crate ndarray;
 extern crate rusttype;
 extern crate zstd;
 
