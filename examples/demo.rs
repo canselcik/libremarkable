@@ -26,8 +26,8 @@ use libremarkable::ui_extensions::element::{
 };
 
 use libremarkable::framebuffer::refresh::PartialRefreshMode;
-use libremarkable::framebuffer::{FramebufferDraw, FramebufferIO, FramebufferRefresh};
 use libremarkable::framebuffer::storage;
+use libremarkable::framebuffer::{FramebufferDraw, FramebufferIO, FramebufferRefresh};
 
 use libremarkable::battery;
 use libremarkable::input::{gpio, multitouch, wacom, InputDevice};
@@ -249,14 +249,14 @@ fn on_save_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandl
         Err(err) => println!("Failed to dump buffer: {0}", err),
         Ok(buff) => {
             let mut hist = SAVED_CANVAS.lock().unwrap();
-            *hist = Some(storage::CompressedCanvasState::new(&buff));
+            *hist = Some(storage::CompressedCanvasState::new(buff));
         }
     };
 }
 
 fn on_load_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
     match *SAVED_CANVAS.lock().unwrap() {
-        None => {},
+        None => {}
         Some(ref compressed_state) => {
             let framebuffer = app.get_framebuffer_ref();
             let decompressed = compressed_state.decompress();

@@ -5,6 +5,8 @@ pub mod screeninfo;
 pub mod storage;
 
 pub mod io;
+
+use image;
 pub trait FramebufferIO {
     /// Writes an arbitrary length frame into the framebuffer
     fn write_frame(&mut self, frame: &[u8]);
@@ -15,17 +17,14 @@ pub trait FramebufferIO {
     /// Reads the value at offset `ofst` from the mmapp'ed framebuffer region
     fn read_offset(&self, ofst: isize) -> u8;
     /// Dumps the contents of the specified rectangle into an `image::ImageBuffer<Rgba<u8>, Vec<u8>>`
-    fn dump_region(&self, rect: common::mxcfb_rect) -> Result<image::ImageBuffer<Rgba<u8>, Vec<u8>>, &'static str>;
+    fn dump_region(&self, rect: common::mxcfb_rect) -> Result<image::RgbaImage, &'static str>;
     /// Restores into the framebuffer the contents of the specified rectangle from an `image::ImageBuffer<Rgba<u8>, Vec<u8>>`
     fn restore_region(
         &mut self,
         rect: common::mxcfb_rect,
-        data: &image::ImageBuffer<Rgba<u8>, Vec<u8>>,
+        data: &image::RgbaImage,
     ) -> Result<u32, &'static str>;
 }
-
-use image;
-use image::Rgba;
 
 pub mod draw;
 pub trait FramebufferDraw {

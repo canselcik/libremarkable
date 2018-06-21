@@ -26,20 +26,23 @@ pub struct CompressedCanvasState {
 ///    raw: 5896.8 kB -- zstd: 361.935 kB  (93.86218% compression)
 impl CompressedCanvasState {
     /// Creates a CompressedCanvasState from the output of FramebufferIO::dump_region(..)
-    pub fn new(buff: &image::ImageBuffer<image::Rgba<u8>, Vec<u8>>) -> CompressedCanvasState {
+    /// Consumes the RgbaImage that's provided to it.
+    pub fn new(img: image::RgbaImage) -> CompressedCanvasState {
+        let height = img.height();
+        let width = img.width();
         CompressedCanvasState {
-            data: zstd::encode_all(buff.to_vec().as_slice(), 0)
+            data: zstd::encode_all(&*img.into_vec(), 0)
                 .unwrap()
                 .into(),
-            height: buff.height(),
-            width: buff.width(),
+            height,
+            width,
         }
     }
 
     /// Returns an ImageBuffer which can be used to restore the contents of a screen
     /// region using the FramebufferIO::restore_region(..)
-    pub fn decompress(&self) -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>> {
+    pub fn decompress(&self) -> image::RgbaImage {
         let unencoded = zstd::decode_all(&*self.data).unwrap();
-        image::ImageBuffer::from_raw(self.width, self.height, unencoded).unwrap()
+        image::RgbaImage::from_raw(self.width, self.height, unencoded).unwrap()
     }
 }
