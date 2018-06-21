@@ -529,13 +529,13 @@ fn main() {
     app.add_element(
         "canvasRegion",
         UIElementWrapper {
-            y: CANVAS_REGION.top as usize,
+            y: (CANVAS_REGION.top - 2) as usize,
             x: CANVAS_REGION.left as usize,
             refresh: UIConstraintRefresh::RefreshAndWait,
             onclick: None,
             inner: UIElement::Region {
-                height: CANVAS_REGION.height as usize,
-                width: CANVAS_REGION.width as usize,
+                height: (CANVAS_REGION.height + 3) as usize,
+                width: (CANVAS_REGION.width + 1) as usize,
                 border_px: 2,
                 border_color: color::BLACK,
             },
