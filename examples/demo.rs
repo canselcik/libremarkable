@@ -19,6 +19,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use libremarkable::framebuffer::common::*;
 use libremarkable::image;
+use libremarkable::image::GenericImage;
 
 use libremarkable::appctx;
 use libremarkable::ui_extensions::element::{
@@ -267,13 +268,12 @@ fn on_invert_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHan
                     framebuffer.partial_refresh(
                         &CANVAS_REGION,
                         PartialRefreshMode::Async,
-                        waveform_mode::WAVEFORM_MODE_DU,
+                        waveform_mode::WAVEFORM_MODE_GC16_FAST,
                         display_temp::TEMP_USE_REMARKABLE_DRAW,
                         dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
                         0,
                         false,
                     );
-                    on_toggle_eraser();
                 }
             };
         }
@@ -293,7 +293,7 @@ fn on_load_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandl
                     framebuffer.partial_refresh(
                         &CANVAS_REGION,
                         PartialRefreshMode::Async,
-                        waveform_mode::WAVEFORM_MODE_DU,
+                        waveform_mode::WAVEFORM_MODE_GC16_FAST,
                         display_temp::TEMP_USE_REMARKABLE_DRAW,
                         dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
                         0,

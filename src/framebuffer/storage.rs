@@ -31,9 +31,7 @@ impl CompressedCanvasState {
         let height = img.height();
         let width = img.width();
         CompressedCanvasState {
-            data: zstd::encode_all(&*img.into_vec(), 0)
-                .unwrap()
-                .into(),
+            data: zstd::encode_all(&*img.into_vec(), 0).unwrap().into(),
             height,
             width,
         }

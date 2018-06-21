@@ -2,7 +2,7 @@
 use framebuffer;
 use framebuffer::common;
 
-use image::{Rgba, RgbaImage, ImageBuffer};
+use image::{ImageBuffer, Rgba, RgbaImage};
 
 impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
     fn write_frame(&mut self, frame: &[u8]) {
@@ -74,7 +74,9 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         let mut buffer: RgbaImage = ImageBuffer::new(rect.width, rect.height);
         for y in 0..rect.height {
             for x in 0..rect.width {
-                buffer.put_pixel(x, y,
+                buffer.put_pixel(
+                    x,
+                    y,
                     Rgba {
                         data: self.read_pixel((rect.top + y) as usize, (rect.left + x) as usize)
                             .as_native(),
