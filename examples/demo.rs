@@ -254,6 +254,40 @@ fn on_save_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandl
     };
 }
 
+fn on_zoom_out(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
+    let framebuffer = app.get_framebuffer_ref();
+    match framebuffer.dump_region(CANVAS_REGION) {
+        Err(err) => println!("Failed to dump buffer: {0}", err),
+        Ok(buff) => {
+            let mut dynamic = image::DynamicImage::ImageRgba8(buff);
+            let resized = dynamic.resize(
+                (CANVAS_REGION.width as f32 / 1.25f32) as u32,
+                (CANVAS_REGION.height as f32 / 1.25f32) as u32,
+                image::imageops::Nearest,
+            );
+
+            dynamic = image::DynamicImage::new_rgba8(CANVAS_REGION.width, CANVAS_REGION.height);
+            dynamic.invert();
+            dynamic.copy_from(&resized, CANVAS_REGION.width / 8, CANVAS_REGION.height / 8);
+
+            match framebuffer.restore_region(CANVAS_REGION, &dynamic.as_rgba8().unwrap()) {
+                Err(e) => println!("Error while restoring region: {0}", e),
+                Ok(_) => {
+                    framebuffer.partial_refresh(
+                        &CANVAS_REGION,
+                        PartialRefreshMode::Async,
+                        waveform_mode::WAVEFORM_MODE_GC16_FAST,
+                        display_temp::TEMP_USE_REMARKABLE_DRAW,
+                        dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                        0,
+                        false,
+                    );
+                }
+            };
+        }
+    };
+}
+
 fn on_invert_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
     let framebuffer = app.get_framebuffer_ref();
     match framebuffer.dump_region(CANVAS_REGION) {
@@ -509,6 +543,25 @@ fn main() {
         },
     );
 
+    // Zoom Out Button
+    app.add_element(
+        "zoomoutButton",
+        UIElementWrapper {
+            y: 330,
+            x: 1000,
+            refresh: UIConstraintRefresh::Refresh,
+
+            onclick: Some(on_zoom_out),
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "⛢ Zoom Out".to_owned(),
+                scale: 55,
+                border_px: 5,
+            },
+            ..Default::default()
+        },
+    );
+
     // Save/Restore Controls
     app.add_element(
         "saveButton",
@@ -527,6 +580,7 @@ fn main() {
             ..Default::default()
         },
     );
+
     app.add_element(
         "restoreButton",
         UIElementWrapper {
@@ -582,7 +636,6 @@ fn main() {
             ..Default::default()
         },
     );
-
     // Invert Toggle
     app.add_element(
         "invertToggle",
