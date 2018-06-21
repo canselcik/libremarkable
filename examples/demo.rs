@@ -244,12 +244,38 @@ fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent)
 
 fn on_save_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
     let framebuffer = app.get_framebuffer_ref();
-    let buffer = framebuffer.dump_region(CANVAS_REGION);
-    match buffer {
+    match framebuffer.dump_region(CANVAS_REGION) {
         Err(err) => println!("Failed to dump buffer: {0}", err),
         Ok(buff) => {
             let mut hist = SAVED_CANVAS.lock().unwrap();
             *hist = Some(storage::CompressedCanvasState::new(buff));
+        }
+    };
+}
+
+fn on_invert_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
+    let framebuffer = app.get_framebuffer_ref();
+    match framebuffer.dump_region(CANVAS_REGION) {
+        Err(err) => println!("Failed to dump buffer: {0}", err),
+        Ok(buff) => {
+            let mut dynamic = image::DynamicImage::ImageRgba8(buff);
+            dynamic.invert();
+
+            match framebuffer.restore_region(CANVAS_REGION, &dynamic.as_rgba8().unwrap()) {
+                Err(e) => println!("Error while restoring region: {0}", e),
+                Ok(_) => {
+                    framebuffer.partial_refresh(
+                        &CANVAS_REGION,
+                        PartialRefreshMode::Async,
+                        waveform_mode::WAVEFORM_MODE_DU,
+                        display_temp::TEMP_USE_REMARKABLE_DRAW,
+                        dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                        0,
+                        false,
+                    );
+                    on_toggle_eraser();
+                }
+            };
         }
     };
 }
@@ -260,6 +286,7 @@ fn on_load_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandl
         Some(ref compressed_state) => {
             let framebuffer = app.get_framebuffer_ref();
             let decompressed = compressed_state.decompress();
+
             match framebuffer.restore_region(CANVAS_REGION, &decompressed) {
                 Err(e) => println!("Error while restoring region: {0}", e),
                 Ok(_) => {
@@ -549,6 +576,25 @@ fn main() {
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "Erase: Off".to_owned(),
+                scale: 45,
+                border_px: 5,
+            },
+            ..Default::default()
+        },
+    );
+
+    // Invert Toggle
+    app.add_element(
+        "invertToggle",
+        UIElementWrapper {
+            y: 610,
+            x: 1240,
+            refresh: UIConstraintRefresh::Refresh,
+
+            onclick: Some(on_invert_canvas),
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "Invert".to_owned(),
                 scale: 45,
                 border_px: 5,
             },
