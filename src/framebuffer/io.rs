@@ -78,7 +78,8 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
                     x,
                     y,
                     Rgba {
-                        data: self.read_pixel((rect.top + y) as usize, (rect.left + x) as usize)
+                        data: self
+                            .read_pixel((rect.top + y) as usize, (rect.left + x) as usize)
                             .as_native(),
                     },
                 );

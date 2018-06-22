@@ -65,7 +65,8 @@ impl EvDevContext {
             Err(e) => error!("Error while reading events from epoll fd: {0}", e),
             Ok(mut dev) => {
                 let mut v = vec![epoll::Event {
-                    events: (epoll::Events::EPOLLET | epoll::Events::EPOLLIN
+                    events: (epoll::Events::EPOLLET
+                        | epoll::Events::EPOLLIN
                         | epoll::Events::EPOLLPRI)
                         .bits(),
                     data: 0,

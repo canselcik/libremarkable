@@ -324,7 +324,8 @@ impl<'a> ApplicationContext<'a> {
     }
 
     pub fn draw_elements(&mut self) {
-        let mut elems: std::vec::Vec<UIElementHandle> = self.ui_elements
+        let mut elems: std::vec::Vec<UIElementHandle> = self
+            .ui_elements
             .iter()
             .map(|(_key, value)| value.clone())
             .collect();

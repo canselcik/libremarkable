@@ -28,9 +28,11 @@ fn sample_bezier(startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32)) -> 
     for i in 0..1000 {
         let t = (i as f32) / 1000.0;
         let precisept = (
-            (1.0 - t).powf(2.0) * startpt.0 + 2.0 * (1.0 - t) * t * ctrlpt.0
+            (1.0 - t).powf(2.0) * startpt.0
+                + 2.0 * (1.0 - t) * t * ctrlpt.0
                 + t.powf(2.0) * endpt.0,
-            (1.0 - t).powf(2.0) * startpt.1 + 2.0 * (1.0 - t) * t * ctrlpt.1
+            (1.0 - t).powf(2.0) * startpt.1
+                + 2.0 * (1.0 - t) * t * ctrlpt.1
                 + t.powf(2.0) * endpt.1,
         );
         let pt = (precisept.0 as i32, precisept.1 as i32);

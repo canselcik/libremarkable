@@ -146,7 +146,9 @@ impl mxcfb_rect {
 
 impl mxcfb_rect {
     pub fn contains_point(&self, y: u32, x: u32) -> bool {
-        !(x < self.left || x > (self.left + self.width) || y < self.top
+        !(x < self.left
+            || x > (self.left + self.width)
+            || y < self.top
             || y > (self.top + self.height))
     }
 }
