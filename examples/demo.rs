@@ -486,7 +486,7 @@ const CANVAS_REGION: mxcfb_rect = mxcfb_rect {
 lazy_static! {
     static ref DRAW_ON_TOUCH: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
     static ref ERASE_MODE: AtomicBool = AtomicBool::new(false);
-    static ref SIZE_MULTIPLIER: AtomicUsize = AtomicUsize::new(4);
+    static ref SIZE_MULTIPLIER: AtomicUsize = AtomicUsize::new(3);
     static ref UNPRESS_OBSERVED: AtomicBool = AtomicBool::new(false);
     static ref PREV_WACOM: Arc<Mutex<(i32, i32)>> = Arc::new(Mutex::new((-1, -1)));
     static ref G_COUNTER: Mutex<u32> = Mutex::new(0);
@@ -680,7 +680,7 @@ fn main() {
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
-                text: "size: 4".to_owned(),
+                text: format!("size: {0}", SIZE_MULTIPLIER.load(Ordering::Relaxed)),
                 scale: 45,
                 border_px: 0,
             },
