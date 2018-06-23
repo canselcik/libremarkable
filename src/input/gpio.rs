@@ -8,7 +8,7 @@ pub enum PhysicalButton {
     MIDDLE,
     RIGHT,
     POWER,
-    WAKEUP
+    WAKEUP,
 }
 
 #[derive(PartialEq, Copy, Clone)]

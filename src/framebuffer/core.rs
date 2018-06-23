@@ -23,7 +23,7 @@ use rusttype::{Font, FontCollection};
 pub struct Framebuffer<'a> {
     pub device: File,
     pub frame: MemoryMap,
-    pub marker: ::std::sync::atomic::AtomicU32,
+    pub marker: AtomicU32,
     pub default_font: Font<'a>,
     pub var_screen_info: VarScreeninfo,
     pub fix_screen_info: FixScreeninfo,

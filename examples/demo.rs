@@ -235,7 +235,7 @@ fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent)
             app.draw_element("tooltipRight");
             return;
         }
-        gpio::PhysicalButton::MIDDLE | gpio ::PhysicalButton::LEFT => {
+        gpio::PhysicalButton::MIDDLE | gpio::PhysicalButton::LEFT => {
             app.clear(btn == gpio::PhysicalButton::MIDDLE);
             app.draw_elements();
         }
