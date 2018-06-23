@@ -2,7 +2,9 @@
 use framebuffer;
 use framebuffer::common;
 
-use image::{ImageBuffer, Rgba, RgbaImage};
+use image::{ImageBuffer, LumaA};
+
+use std;
 
 impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
     fn write_frame(&mut self, frame: &[u8]) {
@@ -27,10 +29,8 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         let begin = self.frame.data() as *mut u8;
         let components = v.as_native();
         unsafe {
-            *(begin.offset(curr_index)) = components[0];
-            *(begin.offset(curr_index + 1)) = components[1];
-            *(begin.offset(curr_index + 2)) = components[2];
-            *(begin.offset(curr_index + 3)) = components[3];
+            begin.offset(curr_index).write_volatile(components[0]);
+            begin.offset(curr_index + 1).write_volatile(components[1]);
         }
     }
 
@@ -48,8 +48,6 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         framebuffer::common::color::NATIVE_COMPONENTS(
             self.read_offset(curr_index as isize),
             self.read_offset(curr_index as isize + 1),
-            self.read_offset(curr_index as isize + 2),
-            self.read_offset(curr_index as isize + 3),
         )
     }
 
@@ -60,7 +58,10 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         }
     }
 
-    fn dump_region(&self, rect: common::mxcfb_rect) -> Result<RgbaImage, &'static str> {
+    fn dump_region(
+        &self,
+        rect: common::mxcfb_rect,
+    ) -> Result<ImageBuffer<LumaA<u8>, Vec<u8>>, &'static str> {
         if rect.width == 0 || rect.height == 0 {
             return Err("Unable to dump a region with zero height/width");
         }
@@ -71,27 +72,36 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
             return Err("Horizontally out of bounds");
         }
 
-        let mut buffer: RgbaImage = ImageBuffer::new(rect.width, rect.height);
-        for y in 0..rect.height {
-            for x in 0..rect.width {
-                buffer.put_pixel(
-                    x,
-                    y,
-                    Rgba {
-                        data: self
-                            .read_pixel((rect.top + y) as usize, (rect.left + x) as usize)
-                            .as_native(),
-                    },
-                );
+        let line_length = self.fix_screen_info.line_length as u32;
+        let bytespp = (self.var_screen_info.bits_per_pixel / 8) as usize;
+        let final_len =
+            bytespp * self.var_screen_info.yres as usize * self.var_screen_info.xres as usize;
+
+        let inbuffer = self.frame.data();
+        let mut outbuffer: Vec<u8> = Vec::with_capacity(final_len);
+        let outbuffer_ptr = outbuffer.as_mut_ptr();
+
+        let mut written = 0;
+        let chunk_size = bytespp * rect.width as usize;
+        for row in 0..rect.height {
+            let curr_index = (row + rect.top) * line_length;
+            unsafe {
+                inbuffer
+                    .add(curr_index as usize)
+                    .copy_to_nonoverlapping(outbuffer_ptr.add(written), chunk_size);
             }
+            written += chunk_size;
         }
-        return Ok(buffer);
+        unsafe {
+            outbuffer.set_len(written);
+        }
+        return Ok(ImageBuffer::from_raw(rect.width, rect.height, outbuffer).unwrap());
     }
 
     fn restore_region(
         &mut self,
         rect: common::mxcfb_rect,
-        data: &RgbaImage,
+        data: &ImageBuffer<LumaA<u8>, Vec<u8>>,
     ) -> Result<u32, &'static str> {
         if rect.width == 0 || rect.height == 0 {
             return Err("Unable to restore a region with zero height/width");

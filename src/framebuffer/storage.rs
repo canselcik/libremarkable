@@ -27,7 +27,7 @@ pub struct CompressedCanvasState {
 impl CompressedCanvasState {
     /// Creates a CompressedCanvasState from the output of FramebufferIO::dump_region(..)
     /// Consumes the RgbaImage that's provided to it.
-    pub fn new(img: image::RgbaImage) -> CompressedCanvasState {
+    pub fn new(img: image::GrayAlphaImage) -> CompressedCanvasState {
         let height = img.height();
         let width = img.width();
         CompressedCanvasState {
@@ -39,8 +39,8 @@ impl CompressedCanvasState {
 
     /// Returns an ImageBuffer which can be used to restore the contents of a screen
     /// region using the FramebufferIO::restore_region(..)
-    pub fn decompress(&self) -> image::RgbaImage {
+    pub fn decompress(&self) -> image::GrayAlphaImage {
         let unencoded = zstd::decode_all(&*self.data).unwrap();
-        image::RgbaImage::from_raw(self.width, self.height, unencoded).unwrap()
+        image::GrayAlphaImage::from_raw(self.width, self.height, unencoded).unwrap()
     }
 }

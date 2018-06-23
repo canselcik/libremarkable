@@ -45,7 +45,7 @@ pub enum color {
     GREEN,
     BLUE,
     WHITE,
-    NATIVE_COMPONENTS(u8, u8, u8, u8),
+    NATIVE_COMPONENTS(u8, u8),
     RGB(u8, u8, u8),
 
     /// 0-255 -- 0 will yield black and 255 will yield white
@@ -53,30 +53,37 @@ pub enum color {
 }
 
 impl color {
-    pub fn from_native(c: [u8; 4]) -> color {
-        color::NATIVE_COMPONENTS(c[0], c[1], c[2], c[3])
+    pub fn from_native(c: [u8; 2]) -> color {
+        color::NATIVE_COMPONENTS(c[0], c[1])
     }
 
-    pub fn as_native(&self) -> [u8; 4] {
+    pub fn as_native(&self) -> [u8; 2] {
         // No need to over-optimize here and return a reference because 4 x u8 (1byte) = 4bytes
         match self {
-            &color::BLACK => [0x00, 0x00, 0x00, 0x00],
-            &color::RED => [0xF8, 0x00, 0xF8, 0x00],
-            &color::GREEN => [0x07, 0xE0, 0x07, 0xE0],
-            &color::BLUE => [0x00, 0x1F, 0x00, 0x1F],
-            &color::WHITE => [0xFF, 0xFF, 0xFF, 0xFF],
-            &color::GRAY(level) => [level, level, level, level],
-            &color::NATIVE_COMPONENTS(c1, c2, c3, c4) => [c1, c2, c3, c4],
-            &color::RGB(r, _g, _b) => {
-                // Further experimentation is needed here but here is the gist of it:
+            &color::BLACK => [0x00, 0x00],
+            &color::RED => [0xF8, 0x00],
+            &color::GREEN => [0x07, 0xE0],
+            &color::BLUE => [0x00, 0x1F],
+            &color::WHITE => [0xFF, 0xFF],
+            &color::GRAY(level) => [level, level],
+            &color::NATIVE_COMPONENTS(c1, c2) => [c1, c2],
+            &color::RGB(r, g, b) => {
+                // Simply can be referred to as `rgb565_le`. Due to the nature of the display it is a LumaA8.
+                //
+                //    u8 + u8 for lumaA8 ==> yields 16bits per pixel:
                 //
                 //    red     : offset = 11,  length =5,      msb_right = 0
                 //    green   : offset = 5,   length =6,      msb_right = 0
                 //    blue    : offset = 0,   length =5,      msb_right = 0
                 //
-                // TODO: RGB conversion ~ TO_REMARKABLE_COLOR(r, g, b) = ((r << 11) | (g << 5) | b)
-                // Simply can be referred to as `rgb565_le`.
-                color::GRAY(r).as_native()
+                let mut red_comp: u16 = r as u16;
+                red_comp = ((red_comp & 0b11111) << 11).into();
+
+                let mut out: u16 = red_comp | ((g & 0b111111) << 5) as u16 | (b & 0b11111) as u16;
+
+                let ms: u8 = (out & 0xFF00) as u8;
+                let ls: u8 = (out & 0x00FF) as u8;
+                [ms, ls]
             }
         }
     }

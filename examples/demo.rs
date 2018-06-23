@@ -269,18 +269,23 @@ fn on_zoom_out(app: &mut appctx::ApplicationContext, _element: UIElementHandle) 
     match framebuffer.dump_region(CANVAS_REGION) {
         Err(err) => println!("Failed to dump buffer: {0}", err),
         Ok(buff) => {
-            let mut dynamic = image::DynamicImage::ImageRgba8(buff);
-            let resized = dynamic.resize(
+            let resized = image::DynamicImage::ImageLumaA8(buff).resize(
                 (CANVAS_REGION.width as f32 / 1.25f32) as u32,
                 (CANVAS_REGION.height as f32 / 1.25f32) as u32,
                 image::imageops::Nearest,
             );
 
-            dynamic = image::DynamicImage::new_rgba8(CANVAS_REGION.width, CANVAS_REGION.height);
-            dynamic.invert();
-            dynamic.copy_from(&resized, CANVAS_REGION.width / 8, CANVAS_REGION.height / 8);
+            // Get a clean image the size of the canvas
+            let mut new_image =
+                image::DynamicImage::new_rgb8(CANVAS_REGION.width, CANVAS_REGION.height);
+            new_image.invert();
 
-            match framebuffer.restore_region(CANVAS_REGION, &dynamic.as_rgba8().unwrap()) {
+            // Copy the resized image into the subimage
+            new_image = image::DynamicImage::ImageLumaA8(new_image.to_luma_alpha());
+            new_image.copy_from(&resized, CANVAS_REGION.width / 8, CANVAS_REGION.height / 8);
+
+            // Restore the new_image but as luma_alpha8.
+            match framebuffer.restore_region(CANVAS_REGION, &new_image.as_luma_alpha8().unwrap()) {
                 Err(e) => println!("Error while restoring region: {0}", e),
                 Ok(_) => {
                     framebuffer.partial_refresh(
@@ -298,15 +303,14 @@ fn on_zoom_out(app: &mut appctx::ApplicationContext, _element: UIElementHandle) 
     };
 }
 
-fn on_invert_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
+fn on_blur_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
     let framebuffer = app.get_framebuffer_ref();
     match framebuffer.dump_region(CANVAS_REGION) {
         Err(err) => println!("Failed to dump buffer: {0}", err),
         Ok(buff) => {
-            let mut dynamic = image::DynamicImage::ImageRgba8(buff);
-            dynamic.invert();
-
-            match framebuffer.restore_region(CANVAS_REGION, &dynamic.as_rgba8().unwrap()) {
+            let mut dynamic = image::DynamicImage::ImageLumaA8(buff);
+            dynamic = dynamic.blur(0.6f32);
+            match framebuffer.restore_region(CANVAS_REGION, &dynamic.as_luma_alpha8().unwrap()) {
                 Err(e) => println!("Error while restoring region: {0}", e),
                 Ok(_) => {
                     framebuffer.partial_refresh(
@@ -637,7 +641,7 @@ fn main() {
             ..Default::default()
         },
     );
-    // Invert Toggle
+    // Blur Toggle
     app.add_element(
         "invertToggle",
         UIElementWrapper {
@@ -645,10 +649,10 @@ fn main() {
             x: 1240,
             refresh: UIConstraintRefresh::Refresh,
 
-            onclick: Some(on_invert_canvas),
+            onclick: Some(on_blur_canvas),
             inner: UIElement::Text {
                 foreground: color::BLACK,
-                text: "Invert".to_owned(),
+                text: "Blur".to_owned(),
                 scale: 45,
                 border_px: 5,
             },
