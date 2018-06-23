@@ -232,15 +232,22 @@ fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent)
             app.draw_element("tooltipRight");
             return;
         }
-        gpio::PhysicalButton::MIDDLE => {
-            app.clear(true);
+        gpio::PhysicalButton::MIDDLE | gpio ::PhysicalButton::LEFT => {
+            app.clear(btn == gpio::PhysicalButton::MIDDLE);
+            app.draw_elements();
         }
-        gpio::PhysicalButton::LEFT => {
-            app.clear(false);
+        gpio::PhysicalButton::POWER => {
+            Command::new("systemctl")
+                .arg("start")
+                .arg("xochitl")
+                .spawn()
+                .unwrap();
+            std::process::exit(0);
+        }
+        gpio::PhysicalButton::WAKEUP => {
+            println!("WAKEUP button(?) pressed(?)");
         }
     };
-
-    app.draw_elements();
 }
 
 fn on_save_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
@@ -337,15 +344,6 @@ fn on_load_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandl
             };
         }
     };
-}
-
-fn on_touch_exit_to_xochitl(_app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
-    Command::new("systemctl")
-        .arg("start")
-        .arg("xochitl")
-        .spawn()
-        .unwrap();
-    std::process::exit(0);
 }
 
 fn on_touch_rustlogo(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
@@ -707,16 +705,16 @@ fn main() {
     app.add_element(
         "exitToXochitl",
         UIElementWrapper {
-            y: 55,
-            x: 550,
+            y: 50,
+            x: 280,
             refresh: UIConstraintRefresh::Refresh,
 
-            onclick: Some(on_touch_exit_to_xochitl),
+            onclick: None,
             inner: UIElement::Text {
                 foreground: color::BLACK,
-                text: "EXIT TO REMARKABLE".to_owned(),
+                text: "⬈ Press POWER to return to reMarkable ⬉".to_owned(),
                 scale: 35,
-                border_px: 3,
+                border_px: 0,
             },
             ..Default::default()
         },

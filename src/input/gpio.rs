@@ -7,6 +7,8 @@ pub enum PhysicalButton {
     LEFT,
     MIDDLE,
     RIGHT,
+    POWER,
+    WAKEUP
 }
 
 #[derive(PartialEq, Copy, Clone)]
@@ -17,13 +19,15 @@ pub enum GPIOEvent {
 }
 
 pub struct GPIOState {
-    states: [AtomicBool; 3],
+    states: [AtomicBool; 5],
 }
 
 impl GPIOState {
     pub fn new() -> GPIOState {
         GPIOState {
             states: [
+                AtomicBool::new(false),
+                AtomicBool::new(false),
                 AtomicBool::new(false),
                 AtomicBool::new(false),
                 AtomicBool::new(false),
@@ -46,15 +50,23 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
             let (p, before_state) = match ev.code {
                 102 => (
                     PhysicalButton::MIDDLE,
-                    state.states[1].fetch_and(ev.value != 0, Ordering::Relaxed),
+                    state.states[0].fetch_and(ev.value != 0, Ordering::Relaxed),
                 ),
                 105 => (
                     PhysicalButton::LEFT,
-                    state.states[0].fetch_and(ev.value != 0, Ordering::Relaxed),
+                    state.states[1].fetch_and(ev.value != 0, Ordering::Relaxed),
                 ),
                 106 => (
                     PhysicalButton::RIGHT,
                     state.states[2].fetch_and(ev.value != 0, Ordering::Relaxed),
+                ),
+                116 => (
+                    PhysicalButton::POWER,
+                    state.states[3].fetch_and(ev.value != 0, Ordering::Relaxed),
+                ),
+                143 => (
+                    PhysicalButton::WAKEUP,
+                    state.states[4].fetch_and(ev.value != 0, Ordering::Relaxed),
                 ),
                 _ => return None,
             };
