@@ -165,6 +165,9 @@ fn on_touch_handler(app: &mut appctx::ApplicationContext, input: multitouch::Mul
             y,
             x,
         } => {
+            if !CANVAS_REGION.contains_point(y.into(), x.into()) {
+                return;
+            }
             let action = { DRAW_ON_TOUCH.lock().unwrap().clone() };
             let rect = match action {
                 1 => framebuffer.draw_bezier(
