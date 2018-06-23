@@ -8,6 +8,7 @@ const MT_HSCALAR: f32 = (DISPLAYWIDTH as f32) / (MTWIDTH as f32);
 const MT_VSCALAR: f32 = (DISPLAYHEIGHT as f32) / (MTHEIGHT as f32);
 
 pub struct MultitouchState {
+    last_pressure: AtomicU8,
     last_touch_size: AtomicU8,
     last_touch_id: AtomicU16,
     last_x: AtomicU16,
@@ -19,6 +20,7 @@ pub struct MultitouchState {
 impl MultitouchState {
     pub fn new() -> MultitouchState {
         MultitouchState {
+            last_pressure: AtomicU8::new(0),
             last_touch_size: AtomicU8::new(0),
             last_touch_id: AtomicU16::new(0),
             last_x: AtomicU16::new(0),
@@ -79,11 +81,15 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
 
                     Some(InputEvent::MultitouchEvent { event })
                 }
-                52 | 48 | 58 => {
+                52 | 48 => {
                     debug!(
                         "unknown_absolute_touch_event(code={0}, value={1})",
                         ev.code, ev.value
                     );
+                    None
+                }
+                58 => {
+                    state.last_pressure.store(ev.value as u8, Ordering::Relaxed);
                     None
                 }
                 49 => {
