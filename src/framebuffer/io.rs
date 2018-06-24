@@ -4,8 +4,6 @@ use framebuffer::common;
 
 use image::{ImageBuffer, LumaA};
 
-use std;
-
 impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
     fn write_frame(&mut self, frame: &[u8]) {
         unsafe {
