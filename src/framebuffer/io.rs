@@ -9,7 +9,7 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         unsafe {
             let begin = self.frame.data() as *mut u8;
             for (i, elem) in frame.iter().enumerate() {
-                *(begin.offset(i as isize)) = *elem;
+                begin.offset(i as isize).write_volatile(*elem);
             }
         }
     }
@@ -43,16 +43,20 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         let bytespp = (self.var_screen_info.bits_per_pixel / 8) as usize;
         let curr_index = y * line_length + x * bytespp;
 
-        framebuffer::common::color::NATIVE_COMPONENTS(
-            self.read_offset(curr_index as isize),
-            self.read_offset(curr_index as isize + 1),
-        )
+        let begin = self.frame.data() as *mut u8;
+        let (c1, c2) = unsafe {
+            (
+                begin.offset(curr_index as isize).read_volatile(),
+                begin.offset((curr_index + 1) as isize).read_volatile(),
+            )
+        };
+        framebuffer::common::color::NATIVE_COMPONENTS(c1, c2)
     }
 
     fn read_offset(&self, ofst: isize) -> u8 {
         unsafe {
             let begin = self.frame.data() as *mut u8;
-            return *(begin.offset(ofst));
+            return begin.offset(ofst).read_volatile();
         }
     }
 
@@ -72,17 +76,15 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
 
         let line_length = self.fix_screen_info.line_length as u32;
         let bytespp = (self.var_screen_info.bits_per_pixel / 8) as usize;
-        let final_len =
-            bytespp * self.var_screen_info.yres as usize * self.var_screen_info.xres as usize;
-
         let inbuffer = self.frame.data();
-        let mut outbuffer: Vec<u8> = Vec::with_capacity(final_len);
+        let mut outbuffer: Vec<u8> =
+            Vec::with_capacity(rect.height as usize * rect.width as usize * bytespp);
         let outbuffer_ptr = outbuffer.as_mut_ptr();
 
         let mut written = 0;
         let chunk_size = bytespp * rect.width as usize;
         for row in 0..rect.height {
-            let curr_index = (row + rect.top) * line_length;
+            let curr_index = (row + rect.top) * line_length + (bytespp * rect.left as usize) as u32;
             unsafe {
                 inbuffer
                     .add(curr_index as usize)
