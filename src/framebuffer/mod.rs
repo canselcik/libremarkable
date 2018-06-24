@@ -17,15 +17,12 @@ pub trait FramebufferIO {
     /// Reads the value at offset `ofst` from the mmapp'ed framebuffer region
     fn read_offset(&self, ofst: isize) -> u8;
     /// Dumps the contents of the specified rectangle into an `image::ImageBuffer<image::LumaA<u8>, Vec<u8>>`
-    fn dump_region(
-        &self,
-        rect: common::mxcfb_rect,
-    ) -> Result<image::ImageBuffer<image::LumaA<u8>, Vec<u8>>, &'static str>;
+    fn dump_region(&self, rect: common::mxcfb_rect) -> Result<image::GrayAlphaImage, &'static str>;
     /// Restores into the framebuffer the contents of the specified rectangle from an `image::ImageBuffer<image::LumaA<u8>, Vec<u8>>`
     fn restore_region(
         &mut self,
         rect: common::mxcfb_rect,
-        data: &image::ImageBuffer<image::LumaA<u8>, Vec<u8>>,
+        data: &image::GrayAlphaImage,
     ) -> Result<u32, &'static str>;
 }
 

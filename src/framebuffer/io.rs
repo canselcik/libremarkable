@@ -2,7 +2,7 @@
 use framebuffer;
 use framebuffer::common;
 
-use image::{ImageBuffer, LumaA};
+use image::{GrayAlphaImage, ImageBuffer};
 
 impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
     fn write_frame(&mut self, frame: &[u8]) {
@@ -60,10 +60,7 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         }
     }
 
-    fn dump_region(
-        &self,
-        rect: common::mxcfb_rect,
-    ) -> Result<ImageBuffer<LumaA<u8>, Vec<u8>>, &'static str> {
+    fn dump_region(&self, rect: common::mxcfb_rect) -> Result<GrayAlphaImage, &'static str> {
         if rect.width == 0 || rect.height == 0 {
             return Err("Unable to dump a region with zero height/width");
         }
@@ -101,7 +98,7 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
     fn restore_region(
         &mut self,
         rect: common::mxcfb_rect,
-        data: &ImageBuffer<LumaA<u8>, Vec<u8>>,
+        data: &GrayAlphaImage,
     ) -> Result<u32, &'static str> {
         if rect.width == 0 || rect.height == 0 {
             return Err("Unable to restore a region with zero height/width");
