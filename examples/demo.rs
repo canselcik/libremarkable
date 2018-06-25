@@ -334,14 +334,9 @@ fn on_invert_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHan
     match framebuffer.dump_region(CANVAS_REGION) {
         Err(err) => println!("Failed to dump buffer: {0}", err),
         Ok(mut buff) => {
-            let buffer = buff.as_mut_ptr();
-            unsafe {
-                for i in 0..buff.len() {
-                    let offset = buffer.add(i);
-                    let val = offset.read_volatile();
-                    offset.write_volatile(!val);
-                }
-            }
+            buff.iter_mut().for_each(|p| {
+                *p = !(*p);
+            });
             match framebuffer.restore_region(CANVAS_REGION, &buff) {
                 Err(e) => println!("Error while restoring region: {0}", e),
                 Ok(_) => {
