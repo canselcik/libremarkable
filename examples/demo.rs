@@ -31,8 +31,8 @@ use libremarkable::framebuffer::{FramebufferDraw, FramebufferIO, FramebufferRefr
 use libremarkable::battery;
 use libremarkable::input::{gpio, multitouch, wacom, InputDevice};
 
-extern crate image;
-use image::GenericImage;
+use libremarkable::image;
+use libremarkable::image::GenericImage;
 
 use std::process::Command;
 
