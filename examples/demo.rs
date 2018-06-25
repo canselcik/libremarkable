@@ -18,8 +18,6 @@ use std::time::Duration;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use libremarkable::framebuffer::common::*;
-use libremarkable::image;
-use libremarkable::image::GenericImage;
 
 use libremarkable::appctx;
 use libremarkable::ui_extensions::element::{
@@ -32,6 +30,9 @@ use libremarkable::framebuffer::{FramebufferDraw, FramebufferIO, FramebufferRefr
 
 use libremarkable::battery;
 use libremarkable::input::{gpio, multitouch, wacom, InputDevice};
+
+extern crate image;
+use image::GenericImage;
 
 use std::process::Command;
 
@@ -311,6 +312,37 @@ fn on_blur_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandl
             let mut dynamic = image::DynamicImage::ImageLumaA8(buff);
             dynamic = dynamic.blur(0.6f32);
             match framebuffer.restore_region(CANVAS_REGION, &dynamic.as_luma_alpha8().unwrap()) {
+                Err(e) => println!("Error while restoring region: {0}", e),
+                Ok(_) => {
+                    framebuffer.partial_refresh(
+                        &CANVAS_REGION,
+                        PartialRefreshMode::Async,
+                        waveform_mode::WAVEFORM_MODE_GC16_FAST,
+                        display_temp::TEMP_USE_REMARKABLE_DRAW,
+                        dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                        0,
+                        false,
+                    );
+                }
+            };
+        }
+    };
+}
+
+fn on_invert_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
+    let framebuffer = app.get_framebuffer_ref();
+    match framebuffer.dump_region(CANVAS_REGION) {
+        Err(err) => println!("Failed to dump buffer: {0}", err),
+        Ok(mut buff) => {
+            let buffer = buff.as_mut_ptr();
+            unsafe {
+                for i in 0..buff.len() {
+                    let offset = buffer.add(i);
+                    let val = offset.read_volatile();
+                    offset.write_volatile(!val);
+                }
+            }
+            match framebuffer.restore_region(CANVAS_REGION, &buff) {
                 Err(e) => println!("Error while restoring region: {0}", e),
                 Ok(_) => {
                     framebuffer.partial_refresh(
@@ -608,7 +640,7 @@ fn main() {
     app.add_element(
         "touchMode",
         UIElementWrapper {
-            y: 500,
+            y: 470,
             x: 1000,
             refresh: UIConstraintRefresh::Refresh,
 
@@ -627,7 +659,7 @@ fn main() {
     app.add_element(
         "eraseToggle",
         UIElementWrapper {
-            y: 610,
+            y: 530,
             x: 1000,
             refresh: UIConstraintRefresh::Refresh,
 
@@ -641,12 +673,30 @@ fn main() {
             ..Default::default()
         },
     );
-    // Blur Toggle
+    // Invert Toggle
     app.add_element(
         "invertToggle",
         UIElementWrapper {
             y: 610,
-            x: 1240,
+            x: 1000,
+            refresh: UIConstraintRefresh::Refresh,
+
+            onclick: Some(on_invert_canvas),
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "Invert".to_owned(),
+                scale: 45,
+                border_px: 5,
+            },
+            ..Default::default()
+        },
+    );
+    // Blur Toggle
+    app.add_element(
+        "blurToggle",
+        UIElementWrapper {
+            y: 610,
+            x: 1160,
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: Some(on_blur_canvas),
@@ -713,7 +763,7 @@ fn main() {
         "exitToXochitl",
         UIElementWrapper {
             y: 50,
-            x: 280,
+            x: 260,
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: None,
@@ -730,7 +780,7 @@ fn main() {
         "availAt",
         UIElementWrapper {
             y: 650,
-            x: 100,
+            x: 30,
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
@@ -745,7 +795,7 @@ fn main() {
         "github",
         UIElementWrapper {
             y: 720,
-            x: 100,
+            x: 30,
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
@@ -760,7 +810,7 @@ fn main() {
         "l1",
         UIElementWrapper {
             y: 350,
-            x: 100,
+            x: 30,
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
@@ -775,7 +825,7 @@ fn main() {
         "l3",
         UIElementWrapper {
             y: 400,
-            x: 100,
+            x: 30,
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
@@ -790,7 +840,7 @@ fn main() {
         "l2",
         UIElementWrapper {
             y: 450,
-            x: 100,
+            x: 30,
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
@@ -805,7 +855,7 @@ fn main() {
         "l4",
         UIElementWrapper {
             y: 500,
-            x: 100,
+            x: 30,
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
@@ -870,7 +920,7 @@ fn main() {
         "battery",
         UIElementWrapper {
             y: 215,
-            x: 100,
+            x: 30,
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
@@ -892,7 +942,7 @@ fn main() {
         "time",
         UIElementWrapper {
             y: 150,
-            x: 100,
+            x: 30,
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
@@ -928,8 +978,8 @@ fn main() {
         end
       end
 
-      top = 450;
-      left = 620;
+      top = 430;
+      left = 570;
       width = 320;
       height = 90;
       borderpx = 3;
