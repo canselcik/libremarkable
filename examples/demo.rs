@@ -261,6 +261,7 @@ fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent)
 }
 
 fn on_save_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
+    start_bench!(stopwatch, save_canvas);
     let framebuffer = app.get_framebuffer_ref();
     match framebuffer.dump_region(CANVAS_REGION) {
         Err(err) => println!("Failed to dump buffer: {0}", err),
@@ -269,9 +270,11 @@ fn on_save_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandl
             *hist = Some(storage::CompressedCanvasState::new(buff));
         }
     };
+    end_bench!(save_canvas);
 }
 
 fn on_zoom_out(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
+    start_bench!(stopwatch, zoom_out);
     let framebuffer = app.get_framebuffer_ref();
     match framebuffer.dump_region(CANVAS_REGION) {
         Err(err) => println!("Failed to dump buffer: {0}", err),
@@ -308,9 +311,11 @@ fn on_zoom_out(app: &mut appctx::ApplicationContext, _element: UIElementHandle) 
             };
         }
     };
+    end_bench!(zoom_out);
 }
 
 fn on_blur_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
+    start_bench!(stopwatch, blur_canvas);
     let framebuffer = app.get_framebuffer_ref();
     match framebuffer.dump_region(CANVAS_REGION) {
         Err(err) => println!("Failed to dump buffer: {0}", err),
@@ -333,6 +338,7 @@ fn on_blur_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandl
             };
         }
     };
+    end_bench!(blur_canvas);
 }
 
 fn on_invert_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
@@ -364,6 +370,7 @@ fn on_invert_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHan
 }
 
 fn on_load_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
+    start_bench!(stopwatch, load_canvas);
     match *SAVED_CANVAS.lock().unwrap() {
         None => {}
         Some(ref compressed_state) => {
@@ -386,6 +393,7 @@ fn on_load_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandl
             };
         }
     };
+    end_bench!(load_canvas);
 }
 
 fn on_touch_rustlogo(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
