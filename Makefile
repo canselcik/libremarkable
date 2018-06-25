@@ -4,6 +4,9 @@ all: library examples
 examples:
 	cargo build --examples --release --target=armv7-unknown-linux-gnueabihf
 
+bench:
+	cargo build --examples --release --target=armv7-unknown-linux-gnueabihf --features "enable-runtime-benchmarking"
+
 library:
 	cargo build --release --target=armv7-unknown-linux-gnueabihf
 
@@ -13,6 +16,11 @@ test:
 
 DEVICE_IP ?= "10.11.99.1"
 run: examples
+	ssh root@$(DEVICE_IP) 'kill -9 `pidof demo` || true; systemctl stop xochitl || true'
+	scp ./target/armv7-unknown-linux-gnueabihf/release/examples/demo root@$(DEVICE_IP):~/
+	ssh root@$(DEVICE_IP) './demo'
+
+run-bench: bench
 	ssh root@$(DEVICE_IP) 'kill -9 `pidof demo` || true; systemctl stop xochitl || true'
 	scp ./target/armv7-unknown-linux-gnueabihf/release/examples/demo root@$(DEVICE_IP):~/
 	ssh root@$(DEVICE_IP) './demo'

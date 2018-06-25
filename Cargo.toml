@@ -28,6 +28,10 @@ line_drawing = "0.7.0"
 hlua = "0.4.1"
 aabb-quadtree = "0.1.0"
 zstd = "0.4.14"
+stopwatch = "0.0.7"
+
+[features]
+enable-runtime-benchmarking = []
 
 [profile.release]
 debug = true

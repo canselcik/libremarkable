@@ -32,6 +32,9 @@ use input::multitouch::MultitouchEvent;
 use input::wacom::WacomEvent;
 use input::{InputDevice, InputEvent};
 
+#[cfg(feature="enable-runtime-benchmarking")]
+use stopwatch;
+
 unsafe impl<'a> Send for ApplicationContext<'a> {}
 unsafe impl<'a> Sync for ApplicationContext<'a> {}
 
@@ -323,7 +326,9 @@ impl<'a> ApplicationContext<'a> {
         }
     }
 
+
     pub fn draw_elements(&mut self) {
+        start_bench!(stopwatch, draw_elements);
         let mut elems: std::vec::Vec<UIElementHandle> = self
             .ui_elements
             .iter()
@@ -341,6 +346,7 @@ impl<'a> ApplicationContext<'a> {
             };
             element.write().draw(self, handler);
         }
+        end_bench!(draw_elements);
     }
 
     /// Briefly flash the element's `last_drawn_rect`

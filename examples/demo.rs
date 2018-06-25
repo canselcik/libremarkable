@@ -3,11 +3,14 @@
 extern crate lazy_static;
 
 extern crate env_logger;
+
 #[macro_use]
 extern crate log;
 
-extern crate chrono;
+#[macro_use]
 extern crate libremarkable;
+
+extern crate chrono;
 
 use chrono::{DateTime, Local};
 
@@ -35,6 +38,9 @@ use libremarkable::image;
 use libremarkable::image::GenericImage;
 
 use std::process::Command;
+
+#[cfg(feature="enable-runtime-benchmarking")]
+use libremarkable::stopwatch;
 
 fn loop_update_topbar(app: &mut appctx::ApplicationContext, millis: u64) {
     let time_label = app.get_element_by_name("time").unwrap();
@@ -330,6 +336,7 @@ fn on_blur_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandl
 }
 
 fn on_invert_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
+    start_bench!(stopwatch, invert);
     let framebuffer = app.get_framebuffer_ref();
     match framebuffer.dump_region(CANVAS_REGION) {
         Err(err) => println!("Failed to dump buffer: {0}", err),
@@ -353,6 +360,7 @@ fn on_invert_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHan
             };
         }
     };
+    end_bench!(invert);
 }
 
 fn on_load_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
