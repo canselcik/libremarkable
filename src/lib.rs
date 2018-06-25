@@ -1,28 +1,32 @@
 #![feature(integer_atomics)]
 #![feature(const_size_of)]
 
-#[cfg(not(feature="enable-runtime-benchmarking"))]
+#[cfg(not(feature = "enable-runtime-benchmarking"))]
 #[macro_export]
 macro_rules! start_bench {
-    ($stopwatch_path:ident, $name:ident) => ();
+    ($stopwatch_path:ident, $name:ident) => {};
 }
 
-#[cfg(not(feature="enable-runtime-benchmarking"))]
+#[cfg(not(feature = "enable-runtime-benchmarking"))]
 #[macro_export]
 macro_rules! end_bench {
-    ($name:expr) => ();
+    ($name:expr) => {};
 }
 
-#[cfg(feature="enable-runtime-benchmarking")]
+#[cfg(feature = "enable-runtime-benchmarking")]
 #[macro_export]
 macro_rules! start_bench {
-    ($stopwatch_path:ident, $name:ident) => (let $name = $stopwatch_path::Stopwatch::start_new(););
+    ($stopwatch_path:ident, $name:ident) => {
+        let $name = $stopwatch_path::Stopwatch::start_new();
+    };
 }
 
-#[cfg(feature="enable-runtime-benchmarking")]
+#[cfg(feature = "enable-runtime-benchmarking")]
 #[macro_export]
 macro_rules! end_bench {
-    ($name:ident) => (println!("'{}' took {}ms", stringify!($name), $name.elapsed_ms()););
+    ($name:ident) => {
+        println!("'{}' took {}ms", stringify!($name), $name.elapsed_ms());
+    };
 }
 
 #[macro_use]
@@ -41,8 +45,8 @@ extern crate zstd;
 pub extern crate epoll;
 pub extern crate evdev;
 pub extern crate image;
-pub extern crate stopwatch;
 pub extern crate line_drawing;
+pub extern crate stopwatch;
 
 /// One of the core components, allowing output and refresh of the EInk display
 pub mod framebuffer;

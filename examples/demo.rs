@@ -39,7 +39,7 @@ use libremarkable::image::GenericImage;
 
 use std::process::Command;
 
-#[cfg(feature="enable-runtime-benchmarking")]
+#[cfg(feature = "enable-runtime-benchmarking")]
 use libremarkable::stopwatch;
 
 fn loop_update_topbar(app: &mut appctx::ApplicationContext, millis: u64) {

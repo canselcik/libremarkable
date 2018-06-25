@@ -32,7 +32,7 @@ use input::multitouch::MultitouchEvent;
 use input::wacom::WacomEvent;
 use input::{InputDevice, InputEvent};
 
-#[cfg(feature="enable-runtime-benchmarking")]
+#[cfg(feature = "enable-runtime-benchmarking")]
 use stopwatch;
 
 unsafe impl<'a> Send for ApplicationContext<'a> {}
@@ -325,7 +325,6 @@ impl<'a> ApplicationContext<'a> {
             Some(element) => Some(element.clone()),
         }
     }
-
 
     pub fn draw_elements(&mut self) {
         start_bench!(stopwatch, draw_elements);
