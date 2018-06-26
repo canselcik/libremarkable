@@ -16,25 +16,22 @@ pub trait FramebufferIO {
     fn read_pixel(&self, y: usize, x: usize) -> common::color;
     /// Reads the value at offset `ofst` from the mmapp'ed framebuffer region
     fn read_offset(&self, ofst: isize) -> u8;
-    /// Dumps the contents of the specified rectangle into an `image::ImageBuffer<image::LumaA<u8>, Vec<u8>>`
-    fn dump_region(&self, rect: common::mxcfb_rect) -> Result<image::GrayAlphaImage, &'static str>;
-    /// Restores into the framebuffer the contents of the specified rectangle from an `image::ImageBuffer<image::LumaA<u8>, Vec<u8>>`
+    /// Dumps the contents of the specified rectangle into a `Vec<u8>` from which
+    /// you can later create a CompressedCanvasState or pass to restore_region().
+    /// The pixel format is rgb565_le.
+    fn dump_region(&self, rect: common::mxcfb_rect) -> Result<Vec<u8>, &'static str>;
+    /// Restores into the framebuffer the contents of the specified rectangle from a u8 slice
     fn restore_region(
         &mut self,
         rect: common::mxcfb_rect,
-        data: &image::GrayAlphaImage,
+        data: &[u8],
     ) -> Result<u32, &'static str>;
 }
 
 pub mod draw;
 pub trait FramebufferDraw {
     /// Draws `img` at y=top, x=left coordinates with 1:1 scaling
-    fn draw_grayscale_image(
-        &mut self,
-        img: &image::DynamicImage,
-        top: usize,
-        left: usize,
-    ) -> common::mxcfb_rect;
+    fn draw_image(&mut self, img: &image::RgbImage, top: usize, left: usize) -> common::mxcfb_rect;
     /// Draws a straight line
     fn draw_line(
         &mut self,

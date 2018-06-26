@@ -2,8 +2,6 @@
 use framebuffer;
 use framebuffer::common;
 
-use image::{GrayAlphaImage, ImageBuffer};
-
 impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
     fn write_frame(&mut self, frame: &[u8]) {
         unsafe {
@@ -60,7 +58,7 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         }
     }
 
-    fn dump_region(&self, rect: common::mxcfb_rect) -> Result<GrayAlphaImage, &'static str> {
+    fn dump_region(&self, rect: common::mxcfb_rect) -> Result<Vec<u8>, &'static str> {
         if rect.width == 0 || rect.height == 0 {
             return Err("Unable to dump a region with zero height/width");
         }
@@ -92,13 +90,14 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         unsafe {
             outbuffer.set_len(written);
         }
-        return Ok(ImageBuffer::from_raw(rect.width, rect.height, outbuffer).unwrap());
+
+        return Ok(outbuffer);
     }
 
     fn restore_region(
         &mut self,
         rect: common::mxcfb_rect,
-        data: &GrayAlphaImage,
+        data: &[u8],
     ) -> Result<u32, &'static str> {
         if rect.width == 0 || rect.height == 0 {
             return Err("Unable to restore a region with zero height/width");
@@ -110,16 +109,24 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
             return Err("Horizontally out of bounds");
         }
 
+        let bytespp = (self.var_screen_info.bits_per_pixel / 8) as usize;
+        if data.len() as u32 != rect.width * rect.height * bytespp as u32 {
+            return Err("Cannot restore region due to mismatched size");
+        }
+
+        let line_length = self.fix_screen_info.line_length as u32;
+        let chunk_size = bytespp * rect.width as usize;
+        let outbuffer = self.frame.data();
+        let inbuffer = data.as_ptr();
         let mut written: u32 = 0;
         for y in 0..rect.height {
-            for x in 0..rect.width {
-                self.write_pixel(
-                    (rect.top + y) as usize,
-                    (rect.left + x) as usize,
-                    common::color::from_native(data.get_pixel(x, y).data),
-                );
-                written += 1;
+            let curr_index = (y + rect.top) * line_length + (bytespp * rect.left as usize) as u32;
+            unsafe {
+                outbuffer
+                    .add(curr_index as usize)
+                    .copy_from(inbuffer.add(written as usize), chunk_size);
             }
+            written += chunk_size as u32;
         }
         return Ok(written);
     }

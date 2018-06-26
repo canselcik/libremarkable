@@ -1,7 +1,6 @@
 use std;
 
-use image::DynamicImage;
-use image::GenericImage;
+use image::RgbImage;
 use libc;
 use line_drawing;
 use rusttype::{point, Scale};
@@ -46,12 +45,12 @@ fn sample_bezier(startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32)) -> 
 }
 
 impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
-    fn draw_grayscale_image(&mut self, img: &DynamicImage, top: usize, left: usize) -> mxcfb_rect {
-        for (x, y, pixel) in img.to_luma().enumerate_pixels() {
+    fn draw_image(&mut self, img: &RgbImage, top: usize, left: usize) -> mxcfb_rect {
+        for (x, y, pixel) in img.enumerate_pixels() {
             self.write_pixel(
                 top + y as usize,
                 left + x as usize,
-                color::GRAY(pixel.data[0]),
+                color::RGB(pixel.data[0], pixel.data[1], pixel.data[2]),
             );
         }
         return mxcfb_rect {

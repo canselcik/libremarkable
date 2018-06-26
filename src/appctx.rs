@@ -257,7 +257,10 @@ impl<'a> ApplicationContext<'a> {
         refresh: UIConstraintRefresh,
     ) -> mxcfb_rect {
         let framebuffer = self.get_framebuffer_ref();
-        let draw_area = framebuffer.draw_grayscale_image(&img, y, x);
+        let draw_area = match img {
+            image::DynamicImage::ImageRgb8(ref rgb) => framebuffer.draw_image(rgb, y, x),
+            other => framebuffer.draw_image(&other.to_rgb(), y, x),
+        };
         let marker = match refresh {
             UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer
                 .partial_refresh(

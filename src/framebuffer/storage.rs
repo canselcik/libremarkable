@@ -1,8 +1,5 @@
-use zstd;
-
 use std::sync::Arc;
-
-use image;
+use zstd;
 
 #[derive(Clone)]
 pub struct CompressedCanvasState {
@@ -27,11 +24,9 @@ pub struct CompressedCanvasState {
 impl CompressedCanvasState {
     /// Creates a CompressedCanvasState from the output of FramebufferIO::dump_region(..)
     /// Consumes the RgbaImage that's provided to it.
-    pub fn new(img: image::GrayAlphaImage) -> CompressedCanvasState {
-        let height = img.height();
-        let width = img.width();
+    pub fn new(img: &[u8], height: u32, width: u32) -> CompressedCanvasState {
         CompressedCanvasState {
-            data: zstd::encode_all(&*img.into_vec(), 0).unwrap().into(),
+            data: zstd::encode_all(img, 0).unwrap().into(),
             height,
             width,
         }
@@ -39,8 +34,7 @@ impl CompressedCanvasState {
 
     /// Returns an ImageBuffer which can be used to restore the contents of a screen
     /// region using the FramebufferIO::restore_region(..)
-    pub fn decompress(&self) -> image::GrayAlphaImage {
-        let unencoded = zstd::decode_all(&*self.data).unwrap();
-        image::GrayAlphaImage::from_raw(self.width, self.height, unencoded).unwrap()
+    pub fn decompress(&self) -> Vec<u8> {
+        zstd::decode_all(&*self.data).unwrap()
     }
 }

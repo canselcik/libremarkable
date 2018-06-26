@@ -35,7 +35,7 @@ use libremarkable::battery;
 use libremarkable::input::{gpio, multitouch, wacom, InputDevice};
 
 use libremarkable::image;
-use libremarkable::image::GenericImage;
+use libremarkable::image::{GenericImage, ImageBuffer};
 
 use std::process::Command;
 
@@ -267,7 +267,11 @@ fn on_save_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandl
         Err(err) => println!("Failed to dump buffer: {0}", err),
         Ok(buff) => {
             let mut hist = SAVED_CANVAS.lock().unwrap();
-            *hist = Some(storage::CompressedCanvasState::new(buff));
+            *hist = Some(storage::CompressedCanvasState::new(
+                buff.as_slice(),
+                CANVAS_REGION.height,
+                CANVAS_REGION.width,
+            ));
         }
     };
     end_bench!(save_canvas);
@@ -279,7 +283,10 @@ fn on_zoom_out(app: &mut appctx::ApplicationContext, _element: UIElementHandle) 
     match framebuffer.dump_region(CANVAS_REGION) {
         Err(err) => println!("Failed to dump buffer: {0}", err),
         Ok(buff) => {
-            let resized = image::DynamicImage::ImageLumaA8(buff).resize(
+            let resized = image::DynamicImage::ImageRgb8(
+                from_rgb565_to_rgb8(CANVAS_REGION.width, CANVAS_REGION.height, buff.as_slice())
+                    .unwrap(),
+            ).resize(
                 (CANVAS_REGION.width as f32 / 1.25f32) as u32,
                 (CANVAS_REGION.height as f32 / 1.25f32) as u32,
                 image::imageops::Nearest,
@@ -291,27 +298,39 @@ fn on_zoom_out(app: &mut appctx::ApplicationContext, _element: UIElementHandle) 
             new_image.invert();
 
             // Copy the resized image into the subimage
-            new_image = image::DynamicImage::ImageLumaA8(new_image.to_luma_alpha());
             new_image.copy_from(&resized, CANVAS_REGION.width / 8, CANVAS_REGION.height / 8);
 
-            // Restore the new_image but as luma_alpha8.
-            match framebuffer.restore_region(CANVAS_REGION, &new_image.as_luma_alpha8().unwrap()) {
-                Err(e) => println!("Error while restoring region: {0}", e),
-                Ok(_) => {
-                    framebuffer.partial_refresh(
-                        &CANVAS_REGION,
-                        PartialRefreshMode::Async,
-                        waveform_mode::WAVEFORM_MODE_GC16_FAST,
-                        display_temp::TEMP_USE_REMARKABLE_DRAW,
-                        dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                        0,
-                        false,
-                    );
-                }
-            };
+            framebuffer.draw_image(
+                &new_image.as_rgb8().unwrap(),
+                CANVAS_REGION.top as usize,
+                CANVAS_REGION.left as usize,
+            );
+            framebuffer.partial_refresh(
+                &CANVAS_REGION,
+                PartialRefreshMode::Async,
+                waveform_mode::WAVEFORM_MODE_GC16_FAST,
+                display_temp::TEMP_USE_REMARKABLE_DRAW,
+                dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                0,
+                false,
+            );
         }
     };
     end_bench!(zoom_out);
+}
+
+fn from_rgb565_to_rgb8(w: u32, h: u32, buff: &[u8]) -> Option<image::RgbImage> {
+    // rgb565 is the input so it is 16bits (2 bytes) per pixel
+    let input_bytespp = 2;
+    let input_line_len = w * input_bytespp;
+    if h * input_line_len != buff.len() as u32 {
+        return None;
+    }
+    Some(ImageBuffer::from_fn(w, h, |x, y| {
+        let in_index: usize = ((y * input_line_len) + ((input_bytespp * x) as u32)) as usize;
+        let data = color::NATIVE_COMPONENTS(buff[in_index], buff[in_index + 1]).to_rgb8();
+        image::Rgb(data)
+    }))
 }
 
 fn on_blur_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
@@ -320,22 +339,25 @@ fn on_blur_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandl
     match framebuffer.dump_region(CANVAS_REGION) {
         Err(err) => println!("Failed to dump buffer: {0}", err),
         Ok(buff) => {
-            let mut dynamic = image::DynamicImage::ImageLumaA8(buff);
-            dynamic = dynamic.blur(0.6f32);
-            match framebuffer.restore_region(CANVAS_REGION, &dynamic.as_luma_alpha8().unwrap()) {
-                Err(e) => println!("Error while restoring region: {0}", e),
-                Ok(_) => {
-                    framebuffer.partial_refresh(
-                        &CANVAS_REGION,
-                        PartialRefreshMode::Async,
-                        waveform_mode::WAVEFORM_MODE_GC16_FAST,
-                        display_temp::TEMP_USE_REMARKABLE_DRAW,
-                        dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                        0,
-                        false,
-                    );
-                }
-            };
+            let dynamic = image::DynamicImage::ImageRgb8(
+                from_rgb565_to_rgb8(CANVAS_REGION.width, CANVAS_REGION.height, buff.as_slice())
+                    .unwrap(),
+            ).blur(0.6f32);
+
+            framebuffer.draw_image(
+                &dynamic.as_rgb8().unwrap(),
+                CANVAS_REGION.top as usize,
+                CANVAS_REGION.left as usize,
+            );
+            framebuffer.partial_refresh(
+                &CANVAS_REGION,
+                PartialRefreshMode::Async,
+                waveform_mode::WAVEFORM_MODE_GC16_FAST,
+                display_temp::TEMP_USE_REMARKABLE_DRAW,
+                dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                0,
+                false,
+            );
         }
     };
     end_bench!(blur_canvas);
@@ -567,7 +589,7 @@ fn main() {
             */
             onclick: Some(on_touch_rustlogo),
             inner: UIElement::Image {
-                img: image::load_from_memory(include_bytes!("../assets/rustlang.bmp")).unwrap(),
+                img: image::load_from_memory(include_bytes!("../assets/rustlang.png")).unwrap(),
             },
             ..Default::default()
         },
@@ -586,6 +608,24 @@ fn main() {
                 width: (CANVAS_REGION.width + 1) as usize,
                 border_px: 2,
                 border_color: color::BLACK,
+            },
+            ..Default::default()
+        },
+    );
+
+    app.add_element(
+        "colortest-rgb",
+        UIElementWrapper {
+            y: 210,
+            x: 450,
+            refresh: UIConstraintRefresh::Refresh,
+
+            onclick: Some(draw_color_test_rgb),
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "Show RGB Color Test Image".to_owned(),
+                scale: 35,
+                border_px: 3,
             },
             ..Default::default()
         },
@@ -1009,4 +1049,24 @@ fn main() {
     // Blocking call to process events from digitizer + touchscreen + physical buttons
     app.dispatch_events(true, true, true);
     clock_thread.join().unwrap();
+}
+
+fn draw_color_test_rgb(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
+    let fb = app.get_framebuffer_ref();
+
+    let img_rgb565 = image::load_from_memory(include_bytes!("../assets/colorspace.png")).unwrap();
+    fb.draw_image(
+        &img_rgb565.as_rgb8().unwrap(),
+        CANVAS_REGION.top as usize,
+        CANVAS_REGION.left as usize,
+    );
+    fb.partial_refresh(
+        &CANVAS_REGION,
+        PartialRefreshMode::Wait,
+        waveform_mode::WAVEFORM_MODE_GC16,
+        display_temp::TEMP_USE_PAPYRUS,
+        dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+        0,
+        false,
+    );
 }
