@@ -35,7 +35,7 @@ use libremarkable::battery;
 use libremarkable::input::{gpio, multitouch, wacom, InputDevice};
 
 use libremarkable::image;
-use libremarkable::image::{GenericImage, ImageBuffer};
+use libremarkable::image::GenericImage;
 
 use std::process::Command;
 
@@ -284,8 +284,11 @@ fn on_zoom_out(app: &mut appctx::ApplicationContext, _element: UIElementHandle) 
         Err(err) => println!("Failed to dump buffer: {0}", err),
         Ok(buff) => {
             let resized = image::DynamicImage::ImageRgb8(
-                from_rgb565_to_rgb8(CANVAS_REGION.width, CANVAS_REGION.height, buff.as_slice())
-                    .unwrap(),
+                storage::rgbimage_from_u8_slice(
+                    CANVAS_REGION.width,
+                    CANVAS_REGION.height,
+                    buff.as_slice(),
+                ).unwrap(),
             ).resize(
                 (CANVAS_REGION.width as f32 / 1.25f32) as u32,
                 (CANVAS_REGION.height as f32 / 1.25f32) as u32,
@@ -319,20 +322,6 @@ fn on_zoom_out(app: &mut appctx::ApplicationContext, _element: UIElementHandle) 
     end_bench!(zoom_out);
 }
 
-fn from_rgb565_to_rgb8(w: u32, h: u32, buff: &[u8]) -> Option<image::RgbImage> {
-    // rgb565 is the input so it is 16bits (2 bytes) per pixel
-    let input_bytespp = 2;
-    let input_line_len = w * input_bytespp;
-    if h * input_line_len != buff.len() as u32 {
-        return None;
-    }
-    Some(ImageBuffer::from_fn(w, h, |x, y| {
-        let in_index: usize = ((y * input_line_len) + ((input_bytespp * x) as u32)) as usize;
-        let data = color::NATIVE_COMPONENTS(buff[in_index], buff[in_index + 1]).to_rgb8();
-        image::Rgb(data)
-    }))
-}
-
 fn on_blur_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
     start_bench!(stopwatch, blur_canvas);
     let framebuffer = app.get_framebuffer_ref();
@@ -340,8 +329,11 @@ fn on_blur_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandl
         Err(err) => println!("Failed to dump buffer: {0}", err),
         Ok(buff) => {
             let dynamic = image::DynamicImage::ImageRgb8(
-                from_rgb565_to_rgb8(CANVAS_REGION.width, CANVAS_REGION.height, buff.as_slice())
-                    .unwrap(),
+                storage::rgbimage_from_u8_slice(
+                    CANVAS_REGION.width,
+                    CANVAS_REGION.height,
+                    buff.as_slice(),
+                ).unwrap(),
             ).blur(0.6f32);
 
             framebuffer.draw_image(

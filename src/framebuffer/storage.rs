@@ -38,3 +38,20 @@ impl CompressedCanvasState {
         zstd::decode_all(&*self.data).unwrap()
     }
 }
+
+use framebuffer::common;
+use image;
+
+pub fn rgbimage_from_u8_slice(w: u32, h: u32, buff: &[u8]) -> Option<image::RgbImage> {
+    // rgb565 is the input so it is 16bits (2 bytes) per pixel
+    let input_bytespp = 2;
+    let input_line_len = w * input_bytespp;
+    if h * input_line_len != buff.len() as u32 {
+        return None;
+    }
+    Some(image::ImageBuffer::from_fn(w, h, |x, y| {
+        let in_index: usize = ((y * input_line_len) + ((input_bytespp * x) as u32)) as usize;
+        let data = common::color::NATIVE_COMPONENTS(buff[in_index], buff[in_index + 1]).to_rgb8();
+        image::Rgb(data)
+    }))
+}
