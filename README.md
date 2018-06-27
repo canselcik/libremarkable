@@ -4,6 +4,8 @@
 
 [![PoC](https://thumbs.gfycat.com/ScholarlyShadyElk-size_restricted.gif)](https://gfycat.com/ScholarlyShadyElk)
 
+[![color](https://github.com/canselcik/libremarkable/raw/master/reference-material/color.jpg)](https://github.com/canselcik/libremarkable/raw/master/reference-material/color.jpg)
+
 Everything from low latency partial updates to the eInk display to at least minimal multitouch, physical button and Wacom Digitizer input is now understood and their minimal to complete implementations can be found in this repository.
 
 The focus of this repository is now going to be the Rust library for providing these features. Potentially a `piston` backend might be created for `Remarkable`, allowing the use of `conrod` to simplify UI creation.
