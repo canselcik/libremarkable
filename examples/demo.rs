@@ -212,6 +212,11 @@ fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent)
         return;
     }
 
+    // Simple but effective accidental button press filtering
+    if *PREV_WACOM.lock().unwrap() != (-1, -1) {
+        return;
+    }
+
     match btn {
         gpio::PhysicalButton::RIGHT => {
             let new_state = match app.is_input_device_active(InputDevice::Multitouch) {
