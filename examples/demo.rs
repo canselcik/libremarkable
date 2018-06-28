@@ -539,9 +539,9 @@ fn on_change_draw_type(app: &mut appctx::ApplicationContext, element: UIElementH
 //   snapshot raw: 5896 kB
 //   zstd: 10 kB
 const CANVAS_REGION: mxcfb_rect = mxcfb_rect {
-    top: 750,
+    top: 720,
     left: 0,
-    height: 1050,
+    height: 1080,
     width: 1404,
 };
 
@@ -634,8 +634,44 @@ fn main() {
             onclick: Some(on_zoom_out),
             inner: UIElement::Text {
                 foreground: color::BLACK,
-                text: "⛢ Zoom Out".to_owned(),
-                scale: 55,
+                text: "Zoom Out".to_owned(),
+                scale: 45,
+                border_px: 5,
+            },
+            ..Default::default()
+        },
+    );
+    // Blur Toggle
+    app.add_element(
+        "blurToggle",
+        UIElementWrapper {
+            y: 330,
+            x: 1195,
+            refresh: UIConstraintRefresh::Refresh,
+
+            onclick: Some(on_blur_canvas),
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "Blur".to_owned(),
+                scale: 45,
+                border_px: 5,
+            },
+            ..Default::default()
+        },
+    );
+    // Invert Toggle
+    app.add_element(
+        "invertToggle",
+        UIElementWrapper {
+            y: 330,
+            x: 1287,
+            refresh: UIConstraintRefresh::Refresh,
+
+            onclick: Some(on_invert_canvas),
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "Invert".to_owned(),
+                scale: 45,
                 border_px: 5,
             },
             ..Default::default()
@@ -653,8 +689,8 @@ fn main() {
             onclick: Some(on_save_canvas),
             inner: UIElement::Text {
                 foreground: color::BLACK,
-                text: "✓ Save".to_owned(),
-                scale: 55,
+                text: "Save".to_owned(),
+                scale: 45,
                 border_px: 5,
             },
             ..Default::default()
@@ -665,14 +701,14 @@ fn main() {
         "restoreButton",
         UIElementWrapper {
             y: 400,
-            x: 1210,
+            x: 1120,
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: Some(on_load_canvas),
             inner: UIElement::Text {
                 foreground: color::BLACK,
-                text: "⟲ Load".to_owned(),
-                scale: 55,
+                text: "Load".to_owned(),
+                scale: 45,
                 border_px: 5,
             },
             ..Default::default()
@@ -702,7 +738,7 @@ fn main() {
     app.add_element(
         "eraseToggle",
         UIElementWrapper {
-            y: 530,
+            y: 540,
             x: 1000,
             refresh: UIConstraintRefresh::Refresh,
 
@@ -716,48 +752,12 @@ fn main() {
             ..Default::default()
         },
     );
-    // Invert Toggle
-    app.add_element(
-        "invertToggle",
-        UIElementWrapper {
-            y: 610,
-            x: 1000,
-            refresh: UIConstraintRefresh::Refresh,
-
-            onclick: Some(on_invert_canvas),
-            inner: UIElement::Text {
-                foreground: color::BLACK,
-                text: "Invert".to_owned(),
-                scale: 45,
-                border_px: 5,
-            },
-            ..Default::default()
-        },
-    );
-    // Blur Toggle
-    app.add_element(
-        "blurToggle",
-        UIElementWrapper {
-            y: 610,
-            x: 1160,
-            refresh: UIConstraintRefresh::Refresh,
-
-            onclick: Some(on_blur_canvas),
-            inner: UIElement::Text {
-                foreground: color::BLACK,
-                text: "Blur".to_owned(),
-                scale: 45,
-                border_px: 5,
-            },
-            ..Default::default()
-        },
-    );
 
     // Size Controls
     app.add_element(
         "decreaseSize",
         UIElementWrapper {
-            y: 710,
+            y: 630,
             x: 1000,
             refresh: UIConstraintRefresh::Refresh,
             onclick: Some(on_decrease_size),
@@ -773,7 +773,7 @@ fn main() {
     app.add_element(
         "displaySize",
         UIElementWrapper {
-            y: 710,
+            y: 630,
             x: 1070,
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
@@ -788,7 +788,7 @@ fn main() {
     app.add_element(
         "increaseSize",
         UIElementWrapper {
-            y: 710,
+            y: 630,
             x: 1250,
             refresh: UIConstraintRefresh::Refresh,
             onclick: Some(on_increase_size),
@@ -806,13 +806,13 @@ fn main() {
         "exitToXochitl",
         UIElementWrapper {
             y: 50,
-            x: 260,
+            x: 30,
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: None,
             inner: UIElement::Text {
                 foreground: color::BLACK,
-                text: "⬈ Press POWER to return to reMarkable ⬉".to_owned(),
+                text: "Press POWER to return to reMarkable".to_owned(),
                 scale: 35,
                 border_px: 0,
             },
@@ -822,7 +822,7 @@ fn main() {
     app.add_element(
         "availAt",
         UIElementWrapper {
-            y: 650,
+            y: 620,
             x: 30,
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
@@ -837,7 +837,7 @@ fn main() {
     app.add_element(
         "github",
         UIElementWrapper {
-            y: 720,
+            y: 690,
             x: 30,
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
@@ -930,7 +930,7 @@ fn main() {
         "tooltipMiddle",
         UIElementWrapper {
             y: 1850,
-            x: 550,
+            x: 565,
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
@@ -945,7 +945,7 @@ fn main() {
         "tooltipRight",
         UIElementWrapper {
             y: 1850,
-            x: 1085,
+            x: 1112,
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
