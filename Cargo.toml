@@ -46,6 +46,11 @@ name = "demo"
 path = "examples/demo.rs"
 crate-type = ["bin"]
 
+[[example]]
+name = "live"
+path = "examples/live.rs"
+crate-type = ["bin"]
+
 [dev-dependencies]
 # For spy
 redhook = "0.1.1"
@@ -53,3 +58,5 @@ libc = "0.2.37"
 lazy_static = "1.0.0"
 # For demo
 chrono = "0.4.0"
+# For live
+tiny_http = "0.6.0"
