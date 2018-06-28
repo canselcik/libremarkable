@@ -208,9 +208,10 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         let mut min_x = x;
         let mut max_x = x;
 
-        let components = col.as_native();
+        let components = col.to_rgb8();
         let c1 = (255 - components[0]) as f32;
         let c2 = (255 - components[1]) as f32;
+        let c3 = (255 - components[2]) as f32;
 
         // Loop through the glyphs in the text, positing each one on a line
         for glyph in dfont.layout(&text, scale, start) {
@@ -242,7 +243,7 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
                     self.write_pixel(
                         (y + bounding_box.min.y as u32) as usize,
                         (x + bounding_box.min.x as u32) as usize,
-                        color::NATIVE_COMPONENTS((c1 * mult) as u8, (c2 * mult) as u8),
+                        color::RGB((c1 * mult) as u8, (c2 * mult) as u8, (c3 * mult) as u8),
                     )
                 });
             }
