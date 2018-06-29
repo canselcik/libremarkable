@@ -64,7 +64,8 @@ pub trait FramebufferDraw {
         startpt: (f32, f32),
         ctrlpt: (f32, f32),
         endpt: (f32, f32),
-        c: common::color,
+        width: usize,
+        v: common::color,
     ) -> common::mxcfb_rect;
     /// Draws `text` at `(y, x)` with `color` using `scale`
     fn draw_text(

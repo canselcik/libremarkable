@@ -117,14 +117,14 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
                 color = color::WHITE;
             }
 
-            if !wacom_stack.is_empty() {
-                let prev = wacom_stack.pop().unwrap();
-                let rect = framebuffer.draw_line(
-                    y as i32,
-                    x as i32,
-                    prev.0,
-                    prev.1,
-                    rad.ceil() as usize,
+            if wacom_stack.len() >= 2 {
+                let controlpt = wacom_stack.pop().unwrap();
+                let beginpt = wacom_stack.pop().unwrap();
+                let rect = framebuffer.draw_bezier(
+                    (beginpt.1 as f32, beginpt.0 as f32),
+                    (controlpt.1 as f32, controlpt.0 as f32),
+                    (x as f32, y as f32),
+                    rad as usize,
                     color,
                 );
                 framebuffer.partial_refresh(
@@ -183,6 +183,7 @@ fn on_touch_handler(app: &mut appctx::ApplicationContext, input: multitouch::Mul
                     (x as f32, y as f32),
                     ((x + 155) as f32, (y + 14) as f32),
                     ((x + 200) as f32, (y + 200) as f32),
+                    2,
                     color::BLACK,
                 ),
                 2 => framebuffer.draw_circle(y as usize, x as usize, 20, color::BLACK),

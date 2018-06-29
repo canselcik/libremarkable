@@ -164,6 +164,7 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         startpt: (f32, f32),
         ctrlpt: (f32, f32),
         endpt: (f32, f32),
+        width: usize,
         v: color,
     ) -> mxcfb_rect {
         let mut upperleft: (usize, usize) = (startpt.0 as usize, startpt.1 as usize);
@@ -174,13 +175,25 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
             upperleft.0 = min!(upperleft.0, approx.0);
             lowerright.1 = max!(lowerright.1, approx.1);
             lowerright.0 = max!(lowerright.0, approx.0);
-            self.write_pixel(approx.1, approx.0, v);
+
+            // Set pixel
+            match width {
+                1 => self.write_pixel(approx.1, approx.0, v),
+                _ => self.fill_rect(
+                    (approx.1 - (width / 2)) as usize,
+                    (approx.0 - (width / 2)) as usize,
+                    width,
+                    width,
+                    v,
+                ),
+            };
         }
+        let margin = ((width + 1) / 2) as usize;
         return mxcfb_rect {
-            top: upperleft.1 as u32,
-            left: upperleft.0 as u32,
-            width: (lowerright.0 - upperleft.0) as u32,
-            height: (lowerright.1 - upperleft.1) as u32,
+            top: (upperleft.1 - margin) as u32,
+            left: (upperleft.0 - margin) as u32,
+            width: (lowerright.0 - upperleft.0 + margin * 2) as u32,
+            height: (lowerright.1 - upperleft.1 + margin * 2) as u32,
         };
     }
 
