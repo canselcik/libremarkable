@@ -90,12 +90,12 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
             tilt_x: _,
             tilt_y: _,
         } => {
-            let mut prev = PREV_WACOM.lock().unwrap();
+            let mut wacom_stack = WACOM_HISTORY.lock().unwrap();
 
             // This is so that we can click the buttons outside the canvas region
             // normally meant to be touched with a finger using our stylus
             if !CANVAS_REGION.contains_point(y.into(), x.into()) {
-                *prev = (-1, -1);
+                wacom_stack.clear();
                 if UNPRESS_OBSERVED.fetch_and(false, Ordering::Relaxed) {
                     match app.find_active_region(y, x) {
                         Some((region, _)) => (region.handler)(app, region.element.clone()),
@@ -116,7 +116,9 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
                 rad *= 3.0;
                 color = color::WHITE;
             }
-            if prev.0 >= 0 && prev.1 >= 0 {
+
+            if !wacom_stack.is_empty() {
+                let prev = wacom_stack.pop().unwrap();
                 let rect = framebuffer.draw_line(
                     y as i32,
                     x as i32,
@@ -135,13 +137,13 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
                     false,
                 );
             }
-            *prev = (y as i32, x as i32);
+            wacom_stack.push((y as i32, x as i32));
         }
         wacom::WacomEvent::InstrumentChange { pen: _, state } => {
             // Stop drawing when instrument has left the vicinity of the screen
             if !state {
-                let mut prev = PREV_WACOM.lock().unwrap();
-                *prev = (-1, -1);
+                let mut wacom_stack = WACOM_HISTORY.lock().unwrap();
+                wacom_stack.clear();
             }
         }
         wacom::WacomEvent::Hover {
@@ -153,8 +155,8 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
         } => {
             // If the pen is hovering, don't record its coordinates as the origin of the next line
             if distance > 1 {
-                let mut prev = PREV_WACOM.lock().unwrap();
-                *prev = (-1, -1);
+                let mut wacom_stack = WACOM_HISTORY.lock().unwrap();
+                wacom_stack.clear();
                 UNPRESS_OBSERVED.store(true, Ordering::Relaxed);
             }
         }
@@ -213,7 +215,7 @@ fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent)
     }
 
     // Simple but effective accidental button press filtering
-    if *PREV_WACOM.lock().unwrap() != (-1, -1) {
+    if !WACOM_HISTORY.lock().unwrap().is_empty() {
         return;
     }
 
@@ -555,7 +557,7 @@ lazy_static! {
     static ref ERASE_MODE: AtomicBool = AtomicBool::new(false);
     static ref SIZE_MULTIPLIER: AtomicUsize = AtomicUsize::new(3);
     static ref UNPRESS_OBSERVED: AtomicBool = AtomicBool::new(false);
-    static ref PREV_WACOM: Arc<Mutex<(i32, i32)>> = Arc::new(Mutex::new((-1, -1)));
+    static ref WACOM_HISTORY: Mutex<Vec<(i32, i32)>> = Mutex::new(Vec::new());
     static ref G_COUNTER: Mutex<u32> = Mutex::new(0);
     static ref SAVED_CANVAS: Mutex<Option<storage::CompressedCanvasState>> = Mutex::new(None);
 }
