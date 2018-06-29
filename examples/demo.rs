@@ -14,7 +14,7 @@ extern crate chrono;
 
 use chrono::{DateTime, Local};
 
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -177,8 +177,7 @@ fn on_touch_handler(app: &mut appctx::ApplicationContext, input: multitouch::Mul
             if !CANVAS_REGION.contains_point(y.into(), x.into()) {
                 return;
             }
-            let action = { DRAW_ON_TOUCH.lock().unwrap().clone() };
-            let rect = match action {
+            let rect = match DRAW_ON_TOUCH.load(Ordering::Relaxed) {
                 1 => framebuffer.draw_bezier(
                     (x as f32, y as f32),
                     ((x + 155) as f32, (y + 14) as f32),
@@ -453,21 +452,27 @@ fn on_touch_rustlogo(app: &mut appctx::ApplicationContext, _element: UIElementHa
     );
 }
 
-fn on_toggle_eraser(app: &mut appctx::ApplicationContext, element: UIElementHandle) {
+fn on_toggle_eraser(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
     {
         let newstate = !ERASE_MODE.load(Ordering::Relaxed);
         ERASE_MODE.store(newstate, Ordering::Relaxed);
+
+        let indicator = app.get_element_by_name("colorIndicator");
         if let UIElement::Text {
             ref mut text,
             scale: _,
             foreground: _,
             border_px: _,
-        } = element.write().inner
+        } = indicator.unwrap().write().inner
         {
-            *text = format!("Erase: {0}", if newstate { "On" } else { "Off" })
+            *text = if newstate {
+                "White".to_owned()
+            } else {
+                "Black".to_owned()
+            }
         }
     }
-    app.draw_element("eraseToggle");
+    app.draw_element("colorIndicator");
 }
 
 fn on_decrease_size(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
@@ -516,31 +521,29 @@ fn on_increase_size(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
     app.draw_element("displaySize");
 }
 
-fn on_change_draw_type(app: &mut appctx::ApplicationContext, element: UIElementHandle) {
+fn on_change_draw_color(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
     {
-        let mut data = DRAW_ON_TOUCH.lock().unwrap();
-        *data = (*data + 1) % 3;
+        let new_val = (DRAW_ON_TOUCH.load(Ordering::Relaxed) + 1) % 3;
+        DRAW_ON_TOUCH.store(new_val, Ordering::Relaxed);
 
+        let indicator = app.get_element_by_name("touchModeIndicator");
         if let UIElement::Text {
             ref mut text,
             scale: _,
             foreground: _,
             border_px: _,
-        } = element.write().inner
+        } = indicator.unwrap().write().inner
         {
-            *text = format!(
-                "Touch Mode: {0}",
-                match *data {
-                    1 => "Bezier",
-                    2 => "Circles",
-                    _ => "None",
-                }
-            )
+            *text = match new_val {
+                1 => "Bezier".to_owned(),
+                2 => "Circles".to_owned(),
+                _ => "None".to_owned(),
+            }
         }
     }
     // Make sure you aren't trying to draw the element while you are holding a write lock.
     // It doesn't seem to cause a deadlock however it may cause higher lock contention.
-    app.draw_element("touchMode");
+    app.draw_element("touchModeIndicator");
 }
 
 // will have the following size at rest:
@@ -554,7 +557,7 @@ const CANVAS_REGION: mxcfb_rect = mxcfb_rect {
 };
 
 lazy_static! {
-    static ref DRAW_ON_TOUCH: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
+    static ref DRAW_ON_TOUCH: AtomicUsize = AtomicUsize::new(0);
     static ref ERASE_MODE: AtomicBool = AtomicBool::new(false);
     static ref SIZE_MULTIPLIER: AtomicUsize = AtomicUsize::new(3);
     static ref UNPRESS_OBSERVED: AtomicBool = AtomicBool::new(false);
@@ -731,20 +734,37 @@ fn main() {
             x: 1000,
             refresh: UIConstraintRefresh::Refresh,
 
-            onclick: Some(on_change_draw_type),
+            onclick: Some(on_change_draw_color),
             inner: UIElement::Text {
                 foreground: color::BLACK,
-                text: "Touch Mode: None".to_owned(),
+                text: "Touch Mode".to_owned(),
                 scale: 45,
                 border_px: 5,
             },
             ..Default::default()
         },
     );
-
-    // Erase Mode Toggle
     app.add_element(
-        "eraseToggle",
+        "touchModeIndicator",
+        UIElementWrapper {
+            y: 470,
+            x: 1250,
+            refresh: UIConstraintRefresh::Refresh,
+
+            onclick: None,
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "None".to_owned(),
+                scale: 40,
+                border_px: 0,
+            },
+            ..Default::default()
+        },
+    );
+
+    // Color Mode Toggle
+    app.add_element(
+        "colorToggle",
         UIElementWrapper {
             y: 540,
             x: 1000,
@@ -753,9 +773,26 @@ fn main() {
             onclick: Some(on_toggle_eraser),
             inner: UIElement::Text {
                 foreground: color::BLACK,
-                text: "Erase: Off".to_owned(),
+                text: "Draw Color".to_owned(),
                 scale: 45,
                 border_px: 5,
+            },
+            ..Default::default()
+        },
+    );
+    app.add_element(
+        "colorIndicator",
+        UIElementWrapper {
+            y: 540,
+            x: 1250,
+            refresh: UIConstraintRefresh::Refresh,
+
+            onclick: None,
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "Black".to_owned(),
+                scale: 40,
+                border_px: 0,
             },
             ..Default::default()
         },
