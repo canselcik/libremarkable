@@ -363,7 +363,7 @@ fn on_blur_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandl
     end_bench!(blur_canvas);
 }
 
-fn on_invert_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
+fn on_invert_canvas(app: &mut appctx::ApplicationContext, element: UIElementHandle) {
     start_bench!(stopwatch, invert);
     let framebuffer = app.get_framebuffer_ref();
     match framebuffer.dump_region(CANVAS_REGION) {
@@ -389,6 +389,9 @@ fn on_invert_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHan
         }
     };
     end_bench!(invert);
+
+    // Invert the draw color as well for more natural UX
+    on_toggle_eraser(app, element);
 }
 
 fn on_load_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
@@ -522,7 +525,7 @@ fn on_increase_size(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
     app.draw_element("displaySize");
 }
 
-fn on_change_draw_color(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
+fn on_change_touchdraw_mode(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
     {
         let new_val = (DRAW_ON_TOUCH.load(Ordering::Relaxed) + 1) % 3;
         DRAW_ON_TOUCH.store(new_val, Ordering::Relaxed);
@@ -560,7 +563,7 @@ const CANVAS_REGION: mxcfb_rect = mxcfb_rect {
 lazy_static! {
     static ref DRAW_ON_TOUCH: AtomicUsize = AtomicUsize::new(0);
     static ref ERASE_MODE: AtomicBool = AtomicBool::new(false);
-    static ref SIZE_MULTIPLIER: AtomicUsize = AtomicUsize::new(3);
+    static ref SIZE_MULTIPLIER: AtomicUsize = AtomicUsize::new(4);
     static ref UNPRESS_OBSERVED: AtomicBool = AtomicBool::new(false);
     static ref WACOM_IN_RANGE: AtomicBool = AtomicBool::new(false);
     static ref WACOM_HISTORY: Mutex<Vec<(i32, i32)>> = Mutex::new(Vec::new());
@@ -736,7 +739,7 @@ fn main() {
             x: 960,
             refresh: UIConstraintRefresh::Refresh,
 
-            onclick: Some(on_change_draw_color),
+            onclick: Some(on_change_touchdraw_mode),
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "Touch Mode".to_owned(),
@@ -1073,10 +1076,10 @@ fn main() {
       width = 320;
       height = 90;
       borderpx = 3;
-      draw_box(top, left, height, width, borderpx, 0);
+      draw_box(top, left, height, width, borderpx, 255);
 
       -- Draw black text inside the box. Notice the text is bottom aligned.
-      fb.draw_text(top+55, left+22, '...also supports Lua', 30, 0);
+      fb.draw_text(top+55, left+22, '...also supports Lua', 30, 255);
 
       -- Update the drawn rect w/ `deep_plot=false` and `wait_for_update_complete=true`
       fb.refresh(top, left, height, width, false, true);

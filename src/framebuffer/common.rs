@@ -47,7 +47,6 @@ pub enum color {
     WHITE,
     NATIVE_COMPONENTS(u8, u8),
     RGB(u8, u8, u8),
-    /// 0-255 -- 0 will yield black and 255 will yield white
     GRAY(u8),
 }
 
@@ -56,16 +55,16 @@ impl color {
         color::NATIVE_COMPONENTS(c[0], c[1])
     }
 
-    pub fn to_rgb565(&self) -> [u8; 2] {
+    pub fn to_rgb565(self) -> [u8; 2] {
         self.as_native()
     }
 
-    pub fn to_rgb8(&self) -> [u8; 3] {
+    pub fn to_rgb8(self) -> [u8; 3] {
         // Components reversed because of the device
         let components = self.as_native();
 
         let mut combined: u16 = (components[1] as u16) << 8;
-        combined = combined | (components[0] as u16);
+        combined |= components[0] as u16;
 
         let red = (((combined & 0b1111_1000_0000_0000) >> 11) << 3) as u8;
         let green = (((combined & 0b0000_0111_1110_0000) >> 5) << 2) as u8;
@@ -74,16 +73,16 @@ impl color {
         [red, green, blue]
     }
 
-    pub fn as_native(&self) -> [u8; 2] {
+    pub fn as_native(self) -> [u8; 2] {
         match self {
-            &color::BLACK => [0x00, 0x00],
-            &color::RED => [0xF8, 0x00],
-            &color::GREEN => [0x07, 0xE0],
-            &color::BLUE => [0x00, 0x1F],
-            &color::WHITE => [0xFF, 0xFF],
-            &color::GRAY(level) => [level, level],
-            &color::NATIVE_COMPONENTS(c1, c2) => [c1, c2],
-            &color::RGB(r8, g8, b8) => {
+            color::BLACK => [0x00, 0x00],
+            color::RED => [0x07, 0xE0],
+            color::GREEN => [0x00, 0x1F],
+            color::BLUE => [0xF8, 0x00],
+            color::WHITE => [0xFF, 0xFF],
+            color::GRAY(level) => color::RGB(255 - level, 255 - level, 255 - level).as_native(),
+            color::NATIVE_COMPONENTS(c1, c2) => [c1, c2],
+            color::RGB(r8, g8, b8) => {
                 // Simply can be referred to as `rgb565_le`
                 //
                 //    red     : offset = 11,  length =5,      msb_right = 0
@@ -258,7 +257,8 @@ pub enum waveform_mode {
     WAVEFORM_MODE_GLD16 = 0x5,
 
     /// (Recommended) "Direct Update" Grey->white/grey->black
-    /// remarkable uses this for drawing
+    /// remarkable uses this for drawing. it is impossible to draw an RGB pixel with this.
+    /// it is for DIRECT UPDATE transitions only. Use GC16_* for colored updates.
     WAVEFORM_MODE_DU = 0x1,
 
     /// (Recommended) High fidelity (flashes black/white when used with UPDATE_MODE_FULL)

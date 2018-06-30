@@ -26,7 +26,7 @@ impl<'a> std::fmt::Debug for ActiveRegionHandler {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum UIConstraintRefresh {
     NoRefresh,
     Refresh,
@@ -108,7 +108,7 @@ impl UIElementWrapper {
         handler: Option<ActiveRegionHandler>,
     ) {
         let (x, y) = (self.x, self.y);
-        let refresh = self.refresh.clone();
+        let refresh = self.refresh;
         let framebuffer = app.get_framebuffer_ref();
 
         let old_filled_rect = match self.last_drawn_rect {
@@ -195,22 +195,19 @@ impl UIElementWrapper {
             }
         }
 
-        match self.last_drawn_rect {
-            Some(lastrect) => {
-                if lastrect != rect {
-                    framebuffer.partial_refresh(
-                        &lastrect,
-                        PartialRefreshMode::Async,
-                        common::waveform_mode::WAVEFORM_MODE_DU,
-                        common::display_temp::TEMP_USE_REMARKABLE_DRAW,
-                        common::dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                        0,
-                        false,
-                    );
-                }
+        if let Some(last_rect) = self.last_drawn_rect {
+            if last_rect != rect {
+                framebuffer.partial_refresh(
+                    &last_rect,
+                    PartialRefreshMode::Async,
+                    common::waveform_mode::WAVEFORM_MODE_DU,
+                    common::display_temp::TEMP_USE_REMARKABLE_DRAW,
+                    common::dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                    0,
+                    false,
+                );
             }
-            None => {}
-        };
+        }
 
         // We need to wait until now because we don't know the size of the active region before we
         // actually go ahead and draw it.

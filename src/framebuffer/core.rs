@@ -25,6 +25,9 @@ pub struct Framebuffer<'a> {
     pub frame: MemoryMap,
     pub marker: AtomicU32,
     pub default_font: Font<'a>,
+    /// Not updated as a result of calling `Framebuffer::put_var_screeninfo(..)`.
+    /// It is your responsibility to update this when you call into that function
+    /// like it has been done in `Framebuffer::new(..)`.
     pub var_screen_info: VarScreeninfo,
     pub fix_screen_info: FixScreeninfo,
 }
@@ -40,8 +43,25 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
             .open(path_to_device)
             .unwrap();
 
-        let mut var_screen_info = Framebuffer::get_var_screeninfo(&device);
         let fix_screen_info = Framebuffer::get_fix_screeninfo(&device);
+        let mut var_screen_info = Framebuffer::get_var_screeninfo(&device);
+        var_screen_info.xres = 1872;
+        var_screen_info.yres = 1404;
+        var_screen_info.rotate = 1;
+        var_screen_info.width = 0xffffffff;
+        var_screen_info.height = 0xffffffff;
+        var_screen_info.pixclock = 160000000;
+        var_screen_info.left_margin = 32;
+        var_screen_info.right_margin = 326;
+        var_screen_info.upper_margin = 4;
+        var_screen_info.lower_margin = 12;
+        var_screen_info.hsync_len = 44;
+        var_screen_info.vsync_len = 1;
+        var_screen_info.sync = 0;
+        var_screen_info.vmode = 0; // FB_VMODE_NONINTERLACED
+        var_screen_info.accel_flags = 0;
+
+        Framebuffer::put_var_screeninfo(&device, &mut var_screen_info);
 
         let frame_length = (fix_screen_info.line_length * var_screen_info.yres) as usize;
         let mem_map = MemoryMap::new(
@@ -58,34 +78,14 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
         // Load the font
         let font_data = include_bytes!("../../assets/Roboto-Regular.ttf");
         let collection = FontCollection::from_bytes(font_data as &[u8]);
-
-        var_screen_info.xres = 1872;
-        var_screen_info.yres = 1404;
-        var_screen_info.rotate = 1;
-        var_screen_info.width = 0xffffffff;
-        var_screen_info.height = 0xffffffff;
-        var_screen_info.pixclock = 160000000;
-        var_screen_info.left_margin = 32;
-        var_screen_info.right_margin = 326;
-        var_screen_info.upper_margin = 4;
-        var_screen_info.lower_margin = 12;
-        var_screen_info.hsync_len = 44;
-        var_screen_info.vsync_len = 1;
-        var_screen_info.sync = 0;
-        var_screen_info.vmode = 0; // FB_VMODE_NONINTERLACED
-        var_screen_info.accel_flags = 0;
-        let mut fb = Framebuffer {
+        Framebuffer {
             marker: AtomicU32::new(1),
             device,
             frame: mem_map,
             default_font: collection.into_font().unwrap(),
             var_screen_info,
             fix_screen_info,
-        };
-        if !fb.put_var_screeninfo() {
-            panic!("FBIOPUT_VSCREENINFO failed");
         }
-        return fb;
     }
 
     fn set_epdc_access(&mut self, state: bool) {
@@ -139,14 +139,8 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
         return info;
     }
 
-    fn put_var_screeninfo(&mut self) -> bool {
-        let result = unsafe {
-            ioctl(
-                self.device.as_raw_fd(),
-                FBIOPUT_VSCREENINFO,
-                &mut self.var_screen_info,
-            )
-        };
-        return result == 0;
+    fn put_var_screeninfo(device: &File, var_screen_info: &mut VarScreeninfo) -> bool {
+        let result = unsafe { ioctl(device.as_raw_fd(), FBIOPUT_VSCREENINFO, var_screen_info) };
+        result == 0
     }
 }

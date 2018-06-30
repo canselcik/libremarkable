@@ -111,7 +111,10 @@ pub trait FramebufferBase<'a> {
     /// Makes the proper ioctl call to set the VarScreenInfo.
     /// You must first update the contents of self.var_screen_info
     /// and then call this function.
-    fn put_var_screeninfo(&mut self) -> bool;
+    fn put_var_screeninfo(
+        device: &std::fs::File,
+        var_screen_info: &mut screeninfo::VarScreeninfo,
+    ) -> bool;
 }
 
 pub mod refresh;

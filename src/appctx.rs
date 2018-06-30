@@ -92,7 +92,7 @@ impl<'a> ApplicationContext<'a> {
         on_wacom: fn(&mut ApplicationContext, WacomEvent),
         on_touch: fn(&mut ApplicationContext, MultitouchEvent),
     ) -> ApplicationContext<'static> {
-        let framebuffer = Box::new(core::Framebuffer::new("/dev/fb0"));
+        let framebuffer = box core::Framebuffer::new("/dev/fb0");
         let yres = framebuffer.var_screen_info.yres;
         let xres = framebuffer.var_screen_info.xres;
 
@@ -148,10 +148,9 @@ impl<'a> ApplicationContext<'a> {
 
     pub fn execute_lua(&mut self, code: &str) {
         let lua = self.get_lua_ref();
-        match lua.execute::<hlua::AnyLuaValue>(&code) {
-            Err(e) => warn!("Error in Lua Context: {:?}", e),
-            Ok(_) => {}
-        };
+        if let Err(e) = lua.execute::<hlua::AnyLuaValue>(&code) {
+            warn!("Error in Lua Context: {:?}", e);
+        }
     }
 
     pub fn display_text(
@@ -198,12 +197,9 @@ impl<'a> ApplicationContext<'a> {
             _ => return draw_area,
         };
 
-        match refresh {
-            UIConstraintRefresh::RefreshAndWait => {
-                framebuffer.wait_refresh_complete(marker);
-            }
-            _ => {}
-        };
+        if let UIConstraintRefresh::RefreshAndWait = refresh {
+            framebuffer.wait_refresh_complete(marker);
+        }
         return draw_area;
     }
 
@@ -240,12 +236,9 @@ impl<'a> ApplicationContext<'a> {
             _ => return draw_area,
         };
 
-        match refresh {
-            UIConstraintRefresh::RefreshAndWait => {
-                framebuffer.wait_refresh_complete(marker);
-            }
-            _ => {}
-        };
+        if let UIConstraintRefresh::RefreshAndWait = refresh {
+            framebuffer.wait_refresh_complete(marker);
+        }
         return draw_area;
     }
 
@@ -275,12 +268,9 @@ impl<'a> ApplicationContext<'a> {
             _ => return draw_area,
         };
 
-        match refresh {
-            UIConstraintRefresh::RefreshAndWait => {
-                framebuffer.wait_refresh_complete(marker);
-            }
-            _ => {}
-        };
+        if let UIConstraintRefresh::RefreshAndWait = refresh {
+            framebuffer.wait_refresh_complete(marker);
+        }
         return draw_area;
     }
 
@@ -289,14 +279,13 @@ impl<'a> ApplicationContext<'a> {
         name: &str,
         element: UIElementWrapper,
     ) -> Option<UIElementHandle> {
-        match self.ui_elements.contains_key(name) {
-            true => None,
-            false => {
-                let elem = UIElementHandle::new(element);
-                self.ui_elements.insert(name.to_owned(), elem.clone());
-                Some(elem)
-            }
+        if self.ui_elements.contains_key(name) {
+            return None;
         }
+
+        let elem = UIElementHandle::new(element);
+        self.ui_elements.insert(name.to_owned(), elem.clone());
+        Some(elem)
     }
 
     pub fn remove_element(&mut self, name: &str) -> bool {
@@ -354,35 +343,29 @@ impl<'a> ApplicationContext<'a> {
     /// Briefly flash the element's `last_drawn_rect`
     pub fn flash_element(&mut self, name: &str) {
         let framebuffer = self.get_framebuffer_ref();
-        match self.get_element_by_name(name) {
-            None => {}
-            Some(locked_element) => {
-                let mut element = locked_element.write();
-                match element.last_drawn_rect {
-                    Some(rect) => {
-                        framebuffer.fill_rect(
-                            rect.top as usize,
-                            rect.left as usize,
-                            rect.height as usize,
-                            rect.width as usize,
-                            color::BLACK,
-                        );
-                        framebuffer.partial_refresh(
-                            &rect,
-                            PartialRefreshMode::Wait,
-                            waveform_mode::WAVEFORM_MODE_DU,
-                            display_temp::TEMP_USE_AMBIENT,
-                            dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                            0,
-                            false,
-                        );
+        if let Some(locked_element) = self.get_element_by_name(name) {
+            let mut element = locked_element.write();
+            if let Some(rect) = element.last_drawn_rect {
+                framebuffer.fill_rect(
+                    rect.top as usize,
+                    rect.left as usize,
+                    rect.height as usize,
+                    rect.width as usize,
+                    color::BLACK,
+                );
+                framebuffer.partial_refresh(
+                    &rect,
+                    PartialRefreshMode::Wait,
+                    waveform_mode::WAVEFORM_MODE_DU,
+                    display_temp::TEMP_USE_AMBIENT,
+                    dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                    0,
+                    false,
+                );
 
-                        // We can pass None as the `handler` here as we know this flashing is not
-                        // changing the positioning of the `UIElementWrapper`.
-                        element.draw(self, None);
-                    }
-                    None => {}
-                }
+                // We can pass None as the `handler` here as we know this flashing is not
+                // changing the positioning of the `UIElementWrapper`.
+                element.draw(self, None);
             }
         }
     }
@@ -395,8 +378,16 @@ impl<'a> ApplicationContext<'a> {
         );
         framebuffer.clear();
 
-        match deep {
-            false => framebuffer.partial_refresh(
+        if deep {
+            framebuffer.full_refresh(
+                waveform_mode::WAVEFORM_MODE_INIT,
+                display_temp::TEMP_USE_AMBIENT,
+                dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+                0,
+                true,
+            );
+        } else {
+            framebuffer.partial_refresh(
                 &mxcfb_rect {
                     top: 0,
                     left: 0,
@@ -409,15 +400,8 @@ impl<'a> ApplicationContext<'a> {
                 dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
                 0,
                 false,
-            ),
-            true => framebuffer.full_refresh(
-                waveform_mode::WAVEFORM_MODE_INIT,
-                display_temp::TEMP_USE_AMBIENT,
-                dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-                0,
-                true,
-            ),
-        };
+            );
+        }
     }
 
     /// Sets an atomic flag to disable event dispatch. Exiting event dispatch loop will cause
@@ -536,26 +520,21 @@ impl<'a> ApplicationContext<'a> {
                     }
                     InputEvent::MultitouchEvent { event } => {
                         // Check for and notify clickable active regions for multitouch events
-                        match event {
-                            MultitouchEvent::Touch {
-                                gesture_seq,
-                                finger_id: _,
-                                y,
-                                x,
-                            } => {
-                                let gseq = gesture_seq as i32;
-                                if last_active_region_gesture_id != gseq {
-                                    match self.find_active_region(y, x) {
-                                        Some((h, _)) => {
-                                            (h.handler)(appref, h.element.clone());
-                                        }
-                                        _ => {}
-                                    };
-                                    last_active_region_gesture_id = gseq;
+                        if let MultitouchEvent::Touch {
+                            gesture_seq,
+                            finger_id: _,
+                            y,
+                            x,
+                        } = event
+                        {
+                            let gseq = gesture_seq as i32;
+                            if last_active_region_gesture_id != gseq {
+                                if let Some((h, _)) = self.find_active_region(y, x) {
+                                    (h.handler)(appref, h.element.clone());
                                 }
+                                last_active_region_gesture_id = gseq;
                             }
-                            _ => {}
-                        };
+                        }
                         (self.on_touch)(appref, event);
                     }
                     InputEvent::WacomEvent { event } => {
@@ -579,7 +558,7 @@ impl<'a> ApplicationContext<'a> {
             0 => None,
             _ => {
                 let res = matches.first().unwrap();
-                Some((res.0, res.2.clone()))
+                Some((res.0, res.2))
             }
         }
     }

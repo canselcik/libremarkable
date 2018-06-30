@@ -101,16 +101,15 @@ impl EvDevContext {
                                 input::InputDevice::GPIO => input::gpio::decode(&ev, &state),
                                 _ => unreachable!(),
                             };
-                            match decoded_event {
-                                Some(event) => match tx.send(event) {
+                            if let Some(event) = decoded_event {
+                                match tx.send(event) {
                                     Ok(_) => {}
                                     Err(e) => error!(
                                         "Failed to write InputEvent into the channel: {0}",
                                         e
                                     ),
-                                },
-                                None => {}
-                            };
+                                };
+                            }
                         }
                     }
                     exited.store(true, Ordering::Relaxed);

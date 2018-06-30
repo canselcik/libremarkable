@@ -77,9 +77,10 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
                 return None;
             }
 
-            let event = match new_state {
-                true => GPIOEvent::Press { button: p },
-                false => GPIOEvent::Unpress { button: p },
+            let event = if new_state {
+                GPIOEvent::Press { button: p }
+            } else {
+                GPIOEvent::Unpress { button: p }
             };
             Some(InputEvent::GPIO { event })
         }
