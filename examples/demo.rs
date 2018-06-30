@@ -141,6 +141,7 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
         }
         wacom::WacomEvent::InstrumentChange { pen: _, state } => {
             // Stop drawing when instrument has left the vicinity of the screen
+            WACOM_IN_RANGE.store(state, Ordering::Relaxed);
             if !state {
                 let mut wacom_stack = WACOM_HISTORY.lock().unwrap();
                 wacom_stack.clear();
@@ -215,7 +216,7 @@ fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent)
     }
 
     // Simple but effective accidental button press filtering
-    if !WACOM_HISTORY.lock().unwrap().is_empty() {
+    if WACOM_IN_RANGE.load(Ordering::Relaxed) {
         return;
     }
 
@@ -561,6 +562,7 @@ lazy_static! {
     static ref ERASE_MODE: AtomicBool = AtomicBool::new(false);
     static ref SIZE_MULTIPLIER: AtomicUsize = AtomicUsize::new(3);
     static ref UNPRESS_OBSERVED: AtomicBool = AtomicBool::new(false);
+    static ref WACOM_IN_RANGE: AtomicBool = AtomicBool::new(false);
     static ref WACOM_HISTORY: Mutex<Vec<(i32, i32)>> = Mutex::new(Vec::new());
     static ref G_COUNTER: Mutex<u32> = Mutex::new(0);
     static ref SAVED_CANVAS: Mutex<Option<storage::CompressedCanvasState>> = Mutex::new(None);
@@ -619,14 +621,14 @@ fn main() {
     app.add_element(
         "colortest-rgb",
         UIElementWrapper {
-            y: 210,
-            x: 450,
+            y: 300,
+            x: 960,
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: Some(draw_color_test_rgb),
             inner: UIElement::Text {
                 foreground: color::BLACK,
-                text: "Show RGB Color Test Image".to_owned(),
+                text: "Show RGB Test Image".to_owned(),
                 scale: 35,
                 border_px: 3,
             },
@@ -638,8 +640,8 @@ fn main() {
     app.add_element(
         "zoomoutButton",
         UIElementWrapper {
-            y: 330,
-            x: 1000,
+            y: 370,
+            x: 960,
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: Some(on_zoom_out),
@@ -656,8 +658,8 @@ fn main() {
     app.add_element(
         "blurToggle",
         UIElementWrapper {
-            y: 330,
-            x: 1195,
+            y: 370,
+            x: 1155,
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: Some(on_blur_canvas),
@@ -674,8 +676,8 @@ fn main() {
     app.add_element(
         "invertToggle",
         UIElementWrapper {
-            y: 330,
-            x: 1287,
+            y: 370,
+            x: 1247,
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: Some(on_invert_canvas),
@@ -693,8 +695,8 @@ fn main() {
     app.add_element(
         "saveButton",
         UIElementWrapper {
-            y: 400,
-            x: 1000,
+            y: 440,
+            x: 960,
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: Some(on_save_canvas),
@@ -711,8 +713,8 @@ fn main() {
     app.add_element(
         "restoreButton",
         UIElementWrapper {
-            y: 400,
-            x: 1120,
+            y: 440,
+            x: 1080,
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: Some(on_load_canvas),
@@ -730,8 +732,8 @@ fn main() {
     app.add_element(
         "touchMode",
         UIElementWrapper {
-            y: 470,
-            x: 1000,
+            y: 510,
+            x: 960,
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: Some(on_change_draw_color),
@@ -747,8 +749,8 @@ fn main() {
     app.add_element(
         "touchModeIndicator",
         UIElementWrapper {
-            y: 470,
-            x: 1250,
+            y: 510,
+            x: 1210,
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: None,
@@ -766,8 +768,8 @@ fn main() {
     app.add_element(
         "colorToggle",
         UIElementWrapper {
-            y: 540,
-            x: 1000,
+            y: 580,
+            x: 960,
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: Some(on_toggle_eraser),
@@ -783,8 +785,8 @@ fn main() {
     app.add_element(
         "colorIndicator",
         UIElementWrapper {
-            y: 540,
-            x: 1250,
+            y: 580,
+            x: 1210,
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: None,
@@ -802,8 +804,8 @@ fn main() {
     app.add_element(
         "decreaseSize",
         UIElementWrapper {
-            y: 630,
-            x: 1000,
+            y: 670,
+            x: 960,
             refresh: UIConstraintRefresh::Refresh,
             onclick: Some(on_decrease_size),
             inner: UIElement::Text {
@@ -818,8 +820,8 @@ fn main() {
     app.add_element(
         "displaySize",
         UIElementWrapper {
-            y: 630,
-            x: 1070,
+            y: 670,
+            x: 1030,
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
@@ -833,8 +835,8 @@ fn main() {
     app.add_element(
         "increaseSize",
         UIElementWrapper {
-            y: 630,
-            x: 1250,
+            y: 670,
+            x: 1210,
             refresh: UIConstraintRefresh::Refresh,
             onclick: Some(on_increase_size),
             inner: UIElement::Text {
