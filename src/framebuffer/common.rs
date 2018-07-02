@@ -63,8 +63,8 @@ impl color {
         // Components reversed because of the device
         let components = self.as_native();
 
-        let mut combined: u16 = (components[1] as u16) << 8;
-        combined |= components[0] as u16;
+        let mut combined: u16 = u16::from(components[1]) << 8;
+        combined |= u16::from(components[0]);
 
         let red = (((combined & 0b1111_1000_0000_0000) >> 11) << 3) as u8;
         let green = (((combined & 0b0000_0111_1110_0000) >> 5) << 2) as u8;
@@ -89,9 +89,9 @@ impl color {
                 //    green   : offset = 5,   length =6,      msb_right = 0
                 //    blue    : offset = 0,   length =5,      msb_right = 0
                 //
-                let r5 = ((r8 as u16) >> 3) as u8;
-                let g6 = ((g8 as u16) >> 2) as u8;
-                let b5 = ((b8 as u16) >> 3) as u8;
+                let r5 = (u16::from(r8) >> 3) as u8;
+                let g6 = (u16::from(g8) >> 2) as u8;
+                let b5 = (u16::from(b8) >> 3) as u8;
 
                 [
                     (((g6 & 0b00_0111) << 5) | b5),

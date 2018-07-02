@@ -524,7 +524,7 @@ impl<'a> ApplicationContext<'a> {
                             gesture_seq, y, x, ..
                         } = event
                         {
-                            let gseq = gesture_seq as i32;
+                            let gseq = i32::from(gesture_seq);
                             if last_active_region_gesture_id != gseq {
                                 if let Some((h, _)) = self.find_active_region(y, x) {
                                     (h.handler)(appref, h.element.clone());
@@ -546,8 +546,8 @@ impl<'a> ApplicationContext<'a> {
     pub fn find_active_region(&self, y: u16, x: u16) -> Option<(&ActiveRegionHandler, ItemId)> {
         let matches = self.active_regions.query(geom::Rect::centered_with_radius(
             &geom::Point {
-                y: y as f32,
-                x: x as f32,
+                y: f32::from(y),
+                x: f32::from(x),
             },
             2.0,
         ));
@@ -559,10 +559,7 @@ impl<'a> ApplicationContext<'a> {
 
     pub fn remove_active_region_at_point(&mut self, y: u16, x: u16) -> bool {
         match self.find_active_region(y, x) {
-            Some((_, itemid)) => match self.active_regions.remove(itemid) {
-                Some(_) => true,
-                _ => false,
-            },
+            Some((_, itemid)) => self.active_regions.remove(itemid).is_some(),
             _ => false,
         }
     }
@@ -580,12 +577,12 @@ impl<'a> ApplicationContext<'a> {
             ActiveRegionHandler { handler, element },
             geom::Rect::from_points(
                 &geom::Point {
-                    x: x as f32,
-                    y: y as f32,
+                    x: f32::from(x),
+                    y: f32::from(y),
                 },
                 &geom::Point {
-                    x: (x + width) as f32,
-                    y: (y + height) as f32,
+                    x: f32::from(x + width),
+                    y: f32::from(y + height),
                 },
             ),
         );

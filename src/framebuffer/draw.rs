@@ -222,9 +222,9 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         let mut max_x = x;
 
         let components = col.to_rgb8();
-        let c1 = (255 - components[0]) as f32;
-        let c2 = (255 - components[1]) as f32;
-        let c3 = (255 - components[2]) as f32;
+        let c1 = f32::from(255 - components[0]);
+        let c2 = f32::from(255 - components[1]);
+        let c3 = f32::from(255 - components[2]);
 
         // Loop through the glyphs in the text, positing each one on a line
         for glyph in dfont.layout(&text, scale, start) {

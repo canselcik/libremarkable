@@ -17,8 +17,8 @@ pub struct MultitouchState {
     currently_touching: AtomicBool,
 }
 
-impl MultitouchState {
-    pub fn new() -> MultitouchState {
+impl ::std::default::Default for MultitouchState {
+    fn default() -> Self {
         MultitouchState {
             last_pressure: AtomicU8::new(0),
             last_touch_size: AtomicU8::new(0),
@@ -70,8 +70,8 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
                     let val = ev.value as u16;
                     state.last_y.store(MTHEIGHT - val, Ordering::Relaxed);
 
-                    let y = (state.last_y.load(Ordering::Relaxed) as f32 * MT_VSCALAR) as u16;
-                    let x = (state.last_x.load(Ordering::Relaxed) as f32 * MT_HSCALAR) as u16;
+                    let y = (f32::from(state.last_y.load(Ordering::Relaxed)) * MT_VSCALAR) as u16;
+                    let x = (f32::from(state.last_x.load(Ordering::Relaxed)) * MT_HSCALAR) as u16;
                     let event = MultitouchEvent::Touch {
                         gesture_seq: state.last_touch_id.load(Ordering::Relaxed),
                         finger_id: state.last_finger_id.load(Ordering::Relaxed),

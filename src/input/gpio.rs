@@ -22,8 +22,8 @@ pub struct GPIOState {
     states: [AtomicBool; 5],
 }
 
-impl GPIOState {
-    pub fn new() -> GPIOState {
+impl ::std::default::Default for GPIOState {
+    fn default() -> Self {
         GPIOState {
             states: [
                 AtomicBool::new(false),

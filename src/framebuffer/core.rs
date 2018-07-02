@@ -102,21 +102,23 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
     }
 
     fn set_autoupdate_mode(&mut self, mode: u32) {
+        let m = mode.to_owned();
         unsafe {
             libc::ioctl(
                 self.device.as_raw_fd(),
                 MXCFB_SET_AUTO_UPDATE_MODE,
-                &mut mode.clone(),
+                &m as *const u32,
             );
         };
     }
 
     fn set_update_scheme(&mut self, scheme: u32) {
+        let s = scheme.to_owned();
         unsafe {
             libc::ioctl(
                 self.device.as_raw_fd(),
                 MXCFB_SET_UPDATE_SCHEME,
-                &mut scheme.clone(),
+                &s as *const u32,
             );
         };
     }

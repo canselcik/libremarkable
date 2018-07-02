@@ -79,7 +79,7 @@ impl EvDevContext {
 
                 let exit_req = Arc::clone(&self.exit_requested);
                 let exited = Arc::clone(&self.exited);
-                let device = self.device.clone();
+                let device_type = self.device;
                 let state = self.state.clone();
                 let tx = self.tx.clone();
                 let _ = std::thread::spawn(move || {
@@ -93,7 +93,7 @@ impl EvDevContext {
 
                         for ev in dev.events_no_sync().unwrap() {
                             // event callback
-                            let decoded_event = match device {
+                            let decoded_event = match device_type {
                                 input::InputDevice::Multitouch => {
                                     input::multitouch::decode(&ev, &state)
                                 }

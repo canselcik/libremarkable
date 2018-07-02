@@ -46,10 +46,12 @@ impl Clone for InputDeviceState {
 impl InputDeviceState {
     pub fn new(dev: InputDevice) -> InputDeviceState {
         match dev {
-            InputDevice::GPIO => InputDeviceState::GPIOState(Arc::new(gpio::GPIOState::new())),
-            InputDevice::Wacom => InputDeviceState::WacomState(Arc::new(wacom::WacomState::new())),
+            InputDevice::GPIO => InputDeviceState::GPIOState(Arc::new(gpio::GPIOState::default())),
+            InputDevice::Wacom => {
+                InputDeviceState::WacomState(Arc::new(wacom::WacomState::default()))
+            }
             InputDevice::Multitouch => {
-                InputDeviceState::MultitouchState(Arc::new(multitouch::MultitouchState::new()))
+                InputDeviceState::MultitouchState(Arc::new(multitouch::MultitouchState::default()))
             }
             _ => unreachable!(),
         }

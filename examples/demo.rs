@@ -49,23 +49,11 @@ fn loop_update_topbar(app: &mut appctx::ApplicationContext, millis: u64) {
         // Get the datetime
         let dt: DateTime<Local> = Local::now();
 
-        if let UIElement::Text {
-            ref mut text,
-            scale: _,
-            foreground: _,
-            border_px: _,
-        } = time_label.write().inner
-        {
+        if let UIElement::Text { ref mut text, .. } = time_label.write().inner {
             *text = format!("{}", dt.format("%F %r"));
         }
 
-        if let UIElement::Text {
-            ref mut text,
-            scale: _,
-            foreground: _,
-            border_px: _,
-        } = battery_label.write().inner
-        {
+        if let UIElement::Text { ref mut text, .. } = battery_label.write().inner {
             *text = format!(
                 "{0:<128}",
                 format!(

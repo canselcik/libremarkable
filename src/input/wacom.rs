@@ -17,8 +17,8 @@ pub struct WacomState {
     last_pressure: AtomicU16,
 }
 
-impl WacomState {
-    pub fn new() -> WacomState {
+impl ::std::default::Default for WacomState {
+    fn default() -> Self {
         WacomState {
             last_x: AtomicU16::new(0),
             last_y: AtomicU16::new(0),
@@ -101,16 +101,20 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
                     let last_pressure = state.last_pressure.load(Ordering::Relaxed);
                     let event = if last_pressure == 0 {
                         WacomEvent::Hover {
-                            y: (state.last_y.load(Ordering::Relaxed) as f32 * WACOM_VSCALAR) as u16,
-                            x: (state.last_x.load(Ordering::Relaxed) as f32 * WACOM_HSCALAR) as u16,
+                            y: (f32::from(state.last_y.load(Ordering::Relaxed)) * WACOM_VSCALAR)
+                                as u16,
+                            x: (f32::from(state.last_x.load(Ordering::Relaxed)) * WACOM_HSCALAR)
+                                as u16,
                             distance: ev.value as u16,
                             tilt_x: state.last_xtilt.load(Ordering::Relaxed),
                             tilt_y: state.last_ytilt.load(Ordering::Relaxed),
                         }
                     } else {
                         WacomEvent::Draw {
-                            x: (state.last_x.load(Ordering::Relaxed) as f32 * WACOM_HSCALAR) as u16,
-                            y: (state.last_y.load(Ordering::Relaxed) as f32 * WACOM_VSCALAR) as u16,
+                            x: (f32::from(state.last_x.load(Ordering::Relaxed)) * WACOM_HSCALAR)
+                                as u16,
+                            y: (f32::from(state.last_y.load(Ordering::Relaxed)) * WACOM_VSCALAR)
+                                as u16,
                             pressure: last_pressure + (ev.value as u16),
                             tilt_x: state.last_xtilt.load(Ordering::Relaxed),
                             tilt_y: state.last_ytilt.load(Ordering::Relaxed),
@@ -134,8 +138,8 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
                         .last_pressure
                         .store(ev.value as u16, Ordering::Relaxed);
                     let event = WacomEvent::Draw {
-                        x: (state.last_x.load(Ordering::Relaxed) as f32 * WACOM_HSCALAR) as u16,
-                        y: (state.last_y.load(Ordering::Relaxed) as f32 * WACOM_VSCALAR) as u16,
+                        x: (f32::from(state.last_x.load(Ordering::Relaxed)) * WACOM_HSCALAR) as u16,
+                        y: (f32::from(state.last_y.load(Ordering::Relaxed)) * WACOM_VSCALAR) as u16,
                         pressure: state.last_pressure.load(Ordering::Relaxed),
                         tilt_x: state.last_xtilt.load(Ordering::Relaxed),
                         tilt_y: state.last_ytilt.load(Ordering::Relaxed),
