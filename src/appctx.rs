@@ -143,7 +143,7 @@ impl<'a> ApplicationContext<'a> {
         // Sets the pixel to the u8 color value, does no refresh. Refresh done explicitly via calling `refresh`
         nms.set("set_pixel", hlua::function3(luaext::lua_set_pixel));
 
-        return res;
+        res
     }
 
     pub fn execute_lua(&mut self, code: &str) {
@@ -200,7 +200,7 @@ impl<'a> ApplicationContext<'a> {
         if let UIConstraintRefresh::RefreshAndWait = refresh {
             framebuffer.wait_refresh_complete(marker);
         }
-        return draw_area;
+        draw_area
     }
 
     pub fn display_rect(
@@ -239,7 +239,7 @@ impl<'a> ApplicationContext<'a> {
         if let UIConstraintRefresh::RefreshAndWait = refresh {
             framebuffer.wait_refresh_complete(marker);
         }
-        return draw_area;
+        draw_area
     }
 
     pub fn display_image(
@@ -271,7 +271,7 @@ impl<'a> ApplicationContext<'a> {
         if let UIConstraintRefresh::RefreshAndWait = refresh {
             framebuffer.wait_refresh_complete(marker);
         }
-        return draw_area;
+        draw_area
     }
 
     pub fn add_element(
@@ -289,7 +289,7 @@ impl<'a> ApplicationContext<'a> {
     }
 
     pub fn remove_element(&mut self, name: &str) -> bool {
-        return self.ui_elements.remove(name).is_some();
+        self.ui_elements.remove(name).is_some()
     }
 
     pub fn draw_element(&mut self, name: &str) -> bool {
@@ -305,7 +305,7 @@ impl<'a> ApplicationContext<'a> {
                     }),
                     _ => None,
                 };
-                element.write().draw(appref, handler);
+                element.write().draw(appref, &handler);
                 true
             }
         }
@@ -335,7 +335,7 @@ impl<'a> ApplicationContext<'a> {
                 }),
                 _ => None,
             };
-            element.write().draw(self, handler);
+            element.write().draw(self, &handler);
         }
         end_bench!(draw_elements);
     }
@@ -365,7 +365,7 @@ impl<'a> ApplicationContext<'a> {
 
                 // We can pass None as the `handler` here as we know this flashing is not
                 // changing the positioning of the `UIElementWrapper`.
-                element.draw(self, None);
+                element.draw(self, &None);
             }
         }
     }
@@ -443,7 +443,7 @@ impl<'a> ApplicationContext<'a> {
         let mut unwrapped = dev.take().unwrap();
         unwrapped.stop();
 
-        return true;
+        true
     }
 
     /// Returns true if the device is now enabled. If it was enabled prior
@@ -467,10 +467,10 @@ impl<'a> ApplicationContext<'a> {
         match dev.as_mut() {
             Some(ref mut device) => {
                 device.start();
-                return true;
+                true
             }
-            None => return false,
-        };
+            None => false,
+        }
     }
 
     /// Returns true if the given `InputDevice` is active, as in
@@ -521,10 +521,7 @@ impl<'a> ApplicationContext<'a> {
                     InputEvent::MultitouchEvent { event } => {
                         // Check for and notify clickable active regions for multitouch events
                         if let MultitouchEvent::Touch {
-                            gesture_seq,
-                            finger_id: _,
-                            y,
-                            x,
+                            gesture_seq, y, x, ..
                         } = event
                         {
                             let gseq = gesture_seq as i32;
@@ -554,12 +551,9 @@ impl<'a> ApplicationContext<'a> {
             },
             2.0,
         ));
-        match matches.len() {
-            0 => None,
-            _ => {
-                let res = matches.first().unwrap();
-                Some((res.0, res.2))
-            }
+        match matches.first() {
+            None => None,
+            Some(res) => Some((res.0, res.2)),
         }
     }
 

@@ -168,6 +168,6 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
                 warn!("WAIT_FOR_UPDATE_COMPLETE failed");
             }
         };
-        return markerdata.collision_test;
+        markerdata.collision_test
     }
 }

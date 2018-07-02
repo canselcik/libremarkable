@@ -105,7 +105,7 @@ impl UIElementWrapper {
     pub fn draw(
         &mut self,
         app: &mut appctx::ApplicationContext,
-        handler: Option<ActiveRegionHandler>,
+        handler: &Option<ActiveRegionHandler>,
     ) {
         let (x, y) = (self.x, self.y);
         let refresh = self.refresh;

@@ -12,7 +12,7 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         }
     }
 
-    fn write_pixel(&mut self, y: usize, x: usize, v: framebuffer::common::color) {
+    fn write_pixel(&mut self, y: usize, x: usize, col: framebuffer::common::color) {
         let w = self.var_screen_info.xres as usize;
         let h = self.var_screen_info.yres as usize;
         if y >= h || x >= w {
@@ -23,7 +23,7 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         let curr_index = (y * line_length + x * bytespp) as isize;
 
         let begin = self.frame.data() as *mut u8;
-        let components = v.as_native();
+        let components = col.as_native();
         unsafe {
             begin.offset(curr_index).write_volatile(components[0]);
             begin.offset(curr_index + 1).write_volatile(components[1]);
@@ -54,7 +54,7 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
     fn read_offset(&self, ofst: isize) -> u8 {
         unsafe {
             let begin = self.frame.data() as *mut u8;
-            return begin.offset(ofst).read_volatile();
+            begin.offset(ofst).read_volatile()
         }
     }
 
@@ -91,7 +91,7 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
             outbuffer.set_len(written);
         }
 
-        return Ok(outbuffer);
+        Ok(outbuffer)
     }
 
     fn restore_region(
@@ -128,6 +128,6 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
             }
             written += chunk_size as u32;
         }
-        return Ok(written);
+        Ok(written)
     }
 }

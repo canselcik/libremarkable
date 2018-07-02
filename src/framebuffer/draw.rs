@@ -41,7 +41,7 @@ fn sample_bezier(startpt: (f32, f32), ctrlpt: (f32, f32), endpt: (f32, f32)) -> 
             lastpt = pt;
         }
     }
-    return points;
+    points
 }
 
 impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
@@ -53,12 +53,12 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
                 color::RGB(pixel.data[0], pixel.data[1], pixel.data[2]),
             );
         }
-        return mxcfb_rect {
+        mxcfb_rect {
             top: top as u32,
             left: left as u32,
             width: img.width(),
             height: img.height(),
-        };
+        }
     }
 
     fn draw_line(
@@ -125,24 +125,24 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         }
 
         let margin = ((width + 1) / 2) as i32;
-        return mxcfb_rect {
+        mxcfb_rect {
             top: (min_y - margin) as u32,
             left: (min_x - margin) as u32,
             width: (max_x - min_x + margin * 2) as u32,
             height: (max_y - min_y + margin * 2) as u32,
-        };
+        }
     }
 
     fn draw_circle(&mut self, y: usize, x: usize, rad: usize, v: color) -> mxcfb_rect {
         for (x, y) in line_drawing::BresenhamCircle::new(x as i32, y as i32, rad as i32) {
             self.write_pixel(y as usize, x as usize, v);
         }
-        return mxcfb_rect {
+        mxcfb_rect {
             top: y as u32 - rad as u32,
             left: x as u32 - rad as u32,
             width: 2 * rad as u32,
             height: 2 * rad as u32,
-        };
+        }
     }
 
     fn fill_circle(&mut self, y: usize, x: usize, rad: usize, v: color) -> mxcfb_rect {
@@ -151,12 +151,12 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
                 self.write_pixel(y as usize, x as usize, v);
             }
         }
-        return mxcfb_rect {
+        mxcfb_rect {
             top: y as u32 - rad as u32,
             left: x as u32 - rad as u32,
             width: 2 * rad as u32,
             height: 2 * rad as u32,
-        };
+        }
     }
 
     fn draw_bezier(
@@ -189,12 +189,12 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
             };
         }
         let margin = ((width + 1) / 2) as usize;
-        return mxcfb_rect {
+        mxcfb_rect {
             top: (upperleft.1 - margin) as u32,
             left: (upperleft.0 - margin) as u32,
             width: (lowerright.0 - upperleft.0 + margin * 2) as u32,
             height: (lowerright.1 - upperleft.1 + margin * 2) as u32,
-        };
+        }
     }
 
     fn draw_text(
@@ -262,12 +262,12 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
             }
         }
         // return the height and width of the drawn text so that refresh can be called on it
-        return mxcfb_rect {
+        mxcfb_rect {
             top: min_y as u32,
             left: min_x as u32,
             height: (max_y - min_y) as u32,
             width: (max_x - min_x) as u32,
-        };
+        }
     }
 
     fn draw_rect(

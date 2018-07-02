@@ -48,9 +48,9 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
         var_screen_info.xres = 1872;
         var_screen_info.yres = 1404;
         var_screen_info.rotate = 1;
-        var_screen_info.width = 0xffffffff;
-        var_screen_info.height = 0xffffffff;
-        var_screen_info.pixclock = 160000000;
+        var_screen_info.width = 0xffff_ffff;
+        var_screen_info.height = 0xffff_ffff;
+        var_screen_info.pixclock = 160_000_000;
         var_screen_info.left_margin = 32;
         var_screen_info.right_margin = 326;
         var_screen_info.upper_margin = 4;
@@ -127,7 +127,7 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
         if result != 0 {
             panic!("FBIOGET_FSCREENINFO failed");
         }
-        return info;
+        info
     }
 
     fn get_var_screeninfo(device: &File) -> VarScreeninfo {
@@ -136,7 +136,7 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
         if result != 0 {
             panic!("FBIOGET_VSCREENINFO failed");
         }
-        return info;
+        info
     }
 
     fn put_var_screeninfo(device: &File, var_screen_info: &mut VarScreeninfo) -> bool {

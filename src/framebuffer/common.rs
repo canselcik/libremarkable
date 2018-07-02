@@ -94,8 +94,8 @@ impl color {
                 let b5 = ((b8 as u16) >> 3) as u8;
 
                 [
-                    (((g6 & 0b000111) << 5) | b5),
-                    ((r5 << 3) | ((g6 & 0b111000) >> 3)),
+                    (((g6 & 0b00_0111) << 5) | b5),
+                    ((r5 << 3) | ((g6 & 0b11_1000) >> 3)),
                 ]
             }
         }
@@ -134,9 +134,9 @@ pub const EPDC_FLAG_TEST_COLLISION: u32 = 0x0200;
 pub const EPDC_FLAG_GROUP_UPDATE: u32 = 0x0400;
 
 /// xochitl tends to draw with these but there are many more
-pub const DRAWING_QUANT_BIT: i32 = 0x76143b24;
-pub const DRAWING_QUANT_BIT_2: i32 = 0x75e7bb24;
-pub const DRAWING_QUANT_BIT_3: i32 = 0x53ed4;
+pub const DRAWING_QUANT_BIT: i32 = 0x7614_3b24;
+pub const DRAWING_QUANT_BIT_2: i32 = 0x75e7_bb24;
+pub const DRAWING_QUANT_BIT_3: i32 = 0x5_3ed4;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 #[repr(C)]
@@ -227,19 +227,19 @@ pub enum dither_mode {
     EPDC_FLAG_USE_DITHERING_PASSTHROUGH = 0x0,
     EPDC_FLAG_USE_DITHERING_DRAWING = 0x1,
     /// Dithering Processing (Version 1.0 - for i.MX508 and i.MX6SL)
-    EPDC_FLAG_USE_DITHERING_Y1 = 0x002000,
-    EPDC_FLAG_USE_REMARKABLE_DITHER = 0x300f30,
-    EPDC_FLAG_USE_DITHERING_Y4 = 0x004000,
-    EPDC_FLAG_USE_DITHERING_ALPHA = 0x3ff00000,
-    EPDC_FLAG_USE_DITHERING_BETA = 0x75461440,
-    EPDC_FLAG_EXP1 = 0x270ce20,
-    EPDC_FLAG_EXP2 = 0x270db98,
-    EPDC_FLAG_EXP3 = 0x27445a0,
-    EPDC_FLAG_EXP4 = 0x2746f68,
-    EPDC_FLAG_EXP5 = 0x274aa58,
-    EPDC_FLAG_EXP6 = 0x274bd40,
-    EPDC_FLAG_EXP7 = 0x7ecf22c0,
-    EPDC_FLAG_EXP8 = 0x7ed3d2c0,
+    EPDC_FLAG_USE_DITHERING_Y1 = 0x00_2000,
+    EPDC_FLAG_USE_REMARKABLE_DITHER = 0x30_0f30,
+    EPDC_FLAG_USE_DITHERING_Y4 = 0x00_4000,
+    EPDC_FLAG_USE_DITHERING_ALPHA = 0x3ff0_0000,
+    EPDC_FLAG_USE_DITHERING_BETA = 0x7546_1440,
+    EPDC_FLAG_EXP1 = 0x270_ce20,
+    EPDC_FLAG_EXP2 = 0x270_db98,
+    EPDC_FLAG_EXP3 = 0x274_45a0,
+    EPDC_FLAG_EXP4 = 0x274_6f68,
+    EPDC_FLAG_EXP5 = 0x274_aa58,
+    EPDC_FLAG_EXP6 = 0x274_bd40,
+    EPDC_FLAG_EXP7 = 0x7ecf_22c0,
+    EPDC_FLAG_EXP8 = 0x7ed3_d2c0,
 }
 
 #[derive(Debug)]
