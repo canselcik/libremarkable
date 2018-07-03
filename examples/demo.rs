@@ -22,7 +22,7 @@ use std::sync::Mutex;
 use std::thread::sleep;
 use std::time::Duration;
 
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use libremarkable::framebuffer::common::*;
 
@@ -45,6 +45,55 @@ use std::process::Command;
 
 #[cfg(feature = "enable-runtime-benchmarking")]
 use libremarkable::stopwatch;
+
+#[derive(Copy, Clone, PartialEq)]
+enum DrawMode {
+    Draw(usize),
+    Erase(usize),
+}
+impl DrawMode {
+    fn set_size(self, new_size: usize) -> Self {
+        match self {
+            DrawMode::Draw(_) => DrawMode::Draw(new_size),
+            DrawMode::Erase(_) => DrawMode::Erase(new_size),
+        }
+    }
+    fn color_as_string(self) -> String {
+        match self {
+            DrawMode::Draw(_) => "Black",
+            DrawMode::Erase(_) => "White",
+        }.into()
+    }
+    fn get_size(self) -> usize {
+        match self {
+            DrawMode::Draw(s) => s,
+            DrawMode::Erase(s) => s,
+        }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Debug)]
+enum TouchMode {
+    OnlyUI,
+    Bezier,
+    Circles,
+}
+impl TouchMode {
+    fn toggle(self) -> Self {
+        match self {
+            TouchMode::OnlyUI => TouchMode::Bezier,
+            TouchMode::Bezier => TouchMode::Circles,
+            TouchMode::Circles => TouchMode::OnlyUI,
+        }
+    }
+    fn to_string(self) -> String {
+        match self {
+            TouchMode::OnlyUI => "None",
+            TouchMode::Bezier => "Bezier",
+            TouchMode::Circles => "Circles",
+        }.into()
+    }
+}
 
 fn loop_update_topbar(app: &mut appctx::ApplicationContext, millis: u64) {
     let time_label = app.get_element_by_name("time").unwrap();
@@ -97,19 +146,14 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
                 return;
             }
 
-            let framebuffer = app.get_framebuffer_ref();
+            let (col, mult) = match G_DRAW_MODE.load(Ordering::Relaxed) {
+                DrawMode::Draw(s) => (color::BLACK, s),
+                DrawMode::Erase(s) => (color::WHITE, s * 3),
+            };
 
-            let mut rad =
-                SIZE_MULTIPLIER.load(Ordering::Relaxed) as f32 * (pressure as f32) / 4096.;
-            let mut color = color::BLACK;
-
-            // Eraser has a larger radius for ease of removal
-            if ERASE_MODE.load(Ordering::Relaxed) {
-                rad *= 3.0;
-                color = color::WHITE;
-            }
-
+            let rad = mult as f32 * (pressure as f32) / 2048.;
             if wacom_stack.len() >= 2 {
+                let framebuffer = app.get_framebuffer_ref();
                 let controlpt = wacom_stack.pop().unwrap();
                 let beginpt = wacom_stack.pop().unwrap();
                 let rect = framebuffer.draw_bezier(
@@ -117,7 +161,7 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
                     (controlpt.1 as f32, controlpt.0 as f32),
                     (x as f32, y as f32),
                     rad as usize,
-                    color,
+                    col,
                 );
 
                 if !LAST_REFRESHED_CANVAS_RECT
@@ -186,15 +230,17 @@ fn on_touch_handler(app: &mut appctx::ApplicationContext, input: multitouch::Mul
             if !CANVAS_REGION.contains_point(y.into(), x.into()) {
                 return;
             }
-            let rect = match DRAW_ON_TOUCH.load(Ordering::Relaxed) {
-                1 => framebuffer.draw_bezier(
+            let rect = match G_TOUCH_MODE.load(Ordering::Relaxed) {
+                TouchMode::Bezier => framebuffer.draw_bezier(
                     (x as f32, y as f32),
                     ((x + 155) as f32, (y + 14) as f32),
                     ((x + 200) as f32, (y + 200) as f32),
                     2,
                     color::BLACK,
                 ),
-                2 => framebuffer.draw_circle(y as usize, x as usize, 20, color::BLACK),
+                TouchMode::Circles => {
+                    framebuffer.draw_circle(y as usize, x as usize, 20, color::BLACK)
+                }
                 _ => return,
             };
             framebuffer.partial_refresh(
@@ -466,68 +512,51 @@ fn on_touch_rustlogo(app: &mut appctx::ApplicationContext, _element: UIElementHa
 
 fn on_toggle_eraser(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
     {
-        let newstate = !ERASE_MODE.load(Ordering::Relaxed);
-        ERASE_MODE.store(newstate, Ordering::Relaxed);
+        let (new_mode, name) = match G_DRAW_MODE.load(Ordering::Relaxed) {
+            DrawMode::Erase(s) => (DrawMode::Draw(s), "Black".to_owned()),
+            DrawMode::Draw(s) => (DrawMode::Erase(s), "White".to_owned()),
+        };
+        G_DRAW_MODE.store(new_mode, Ordering::Relaxed);
 
         let indicator = app.get_element_by_name("colorIndicator");
-        if let UIElement::Text {
-            ref mut text,
-            scale: _,
-            foreground: _,
-            border_px: _,
-        } = indicator.unwrap().write().inner
-        {
-            *text = if newstate {
-                "White".to_owned()
-            } else {
-                "Black".to_owned()
-            }
+        if let UIElement::Text { ref mut text, .. } = indicator.unwrap().write().inner {
+            *text = name;
         }
     }
     app.draw_element("colorIndicator");
 }
 
 fn on_decrease_size(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
-    let current = SIZE_MULTIPLIER.load(Ordering::Relaxed);
-    if current <= 1 {
+    let mut current = G_DRAW_MODE.load(Ordering::Relaxed);
+    if current.get_size() <= 1 {
         return;
     }
-    let new = current - 1;
-    SIZE_MULTIPLIER.store(new, Ordering::Relaxed);
+
+    current = current.set_size(current.get_size() - 1);
+    G_DRAW_MODE.store(current, Ordering::Relaxed);
 
     let element = app.get_element_by_name("displaySize").unwrap();
     {
-        if let UIElement::Text {
-            ref mut text,
-            scale: _,
-            foreground: _,
-            border_px: _,
-        } = element.write().inner
-        {
-            *text = format!("size: {0}", new)
+        if let UIElement::Text { ref mut text, .. } = element.write().inner {
+            *text = format!("size: {0}", current.get_size())
         }
     }
     app.draw_element("displaySize");
 }
 
 fn on_increase_size(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
-    let current = SIZE_MULTIPLIER.load(Ordering::Relaxed);
-    if current >= 99 {
+    let mut current = G_DRAW_MODE.load(Ordering::Relaxed);
+    if current.get_size() >= 99 {
         return;
     }
-    let new = current + 1;
-    SIZE_MULTIPLIER.store(new, Ordering::Relaxed);
+
+    current = current.set_size(current.get_size() + 1);
+    G_DRAW_MODE.store(current, Ordering::Relaxed);
 
     let element = app.get_element_by_name("displaySize").unwrap();
     {
-        if let UIElement::Text {
-            ref mut text,
-            scale: _,
-            foreground: _,
-            border_px: _,
-        } = element.write().inner
-        {
-            *text = format!("size: {0}", new)
+        if let UIElement::Text { ref mut text, .. } = element.write().inner {
+            *text = format!("size: {0}", current.get_size())
         }
     }
     app.draw_element("displaySize");
@@ -535,22 +564,12 @@ fn on_increase_size(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
 
 fn on_change_touchdraw_mode(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
     {
-        let new_val = (DRAW_ON_TOUCH.load(Ordering::Relaxed) + 1) % 3;
-        DRAW_ON_TOUCH.store(new_val, Ordering::Relaxed);
+        let new_val = G_TOUCH_MODE.load(Ordering::Relaxed).toggle();
+        G_TOUCH_MODE.store(new_val, Ordering::Relaxed);
 
         let indicator = app.get_element_by_name("touchModeIndicator");
-        if let UIElement::Text {
-            ref mut text,
-            scale: _,
-            foreground: _,
-            border_px: _,
-        } = indicator.unwrap().write().inner
-        {
-            *text = match new_val {
-                1 => "Bezier".to_owned(),
-                2 => "Circles".to_owned(),
-                _ => "None".to_owned(),
-            }
+        if let UIElement::Text { ref mut text, .. } = indicator.unwrap().write().inner {
+            *text = new_val.to_string();
         }
     }
     // Make sure you aren't trying to draw the element while you are holding a write lock.
@@ -569,9 +588,8 @@ const CANVAS_REGION: mxcfb_rect = mxcfb_rect {
 };
 
 lazy_static! {
-    static ref DRAW_ON_TOUCH: AtomicUsize = AtomicUsize::new(0);
-    static ref ERASE_MODE: AtomicBool = AtomicBool::new(false);
-    static ref SIZE_MULTIPLIER: AtomicUsize = AtomicUsize::new(4);
+    static ref G_TOUCH_MODE: Atomic<TouchMode> = Atomic::new(TouchMode::OnlyUI);
+    static ref G_DRAW_MODE: Atomic<DrawMode> = Atomic::new(DrawMode::Draw(2));
     static ref UNPRESS_OBSERVED: AtomicBool = AtomicBool::new(false);
     static ref WACOM_IN_RANGE: AtomicBool = AtomicBool::new(false);
     static ref WACOM_HISTORY: Mutex<Vec<(i32, i32)>> = Mutex::new(Vec::new());
@@ -804,7 +822,7 @@ fn main() {
             onclick: None,
             inner: UIElement::Text {
                 foreground: color::BLACK,
-                text: "Black".to_owned(),
+                text: G_DRAW_MODE.load(Ordering::Relaxed).color_as_string(),
                 scale: 40,
                 border_px: 0,
             },
@@ -837,7 +855,7 @@ fn main() {
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
-                text: format!("size: {0}", SIZE_MULTIPLIER.load(Ordering::Relaxed)),
+                text: format!("size: {0}", G_DRAW_MODE.load(Ordering::Relaxed).get_size()),
                 scale: 45,
                 border_px: 0,
             },
