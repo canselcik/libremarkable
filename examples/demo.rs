@@ -2,49 +2,37 @@
 #[macro_use]
 extern crate lazy_static;
 
+#[macro_use]
+extern crate log;
 extern crate env_logger;
 
 #[macro_use]
-extern crate log;
-
-#[macro_use]
 extern crate libremarkable;
-
-extern crate chrono;
-
-extern crate atomic;
-
-use atomic::Atomic;
-
-use chrono::{DateTime, Local};
-
-use std::sync::Mutex;
-use std::thread::sleep;
-use std::time::Duration;
-
-use std::sync::atomic::{AtomicBool, Ordering};
-
 use libremarkable::framebuffer::common::*;
-
-use libremarkable::appctx;
-use libremarkable::ui_extensions::element::{
-    UIConstraintRefresh, UIElement, UIElementHandle, UIElementWrapper,
-};
-
 use libremarkable::framebuffer::refresh::PartialRefreshMode;
 use libremarkable::framebuffer::storage;
 use libremarkable::framebuffer::{FramebufferDraw, FramebufferIO, FramebufferRefresh};
-
-use libremarkable::battery;
-use libremarkable::input::{gpio, multitouch, wacom, InputDevice};
-
-use libremarkable::image;
 use libremarkable::image::GenericImage;
-
-use std::process::Command;
+use libremarkable::input::{gpio, multitouch, wacom, InputDevice};
+use libremarkable::ui_extensions::element::{
+    UIConstraintRefresh, UIElement, UIElementHandle, UIElementWrapper,
+};
+use libremarkable::{appctx, battery, image};
 
 #[cfg(feature = "enable-runtime-benchmarking")]
 use libremarkable::stopwatch;
+
+extern crate chrono;
+use chrono::{DateTime, Local};
+
+extern crate atomic;
+use atomic::Atomic;
+
+use std::process::Command;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
+use std::thread::sleep;
+use std::time::Duration;
 
 #[derive(Copy, Clone, PartialEq)]
 enum DrawMode {
@@ -95,232 +83,30 @@ impl TouchMode {
     }
 }
 
-fn loop_update_topbar(app: &mut appctx::ApplicationContext, millis: u64) {
-    let time_label = app.get_element_by_name("time").unwrap();
-    let battery_label = app.get_element_by_name("battery").unwrap();
-    loop {
-        // Get the datetime
-        let dt: DateTime<Local> = Local::now();
+// This region will have the following size at rest:
+//   raw: 5896 kB
+//   zstd: 10 kB
+const CANVAS_REGION: mxcfb_rect = mxcfb_rect {
+    top: 720,
+    left: 0,
+    height: 1080,
+    width: 1404,
+};
 
-        if let UIElement::Text { ref mut text, .. } = time_label.write().inner {
-            *text = format!("{}", dt.format("%F %r"));
-        }
-
-        if let UIElement::Text { ref mut text, .. } = battery_label.write().inner {
-            *text = format!(
-                "{0:<128}",
-                format!(
-                    "{0} — {1}%",
-                    battery::human_readable_charging_status().unwrap(),
-                    battery::percentage().unwrap()
-                )
-            );
-        }
-        app.draw_element("time");
-        app.draw_element("battery");
-        sleep(Duration::from_millis(millis));
-    }
+lazy_static! {
+    static ref G_TOUCH_MODE: Atomic<TouchMode> = Atomic::new(TouchMode::OnlyUI);
+    static ref G_DRAW_MODE: Atomic<DrawMode> = Atomic::new(DrawMode::Draw(2));
+    static ref UNPRESS_OBSERVED: AtomicBool = AtomicBool::new(false);
+    static ref WACOM_IN_RANGE: AtomicBool = AtomicBool::new(false);
+    static ref WACOM_HISTORY: Mutex<Vec<(i32, i32)>> = Mutex::new(Vec::new());
+    static ref G_COUNTER: Mutex<u32> = Mutex::new(0);
+    static ref LAST_REFRESHED_CANVAS_RECT: Atomic<mxcfb_rect> = Atomic::new(mxcfb_rect::invalid());
+    static ref SAVED_CANVAS: Mutex<Option<storage::CompressedCanvasState>> = Mutex::new(None);
 }
 
-fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent) {
-    match input {
-        wacom::WacomEvent::Draw {
-            y,
-            x,
-            pressure,
-            tilt_x: _,
-            tilt_y: _,
-        } => {
-            let mut wacom_stack = WACOM_HISTORY.lock().unwrap();
-
-            // This is so that we can click the buttons outside the canvas region
-            // normally meant to be touched with a finger using our stylus
-            if !CANVAS_REGION.contains_point(y.into(), x.into()) {
-                wacom_stack.clear();
-                if UNPRESS_OBSERVED.fetch_and(false, Ordering::Relaxed) {
-                    match app.find_active_region(y, x) {
-                        Some((region, _)) => (region.handler)(app, region.element.clone()),
-                        None => {}
-                    };
-                }
-                return;
-            }
-
-            let (col, mult) = match G_DRAW_MODE.load(Ordering::Relaxed) {
-                DrawMode::Draw(s) => (color::BLACK, s),
-                DrawMode::Erase(s) => (color::WHITE, s * 3),
-            };
-
-            let rad = mult as f32 * (pressure as f32) / 2048.;
-            if wacom_stack.len() >= 2 {
-                let framebuffer = app.get_framebuffer_ref();
-                let controlpt = wacom_stack.pop().unwrap();
-                let beginpt = wacom_stack.pop().unwrap();
-                let rect = framebuffer.draw_bezier(
-                    (beginpt.1 as f32, beginpt.0 as f32),
-                    (controlpt.1 as f32, controlpt.0 as f32),
-                    (x as f32, y as f32),
-                    rad as usize,
-                    col,
-                );
-
-                if !LAST_REFRESHED_CANVAS_RECT
-                    .load(Ordering::Relaxed)
-                    .contains_rect(&rect)
-                {
-                    framebuffer.partial_refresh(
-                        &rect,
-                        PartialRefreshMode::Async,
-                        waveform_mode::WAVEFORM_MODE_DU,
-                        display_temp::TEMP_USE_REMARKABLE_DRAW,
-                        dither_mode::EPDC_FLAG_EXP1,
-                        DRAWING_QUANT_BIT,
-                        false,
-                    );
-                    LAST_REFRESHED_CANVAS_RECT.store(rect, Ordering::Relaxed);
-                }
-            }
-            wacom_stack.push((y as i32, x as i32));
-        }
-        wacom::WacomEvent::InstrumentChange { pen, state } => {
-            match pen {
-                // Whether the pen is in range
-                wacom::WacomPen::ToolPen => {
-                    WACOM_IN_RANGE.store(state, Ordering::Relaxed);
-                }
-                // Whether the pen is actually making contact
-                wacom::WacomPen::Touch => {
-                    // Stop drawing when instrument has left the vicinity of the screen
-                    if !state {
-                        let mut wacom_stack = WACOM_HISTORY.lock().unwrap();
-                        wacom_stack.clear();
-                    }
-                }
-                _ => unreachable!(),
-            }
-        }
-        wacom::WacomEvent::Hover {
-            y: _,
-            x: _,
-            distance,
-            tilt_x: _,
-            tilt_y: _,
-        } => {
-            // If the pen is hovering, don't record its coordinates as the origin of the next line
-            if distance > 1 {
-                let mut wacom_stack = WACOM_HISTORY.lock().unwrap();
-                wacom_stack.clear();
-                UNPRESS_OBSERVED.store(true, Ordering::Relaxed);
-            }
-        }
-        _ => {}
-    };
-}
-
-#[allow(unused_variables)]
-fn on_touch_handler(app: &mut appctx::ApplicationContext, input: multitouch::MultitouchEvent) {
-    let framebuffer = app.get_framebuffer_ref();
-    match input {
-        multitouch::MultitouchEvent::Touch {
-            gesture_seq,
-            finger_id,
-            y,
-            x,
-        } => {
-            if !CANVAS_REGION.contains_point(y.into(), x.into()) {
-                return;
-            }
-            let rect = match G_TOUCH_MODE.load(Ordering::Relaxed) {
-                TouchMode::Bezier => framebuffer.draw_bezier(
-                    (x as f32, y as f32),
-                    ((x + 155) as f32, (y + 14) as f32),
-                    ((x + 200) as f32, (y + 200) as f32),
-                    2,
-                    color::BLACK,
-                ),
-                TouchMode::Circles => {
-                    framebuffer.draw_circle(y as usize, x as usize, 20, color::BLACK)
-                }
-                _ => return,
-            };
-            framebuffer.partial_refresh(
-                &rect,
-                PartialRefreshMode::Async,
-                waveform_mode::WAVEFORM_MODE_DU,
-                display_temp::TEMP_USE_REMARKABLE_DRAW,
-                dither_mode::EPDC_FLAG_USE_DITHERING_ALPHA,
-                DRAWING_QUANT_BIT,
-                false,
-            );
-        }
-        _ => {}
-    }
-}
-
-fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent) {
-    let (btn, new_state) = match input {
-        gpio::GPIOEvent::Press { button } => (button, true),
-        gpio::GPIOEvent::Unpress { button } => (button, false),
-        _ => return,
-    };
-
-    // Ignoring the unpressed event
-    if !new_state {
-        return;
-    }
-
-    // Simple but effective accidental button press filtering
-    if WACOM_IN_RANGE.load(Ordering::Relaxed) {
-        return;
-    }
-
-    match btn {
-        gpio::PhysicalButton::RIGHT => {
-            let new_state = match app.is_input_device_active(InputDevice::Multitouch) {
-                true => {
-                    app.deactivate_input_device(InputDevice::Multitouch);
-                    "Enable Touch"
-                }
-                false => {
-                    app.activate_input_device(InputDevice::Multitouch);
-                    "Disable Touch"
-                }
-            };
-
-            match app.get_element_by_name("tooltipRight") {
-                Some(ref elem) => {
-                    if let UIElement::Text {
-                        ref mut text,
-                        scale: _,
-                        foreground: _,
-                        border_px: _,
-                    } = elem.write().inner
-                    {
-                        *text = new_state.to_string();
-                    }
-                }
-                None => {}
-            }
-            app.draw_element("tooltipRight");
-            return;
-        }
-        gpio::PhysicalButton::MIDDLE | gpio::PhysicalButton::LEFT => {
-            app.clear(btn == gpio::PhysicalButton::MIDDLE);
-            app.draw_elements();
-        }
-        gpio::PhysicalButton::POWER => {
-            Command::new("systemctl")
-                .arg("start")
-                .arg("xochitl")
-                .spawn()
-                .unwrap();
-            std::process::exit(0);
-        }
-        gpio::PhysicalButton::WAKEUP => {
-            println!("WAKEUP button(?) pressed(?)");
-        }
-    };
-}
+// ####################
+// ## Button Handlers
+// ####################
 
 fn on_save_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
     start_bench!(stopwatch, save_canvas);
@@ -511,91 +297,300 @@ fn on_touch_rustlogo(app: &mut appctx::ApplicationContext, _element: UIElementHa
 }
 
 fn on_toggle_eraser(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
-    {
-        let (new_mode, name) = match G_DRAW_MODE.load(Ordering::Relaxed) {
-            DrawMode::Erase(s) => (DrawMode::Draw(s), "Black".to_owned()),
-            DrawMode::Draw(s) => (DrawMode::Erase(s), "White".to_owned()),
-        };
-        G_DRAW_MODE.store(new_mode, Ordering::Relaxed);
+    let (new_mode, name) = match G_DRAW_MODE.load(Ordering::Relaxed) {
+        DrawMode::Erase(s) => (DrawMode::Draw(s), "Black".to_owned()),
+        DrawMode::Draw(s) => (DrawMode::Erase(s), "White".to_owned()),
+    };
+    G_DRAW_MODE.store(new_mode, Ordering::Relaxed);
 
-        let indicator = app.get_element_by_name("colorIndicator");
-        if let UIElement::Text { ref mut text, .. } = indicator.unwrap().write().inner {
-            *text = name;
-        }
+    let indicator = app.get_element_by_name("colorIndicator");
+    if let UIElement::Text { ref mut text, .. } = indicator.unwrap().write().inner {
+        *text = name;
     }
     app.draw_element("colorIndicator");
 }
 
-fn on_decrease_size(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
-    let mut current = G_DRAW_MODE.load(Ordering::Relaxed);
-    if current.get_size() <= 1 {
-        return;
-    }
-
-    current = current.set_size(current.get_size() - 1);
-    G_DRAW_MODE.store(current, Ordering::Relaxed);
-
-    let element = app.get_element_by_name("displaySize").unwrap();
-    {
-        if let UIElement::Text { ref mut text, .. } = element.write().inner {
-            *text = format!("size: {0}", current.get_size())
-        }
-    }
-    app.draw_element("displaySize");
-}
-
-fn on_increase_size(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
-    let mut current = G_DRAW_MODE.load(Ordering::Relaxed);
-    if current.get_size() >= 99 {
-        return;
-    }
-
-    current = current.set_size(current.get_size() + 1);
-    G_DRAW_MODE.store(current, Ordering::Relaxed);
-
-    let element = app.get_element_by_name("displaySize").unwrap();
-    {
-        if let UIElement::Text { ref mut text, .. } = element.write().inner {
-            *text = format!("size: {0}", current.get_size())
-        }
-    }
-    app.draw_element("displaySize");
-}
-
 fn on_change_touchdraw_mode(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
-    {
-        let new_val = G_TOUCH_MODE.load(Ordering::Relaxed).toggle();
-        G_TOUCH_MODE.store(new_val, Ordering::Relaxed);
+    let new_val = G_TOUCH_MODE.load(Ordering::Relaxed).toggle();
+    G_TOUCH_MODE.store(new_val, Ordering::Relaxed);
 
-        let indicator = app.get_element_by_name("touchModeIndicator");
-        if let UIElement::Text { ref mut text, .. } = indicator.unwrap().write().inner {
-            *text = new_val.to_string();
-        }
+    let indicator = app.get_element_by_name("touchModeIndicator");
+    if let UIElement::Text { ref mut text, .. } = indicator.unwrap().write().inner {
+        *text = new_val.to_string();
     }
     // Make sure you aren't trying to draw the element while you are holding a write lock.
     // It doesn't seem to cause a deadlock however it may cause higher lock contention.
     app.draw_element("touchModeIndicator");
 }
 
-// will have the following size at rest:
-//   snapshot raw: 5896 kB
-//   zstd: 10 kB
-const CANVAS_REGION: mxcfb_rect = mxcfb_rect {
-    top: 720,
-    left: 0,
-    height: 1080,
-    width: 1404,
-};
+// ####################
+// ## Miscellaneous
+// ####################
 
-lazy_static! {
-    static ref G_TOUCH_MODE: Atomic<TouchMode> = Atomic::new(TouchMode::OnlyUI);
-    static ref G_DRAW_MODE: Atomic<DrawMode> = Atomic::new(DrawMode::Draw(2));
-    static ref UNPRESS_OBSERVED: AtomicBool = AtomicBool::new(false);
-    static ref WACOM_IN_RANGE: AtomicBool = AtomicBool::new(false);
-    static ref WACOM_HISTORY: Mutex<Vec<(i32, i32)>> = Mutex::new(Vec::new());
-    static ref G_COUNTER: Mutex<u32> = Mutex::new(0);
-    static ref LAST_REFRESHED_CANVAS_RECT: Atomic<mxcfb_rect> = Atomic::new(mxcfb_rect::invalid());
-    static ref SAVED_CANVAS: Mutex<Option<storage::CompressedCanvasState>> = Mutex::new(None);
+fn draw_color_test_rgb(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
+    let fb = app.get_framebuffer_ref();
+
+    let img_rgb565 = image::load_from_memory(include_bytes!("../assets/colorspace.png")).unwrap();
+    fb.draw_image(
+        &img_rgb565.as_rgb8().unwrap(),
+        CANVAS_REGION.top as usize,
+        CANVAS_REGION.left as usize,
+    );
+    fb.partial_refresh(
+        &CANVAS_REGION,
+        PartialRefreshMode::Wait,
+        waveform_mode::WAVEFORM_MODE_GC16,
+        display_temp::TEMP_USE_PAPYRUS,
+        dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
+        0,
+        false,
+    );
+}
+
+fn change_brush_width(app: &mut appctx::ApplicationContext, delta: isize) {
+    let current = G_DRAW_MODE.load(Ordering::Relaxed);
+    let new_size = current.get_size() as isize + delta;
+    if new_size < 1 || new_size > 99 {
+        return;
+    }
+
+    G_DRAW_MODE.store(current.set_size(new_size as usize), Ordering::Relaxed);
+
+    let element = app.get_element_by_name("displaySize").unwrap();
+    if let UIElement::Text { ref mut text, .. } = element.write().inner {
+        *text = format!("size: {0}", new_size);
+    }
+    app.draw_element("displaySize");
+}
+
+fn loop_update_topbar(app: &mut appctx::ApplicationContext, millis: u64) {
+    let time_label = app.get_element_by_name("time").unwrap();
+    let battery_label = app.get_element_by_name("battery").unwrap();
+    loop {
+        // Get the datetime
+        let dt: DateTime<Local> = Local::now();
+
+        if let UIElement::Text { ref mut text, .. } = time_label.write().inner {
+            *text = format!("{}", dt.format("%F %r"));
+        }
+
+        if let UIElement::Text { ref mut text, .. } = battery_label.write().inner {
+            *text = format!(
+                "{0:<128}",
+                format!(
+                    "{0} — {1}%",
+                    battery::human_readable_charging_status().unwrap(),
+                    battery::percentage().unwrap()
+                )
+            );
+        }
+        app.draw_element("time");
+        app.draw_element("battery");
+        sleep(Duration::from_millis(millis));
+    }
+}
+
+// ####################
+// ## Input Handlers
+// ####################
+
+fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent) {
+    match input {
+        wacom::WacomEvent::Draw {
+            y,
+            x,
+            pressure,
+            tilt_x: _,
+            tilt_y: _,
+        } => {
+            let mut wacom_stack = WACOM_HISTORY.lock().unwrap();
+
+            // This is so that we can click the buttons outside the canvas region
+            // normally meant to be touched with a finger using our stylus
+            if !CANVAS_REGION.contains_point(y.into(), x.into()) {
+                wacom_stack.clear();
+                if UNPRESS_OBSERVED.fetch_and(false, Ordering::Relaxed) {
+                    match app.find_active_region(y, x) {
+                        Some((region, _)) => (region.handler)(app, region.element.clone()),
+                        None => {}
+                    };
+                }
+                return;
+            }
+
+            let (col, mult) = match G_DRAW_MODE.load(Ordering::Relaxed) {
+                DrawMode::Draw(s) => (color::BLACK, s),
+                DrawMode::Erase(s) => (color::WHITE, s * 3),
+            };
+
+            let rad = mult as f32 * (pressure as f32) / 2048.;
+            if wacom_stack.len() >= 2 {
+                let framebuffer = app.get_framebuffer_ref();
+                let controlpt = wacom_stack.pop().unwrap();
+                let beginpt = wacom_stack.pop().unwrap();
+                let rect = framebuffer.draw_bezier(
+                    (beginpt.1 as f32, beginpt.0 as f32),
+                    (controlpt.1 as f32, controlpt.0 as f32),
+                    (x as f32, y as f32),
+                    rad as usize,
+                    col,
+                );
+
+                if !LAST_REFRESHED_CANVAS_RECT
+                    .load(Ordering::Relaxed)
+                    .contains_rect(&rect)
+                {
+                    framebuffer.partial_refresh(
+                        &rect,
+                        PartialRefreshMode::Async,
+                        waveform_mode::WAVEFORM_MODE_DU,
+                        display_temp::TEMP_USE_REMARKABLE_DRAW,
+                        dither_mode::EPDC_FLAG_EXP1,
+                        DRAWING_QUANT_BIT,
+                        false,
+                    );
+                    LAST_REFRESHED_CANVAS_RECT.store(rect, Ordering::Relaxed);
+                }
+            }
+            wacom_stack.push((y as i32, x as i32));
+        }
+        wacom::WacomEvent::InstrumentChange { pen, state } => {
+            match pen {
+                // Whether the pen is in range
+                wacom::WacomPen::ToolPen => {
+                    WACOM_IN_RANGE.store(state, Ordering::Relaxed);
+                }
+                // Whether the pen is actually making contact
+                wacom::WacomPen::Touch => {
+                    // Stop drawing when instrument has left the vicinity of the screen
+                    if !state {
+                        let mut wacom_stack = WACOM_HISTORY.lock().unwrap();
+                        wacom_stack.clear();
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
+        wacom::WacomEvent::Hover {
+            y: _,
+            x: _,
+            distance,
+            tilt_x: _,
+            tilt_y: _,
+        } => {
+            // If the pen is hovering, don't record its coordinates as the origin of the next line
+            if distance > 1 {
+                let mut wacom_stack = WACOM_HISTORY.lock().unwrap();
+                wacom_stack.clear();
+                UNPRESS_OBSERVED.store(true, Ordering::Relaxed);
+            }
+        }
+        _ => {}
+    };
+}
+
+fn on_touch_handler(app: &mut appctx::ApplicationContext, input: multitouch::MultitouchEvent) {
+    let framebuffer = app.get_framebuffer_ref();
+    match input {
+        multitouch::MultitouchEvent::Touch {
+            gesture_seq: _,
+            finger_id: _,
+            y,
+            x,
+        } => {
+            if !CANVAS_REGION.contains_point(y.into(), x.into()) {
+                return;
+            }
+            let rect = match G_TOUCH_MODE.load(Ordering::Relaxed) {
+                TouchMode::Bezier => framebuffer.draw_bezier(
+                    (x as f32, y as f32),
+                    ((x + 155) as f32, (y + 14) as f32),
+                    ((x + 200) as f32, (y + 200) as f32),
+                    2,
+                    color::BLACK,
+                ),
+                TouchMode::Circles => {
+                    framebuffer.draw_circle(y as usize, x as usize, 20, color::BLACK)
+                }
+                _ => return,
+            };
+            framebuffer.partial_refresh(
+                &rect,
+                PartialRefreshMode::Async,
+                waveform_mode::WAVEFORM_MODE_DU,
+                display_temp::TEMP_USE_REMARKABLE_DRAW,
+                dither_mode::EPDC_FLAG_USE_DITHERING_ALPHA,
+                DRAWING_QUANT_BIT,
+                false,
+            );
+        }
+        _ => {}
+    }
+}
+
+fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent) {
+    let (btn, new_state) = match input {
+        gpio::GPIOEvent::Press { button } => (button, true),
+        gpio::GPIOEvent::Unpress { button } => (button, false),
+        _ => return,
+    };
+
+    // Ignoring the unpressed event
+    if !new_state {
+        return;
+    }
+
+    // Simple but effective accidental button press filtering
+    if WACOM_IN_RANGE.load(Ordering::Relaxed) {
+        return;
+    }
+
+    match btn {
+        gpio::PhysicalButton::RIGHT => {
+            let new_state = match app.is_input_device_active(InputDevice::Multitouch) {
+                true => {
+                    app.deactivate_input_device(InputDevice::Multitouch);
+                    "Enable Touch"
+                }
+                false => {
+                    app.activate_input_device(InputDevice::Multitouch);
+                    "Disable Touch"
+                }
+            };
+
+            match app.get_element_by_name("tooltipRight") {
+                Some(ref elem) => {
+                    if let UIElement::Text {
+                        ref mut text,
+                        scale: _,
+                        foreground: _,
+                        border_px: _,
+                    } = elem.write().inner
+                    {
+                        *text = new_state.to_string();
+                    }
+                }
+                None => {}
+            }
+            app.draw_element("tooltipRight");
+            return;
+        }
+        gpio::PhysicalButton::MIDDLE | gpio::PhysicalButton::LEFT => {
+            app.clear(btn == gpio::PhysicalButton::MIDDLE);
+            app.draw_elements();
+        }
+        gpio::PhysicalButton::POWER => {
+            Command::new("systemctl")
+                .arg("start")
+                .arg("xochitl")
+                .spawn()
+                .unwrap();
+            std::process::exit(0);
+        }
+        gpio::PhysicalButton::WAKEUP => {
+            println!("WAKEUP button(?) pressed(?)");
+        }
+    };
 }
 
 fn main() {
@@ -837,7 +832,9 @@ fn main() {
             y: 670,
             x: 960,
             refresh: UIConstraintRefresh::Refresh,
-            onclick: Some(on_decrease_size),
+            onclick: Some(|appctx, _| {
+                change_brush_width(appctx, -1);
+            }),
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "-".to_owned(),
@@ -868,7 +865,9 @@ fn main() {
             y: 670,
             x: 1210,
             refresh: UIConstraintRefresh::Refresh,
-            onclick: Some(on_increase_size),
+            onclick: Some(|appctx, _| {
+                change_brush_width(appctx, 1);
+            }),
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "+".to_owned(),
@@ -1118,24 +1117,4 @@ fn main() {
     // Blocking call to process events from digitizer + touchscreen + physical buttons
     app.dispatch_events(true, true, true);
     clock_thread.join().unwrap();
-}
-
-fn draw_color_test_rgb(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
-    let fb = app.get_framebuffer_ref();
-
-    let img_rgb565 = image::load_from_memory(include_bytes!("../assets/colorspace.png")).unwrap();
-    fb.draw_image(
-        &img_rgb565.as_rgb8().unwrap(),
-        CANVAS_REGION.top as usize,
-        CANVAS_REGION.left as usize,
-    );
-    fb.partial_refresh(
-        &CANVAS_REGION,
-        PartialRefreshMode::Wait,
-        waveform_mode::WAVEFORM_MODE_GC16,
-        display_temp::TEMP_USE_PAPYRUS,
-        dither_mode::EPDC_FLAG_USE_DITHERING_PASSTHROUGH,
-        0,
-        false,
-    );
 }
