@@ -1,3 +1,4 @@
+use atomic::Atomic;
 use evdev::raw::input_event;
 use input::{InputDeviceState, InputEvent};
 use std;
@@ -15,6 +16,7 @@ pub struct WacomState {
     last_ytilt: AtomicU16,
     last_dist: AtomicU16,
     last_pressure: AtomicU16,
+    last_event_type: Atomic<WacomEventType>,
 }
 
 impl ::std::default::Default for WacomState {
@@ -26,6 +28,7 @@ impl ::std::default::Default for WacomState {
             last_ytilt: AtomicU16::new(0),
             last_dist: AtomicU16::new(0),
             last_pressure: AtomicU16::new(0),
+            last_event_type: Atomic::new(WacomEventType::Unknown),
         }
     }
 }
@@ -33,11 +36,21 @@ impl ::std::default::Default for WacomState {
 #[repr(u16)]
 #[derive(PartialEq, Copy, Clone)]
 pub enum WacomPen {
+    /// This includes the pen hovering
     ToolPen = 320,
     ToolRubber = 321,
+    /// This is the pen making contact with the display
     Touch = 330,
     Stylus = 331,
     Stylus2 = 332,
+}
+
+#[derive(PartialEq, Copy, Clone)]
+pub enum WacomEventType {
+    InstrumentChange,
+    Hover,
+    Draw,
+    Unknown,
 }
 
 #[derive(PartialEq, Copy, Clone)]
@@ -70,8 +83,29 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
     };
     match ev._type {
         0 => {
-            /* sync */
-            None
+            // At sync, we will be re-emitting type of event we emitted the last, however with
+            // fresh values populated form the current WacomState.
+            match state.last_event_type.load(Ordering::Relaxed) {
+                WacomEventType::Draw => Some(InputEvent::WacomEvent {
+                    event: WacomEvent::Draw {
+                        x: (f32::from(state.last_x.load(Ordering::Relaxed)) * WACOM_HSCALAR) as u16,
+                        y: (f32::from(state.last_y.load(Ordering::Relaxed)) * WACOM_VSCALAR) as u16,
+                        pressure: state.last_pressure.load(Ordering::Relaxed),
+                        tilt_x: state.last_xtilt.load(Ordering::Relaxed),
+                        tilt_y: state.last_ytilt.load(Ordering::Relaxed),
+                    },
+                }),
+                WacomEventType::Hover => Some(InputEvent::WacomEvent {
+                    event: WacomEvent::Hover {
+                        y: (f32::from(state.last_y.load(Ordering::Relaxed)) * WACOM_VSCALAR) as u16,
+                        x: (f32::from(state.last_x.load(Ordering::Relaxed)) * WACOM_HSCALAR) as u16,
+                        distance: state.last_dist.load(Ordering::Relaxed) as u16,
+                        tilt_x: state.last_xtilt.load(Ordering::Relaxed),
+                        tilt_y: state.last_ytilt.load(Ordering::Relaxed),
+                    },
+                }),
+                _ => None,
+            }
         }
         1 => {
             /* key (device detected - device out of range etc.) */
@@ -80,6 +114,9 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
                     pen: unsafe { std::mem::transmute_copy(&ev.code) },
                     state: ev.value != 0,
                 };
+                state
+                    .last_event_type
+                    .store(WacomEventType::InstrumentChange, Ordering::Relaxed);
                 Some(InputEvent::WacomEvent { event })
             } else {
                 error!(
@@ -97,9 +134,13 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
                     // So we have an interesting behavior here.
                     // When the tip is pressed to the point where last_pressure is 4095,
                     // the last_dist supplants to that current max.
-                    state.last_dist.store(ev.value as u16, Ordering::Relaxed);
-                    let last_pressure = state.last_pressure.load(Ordering::Relaxed);
+
+                    let mut last_pressure = state.last_pressure.load(Ordering::Relaxed);
                     let event = if last_pressure == 0 {
+                        state.last_dist.store(ev.value as u16, Ordering::Relaxed);
+                        state
+                            .last_event_type
+                            .store(WacomEventType::Hover, Ordering::Relaxed);
                         WacomEvent::Hover {
                             y: (f32::from(state.last_y.load(Ordering::Relaxed)) * WACOM_VSCALAR)
                                 as u16,
@@ -110,12 +151,17 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
                             tilt_y: state.last_ytilt.load(Ordering::Relaxed),
                         }
                     } else {
+                        last_pressure += ev.value as u16;
+                        state.last_pressure.store(last_pressure, Ordering::Relaxed);
+                        state
+                            .last_event_type
+                            .store(WacomEventType::Draw, Ordering::Relaxed);
                         WacomEvent::Draw {
                             x: (f32::from(state.last_x.load(Ordering::Relaxed)) * WACOM_HSCALAR)
                                 as u16,
                             y: (f32::from(state.last_y.load(Ordering::Relaxed)) * WACOM_VSCALAR)
                                 as u16,
-                            pressure: last_pressure + (ev.value as u16),
+                            pressure: last_pressure,
                             tilt_x: state.last_xtilt.load(Ordering::Relaxed),
                             tilt_y: state.last_ytilt.load(Ordering::Relaxed),
                         }
@@ -137,6 +183,9 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
                     state
                         .last_pressure
                         .store(ev.value as u16, Ordering::Relaxed);
+                    state
+                        .last_event_type
+                        .store(WacomEventType::Draw, Ordering::Relaxed);
                     let event = WacomEvent::Draw {
                         x: (f32::from(state.last_x.load(Ordering::Relaxed)) * WACOM_HSCALAR) as u16,
                         y: (f32::from(state.last_y.load(Ordering::Relaxed)) * WACOM_VSCALAR) as u16,
