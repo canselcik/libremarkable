@@ -171,6 +171,11 @@ impl mxcfb_rect {
             || y < self.top
             || y > (self.top + self.height))
     }
+
+    pub fn contains_rect(&self, rect: &mxcfb_rect) -> bool {
+        self.contains_point(rect.top, rect.left)
+            && self.contains_point(rect.top + rect.height, rect.left + rect.width)
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]

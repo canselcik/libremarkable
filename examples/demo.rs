@@ -12,6 +12,10 @@ extern crate libremarkable;
 
 extern crate chrono;
 
+extern crate atomic;
+
+use atomic::Atomic;
+
 use chrono::{DateTime, Local};
 
 use std::sync::Mutex;
@@ -115,15 +119,22 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
                     rad as usize,
                     color,
                 );
-                framebuffer.partial_refresh(
-                    &rect,
-                    PartialRefreshMode::Async,
-                    waveform_mode::WAVEFORM_MODE_DU,
-                    display_temp::TEMP_USE_REMARKABLE_DRAW,
-                    dither_mode::EPDC_FLAG_EXP1,
-                    DRAWING_QUANT_BIT,
-                    false,
-                );
+
+                if !LAST_REFRESHED_CANVAS_RECT
+                    .load(Ordering::Relaxed)
+                    .contains_rect(&rect)
+                {
+                    framebuffer.partial_refresh(
+                        &rect,
+                        PartialRefreshMode::Async,
+                        waveform_mode::WAVEFORM_MODE_DU,
+                        display_temp::TEMP_USE_REMARKABLE_DRAW,
+                        dither_mode::EPDC_FLAG_EXP1,
+                        DRAWING_QUANT_BIT,
+                        false,
+                    );
+                    LAST_REFRESHED_CANVAS_RECT.store(rect, Ordering::Relaxed);
+                }
             }
             wacom_stack.push((y as i32, x as i32));
         }
@@ -565,6 +576,7 @@ lazy_static! {
     static ref WACOM_IN_RANGE: AtomicBool = AtomicBool::new(false);
     static ref WACOM_HISTORY: Mutex<Vec<(i32, i32)>> = Mutex::new(Vec::new());
     static ref G_COUNTER: Mutex<u32> = Mutex::new(0);
+    static ref LAST_REFRESHED_CANVAS_RECT: Atomic<mxcfb_rect> = Atomic::new(mxcfb_rect::invalid());
     static ref SAVED_CANVAS: Mutex<Option<storage::CompressedCanvasState>> = Mutex::new(None);
 }
 
