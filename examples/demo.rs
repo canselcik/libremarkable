@@ -127,12 +127,21 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
             }
             wacom_stack.push((y as i32, x as i32));
         }
-        wacom::WacomEvent::InstrumentChange { pen: _, state } => {
-            // Stop drawing when instrument has left the vicinity of the screen
-            WACOM_IN_RANGE.store(state, Ordering::Relaxed);
-            if !state {
-                let mut wacom_stack = WACOM_HISTORY.lock().unwrap();
-                wacom_stack.clear();
+        wacom::WacomEvent::InstrumentChange { pen, state } => {
+            match pen {
+                // Whether the pen is in range
+                wacom::WacomPen::ToolPen => {
+                    WACOM_IN_RANGE.store(state, Ordering::Relaxed);
+                }
+                // Whether the pen is actually making contact
+                wacom::WacomPen::Touch => {
+                    // Stop drawing when instrument has left the vicinity of the screen
+                    if !state {
+                        let mut wacom_stack = WACOM_HISTORY.lock().unwrap();
+                        wacom_stack.clear();
+                    }
+                }
+                _ => unreachable!(),
             }
         }
         wacom::WacomEvent::Hover {
