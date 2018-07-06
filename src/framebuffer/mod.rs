@@ -122,7 +122,7 @@ pub trait FramebufferRefresh {
     /// Refreshes the entire screen with the provided parameters. If `wait_completion` is
     /// set to true, doesn't return before the refresh has been completed. Returns the marker.
     fn full_refresh(
-        &mut self,
+        &self,
         waveform_mode: common::waveform_mode,
         temperature: common::display_temp,
         dither_mode: common::dither_mode,
@@ -158,7 +158,7 @@ pub trait FramebufferRefresh {
     ///    cause screen artifacts by incorrectly handling the 8+ pixels
     ///    at the end of each line.
     fn partial_refresh(
-        &mut self,
+        &self,
         region: &common::mxcfb_rect,
         mode: refresh::PartialRefreshMode,
         waveform_mode: common::waveform_mode,
@@ -172,5 +172,5 @@ pub trait FramebufferRefresh {
     /// refresh has been reflected on the display.
     /// Returns the collusion_test result which is supposed to be
     /// related to the collusion information.
-    fn wait_refresh_complete(&mut self, marker: u32) -> u32;
+    fn wait_refresh_complete(&self, marker: u32) -> u32;
 }

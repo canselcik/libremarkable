@@ -16,7 +16,7 @@ pub enum PartialRefreshMode {
 
 impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
     fn full_refresh(
-        &mut self,
+        &self,
         waveform_mode: common::waveform_mode,
         temperature: common::display_temp,
         dither_mode: common::dither_mode,
@@ -67,7 +67,7 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
     }
 
     fn partial_refresh(
-        &mut self,
+        &self,
         region: &common::mxcfb_rect,
         mode: PartialRefreshMode,
         waveform_mode: common::waveform_mode,
@@ -153,7 +153,7 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
         }
     }
 
-    fn wait_refresh_complete(&mut self, marker: u32) -> u32 {
+    fn wait_refresh_complete(&self, marker: u32) -> u32 {
         let mut markerdata = mxcfb_update_marker_data {
             update_marker: marker,
             collision_test: 0,
