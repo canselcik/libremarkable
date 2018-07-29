@@ -12,6 +12,7 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         }
     }
 
+    #[inline]
     fn write_pixel(&mut self, y: usize, x: usize, col: framebuffer::common::color) {
         let w = self.var_screen_info.xres as usize;
         let h = self.var_screen_info.yres as usize;

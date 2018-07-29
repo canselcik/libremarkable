@@ -73,6 +73,7 @@ impl color {
         [red, green, blue]
     }
 
+    #[inline]
     pub fn as_native(self) -> [u8; 2] {
         match self {
             color::BLACK => [0x00, 0x00],
@@ -80,25 +81,30 @@ impl color {
             color::GREEN => [0x00, 0x1F],
             color::BLUE => [0xF8, 0x00],
             color::WHITE => [0xFF, 0xFF],
-            color::GRAY(level) => color::RGB(255 - level, 255 - level, 255 - level).as_native(),
+            color::GRAY(level) => color::rgb_to_native(255 - level, 255 - level, 255 - level),
             color::NATIVE_COMPONENTS(c1, c2) => [c1, c2],
-            color::RGB(r8, g8, b8) => {
-                // Simply can be referred to as `rgb565_le`
-                //
-                //    red     : offset = 11,  length =5,      msb_right = 0
-                //    green   : offset = 5,   length =6,      msb_right = 0
-                //    blue    : offset = 0,   length =5,      msb_right = 0
-                //
-                let r5 = (u16::from(r8) >> 3) as u8;
-                let g6 = (u16::from(g8) >> 2) as u8;
-                let b5 = (u16::from(b8) >> 3) as u8;
-
-                [
-                    (((g6 & 0b00_0111) << 5) | b5),
-                    ((r5 << 3) | ((g6 & 0b11_1000) >> 3)),
-                ]
-            }
+            color::RGB(r8, g8, b8) => color::rgb_to_native(r8, g8, b8)
         }
+    }
+
+    #[inline]
+    fn rgb_to_native(r8: u8, g8: u8, b8: u8) -> [u8; 2] {
+        // Split out to avoid making as_native appear recursive
+
+        // Simply can be referred to as `rgb565_le`
+        //
+        //    red     : offset = 11,  length =5,      msb_right = 0
+        //    green   : offset = 5,   length =6,      msb_right = 0
+        //    blue    : offset = 0,   length =5,      msb_right = 0
+        //
+        let r5 = (u16::from(r8) >> 3) as u8;
+        let g6 = (u16::from(g8) >> 2) as u8;
+        let b5 = (u16::from(b8) >> 3) as u8;
+
+        [
+            (((g6 & 0b00_0111) << 5) | b5),
+            ((r5 << 3) | ((g6 & 0b11_1000) >> 3)),
+        ]
     }
 }
 
