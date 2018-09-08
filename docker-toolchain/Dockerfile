@@ -14,11 +14,8 @@ RUN groupadd -g $GID $UNAME
 RUN useradd -u $UID -g $GID -m $UNAME
 USER $UNAME
 
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly -y
 ENV PATH="${PATH}:/home/$UNAME/.cargo/bin"
-
-RUN rustup install nightly
-RUN rustup default nightly
 
 RUN rustup target add armv7-unknown-linux-gnueabihf
 
