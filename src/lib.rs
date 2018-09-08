@@ -1,5 +1,4 @@
 #![feature(integer_atomics)]
-#![feature(const_size_of)]
 #![feature(box_syntax)]
 #![feature(nll)]
 
