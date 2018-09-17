@@ -13,6 +13,7 @@ docker-env:
 		--build-arg UNAME=builder \
 		--build-arg UID=$(shell id -u) \
 		--build-arg GID=$(shell id -g) \
+		--build-arg ostype=${shell uname} \
 		--tag rust-build-remarkable:latest .
 
 examples-docker: docker-env
