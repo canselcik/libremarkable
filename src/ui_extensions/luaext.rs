@@ -1,6 +1,7 @@
 use hlua;
 use std;
 
+use framebuffer::cgmath;
 use framebuffer::common::*;
 use framebuffer::core;
 
@@ -96,10 +97,12 @@ pub fn lua_draw_text(
         // TODO: Expose the drawn region to Lua so that it can be updated that's
         // returned from this draw_text function.
         framebuffer.draw_text(
-            ny as usize,
-            nx as usize,
+            cgmath::Point2 {
+                x: nx as f32,
+                y: ny as f32,
+            },
             stext,
-            nsize as usize,
+            nsize as f32,
             color::GRAY(ncolor as u8),
             false,
         );
@@ -114,7 +117,13 @@ pub fn lua_set_pixel(y: hlua::AnyLuaValue, x: hlua::AnyLuaValue, color: hlua::An
     ) = (y, x, color)
     {
         let framebuffer = get_current_framebuffer!();
-        framebuffer.write_pixel(ny as usize, nx as usize, color::GRAY(ncolor as u8));
+        framebuffer.write_pixel(
+            cgmath::Point2 {
+                x: nx as isize,
+                y: ny as isize,
+            },
+            color::GRAY(ncolor as u8),
+        );
     }
 }
 

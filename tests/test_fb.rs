@@ -8,5 +8,3 @@ fn test_internal() {
     // TODO: Implement test skeleton
     assert_eq!(42, 42);
 }
-
-

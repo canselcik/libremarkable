@@ -49,6 +49,7 @@ extern crate mmap;
 extern crate rusttype;
 extern crate zstd;
 
+pub extern crate cgmath;
 pub extern crate epoll;
 pub extern crate evdev;
 pub extern crate image;

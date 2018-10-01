@@ -8,6 +8,7 @@ extern crate env_logger;
 
 #[macro_use]
 extern crate libremarkable;
+use libremarkable::framebuffer::cgmath;
 use libremarkable::framebuffer::common::*;
 use libremarkable::framebuffer::refresh::PartialRefreshMode;
 use libremarkable::framebuffer::storage;
@@ -98,7 +99,7 @@ lazy_static! {
     static ref G_DRAW_MODE: Atomic<DrawMode> = Atomic::new(DrawMode::Draw(2));
     static ref UNPRESS_OBSERVED: AtomicBool = AtomicBool::new(false);
     static ref WACOM_IN_RANGE: AtomicBool = AtomicBool::new(false);
-    static ref WACOM_HISTORY: Mutex<Vec<(i32, i32)>> = Mutex::new(Vec::new());
+    static ref WACOM_HISTORY: Mutex<Vec<cgmath::Point2<i32>>> = Mutex::new(Vec::new());
     static ref G_COUNTER: Mutex<u32> = Mutex::new(0);
     static ref LAST_REFRESHED_CANVAS_RECT: Atomic<mxcfb_rect> = Atomic::new(mxcfb_rect::invalid());
     static ref SAVED_CANVAS: Mutex<Option<storage::CompressedCanvasState>> = Mutex::new(None);
@@ -153,8 +154,7 @@ fn on_zoom_out(app: &mut appctx::ApplicationContext, _element: UIElementHandle) 
 
             framebuffer.draw_image(
                 &new_image.as_rgb8().unwrap(),
-                CANVAS_REGION.top as usize,
-                CANVAS_REGION.left as usize,
+                CANVAS_REGION.top_left().cast().unwrap(),
             );
             framebuffer.partial_refresh(
                 &CANVAS_REGION,
@@ -186,8 +186,7 @@ fn on_blur_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandl
 
             framebuffer.draw_image(
                 &dynamic.as_rgb8().unwrap(),
-                CANVAS_REGION.top as usize,
-                CANVAS_REGION.left as usize,
+                CANVAS_REGION.top_left().cast().unwrap(),
             );
             framebuffer.partial_refresh(
                 &CANVAS_REGION,
@@ -278,10 +277,12 @@ fn on_touch_rustlogo(app: &mut appctx::ApplicationContext, _element: UIElementHa
     };
 
     let rect = framebuffer.draw_text(
-        240,
-        1140,
+        cgmath::Point2 {
+            x: 1140.0,
+            y: 240.0,
+        },
         format!("{0}", new_press_count),
-        65,
+        65.0,
         color::BLACK,
         false,
     );
@@ -333,8 +334,7 @@ fn draw_color_test_rgb(app: &mut appctx::ApplicationContext, _element: UIElement
     let img_rgb565 = image::load_from_memory(include_bytes!("../assets/colorspace.png")).unwrap();
     fb.draw_image(
         &img_rgb565.as_rgb8().unwrap(),
-        CANVAS_REGION.top as usize,
-        CANVAS_REGION.left as usize,
+        CANVAS_REGION.top_left().cast().unwrap(),
     );
     fb.partial_refresh(
         &CANVAS_REGION,
@@ -397,20 +397,18 @@ fn loop_update_topbar(app: &mut appctx::ApplicationContext, millis: u64) {
 fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent) {
     match input {
         wacom::WacomEvent::Draw {
-            y,
-            x,
+            position,
             pressure,
-            tilt_x: _,
-            tilt_y: _,
+            tilt: _,
         } => {
             let mut wacom_stack = WACOM_HISTORY.lock().unwrap();
 
             // This is so that we can click the buttons outside the canvas region
             // normally meant to be touched with a finger using our stylus
-            if !CANVAS_REGION.contains_point(y.into(), x.into()) {
+            if !CANVAS_REGION.contains_point(&position.cast().unwrap()) {
                 wacom_stack.clear();
                 if UNPRESS_OBSERVED.fetch_and(false, Ordering::Relaxed) {
-                    match app.find_active_region(y, x) {
+                    match app.find_active_region(position.y, position.x) {
                         Some((region, _)) => (region.handler)(app, region.element.clone()),
                         None => {}
                     };
@@ -429,10 +427,10 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
                 let controlpt = wacom_stack.pop().unwrap();
                 let beginpt = wacom_stack.pop().unwrap();
                 let rect = framebuffer.draw_bezier(
-                    (beginpt.1 as f32, beginpt.0 as f32),
-                    (controlpt.1 as f32, controlpt.0 as f32),
-                    (x as f32, y as f32),
-                    rad as usize,
+                    beginpt.cast().unwrap(),
+                    controlpt.cast().unwrap(),
+                    position.cast().unwrap(),
+                    rad,
                     col,
                 );
 
@@ -452,7 +450,7 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
                     LAST_REFRESHED_CANVAS_RECT.store(rect, Ordering::Relaxed);
                 }
             }
-            wacom_stack.push((y as i32, x as i32));
+            wacom_stack.push(position.cast().unwrap());
         }
         wacom::WacomEvent::InstrumentChange { pen, state } => {
             match pen {
@@ -472,11 +470,9 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
             }
         }
         wacom::WacomEvent::Hover {
-            y: _,
-            x: _,
+            position: _,
             distance,
-            tilt_x: _,
-            tilt_y: _,
+            tilt: _,
         } => {
             // If the pen is hovering, don't record its coordinates as the origin of the next line
             if distance > 1 {
@@ -495,22 +491,22 @@ fn on_touch_handler(app: &mut appctx::ApplicationContext, input: multitouch::Mul
         multitouch::MultitouchEvent::Touch {
             gesture_seq: _,
             finger_id: _,
-            y,
-            x,
+            position,
         } => {
-            if !CANVAS_REGION.contains_point(y.into(), x.into()) {
+            if !CANVAS_REGION.contains_point(&position.cast().unwrap()) {
                 return;
             }
+            let position_float = position.cast().unwrap();
             let rect = match G_TOUCH_MODE.load(Ordering::Relaxed) {
                 TouchMode::Bezier => framebuffer.draw_bezier(
-                    (x as f32, y as f32),
-                    ((x + 155) as f32, (y + 14) as f32),
-                    ((x + 200) as f32, (y + 200) as f32),
-                    2,
+                    position_float,
+                    position_float + cgmath::vec2(155.0, 14.0),
+                    position_float + cgmath::vec2(200.0, 200.0),
+                    2.0,
                     color::BLACK,
                 ),
                 TouchMode::Circles => {
-                    framebuffer.draw_circle(y as usize, x as usize, 20, color::BLACK)
+                    framebuffer.draw_circle(position.cast().unwrap(), 20, color::BLACK)
                 }
                 _ => return,
             };
@@ -608,8 +604,7 @@ fn main() {
     app.add_element(
         "logo",
         UIElementWrapper {
-            y: 10,
-            x: 900,
+            position: cgmath::Point2 { x: 900, y: 10 },
             refresh: UIConstraintRefresh::Refresh,
 
             /* We could have alternatively done this:
@@ -629,13 +624,11 @@ fn main() {
     app.add_element(
         "canvasRegion",
         UIElementWrapper {
-            y: (CANVAS_REGION.top - 2) as usize,
-            x: CANVAS_REGION.left as usize,
+            position: CANVAS_REGION.top_left().cast().unwrap() + cgmath::vec2(0, -2),
             refresh: UIConstraintRefresh::RefreshAndWait,
             onclick: None,
             inner: UIElement::Region {
-                height: (CANVAS_REGION.height + 3) as usize,
-                width: (CANVAS_REGION.width + 1) as usize,
+                size: CANVAS_REGION.size().cast().unwrap() + cgmath::vec2(1, 3),
                 border_px: 2,
                 border_color: color::BLACK,
             },
@@ -646,15 +639,14 @@ fn main() {
     app.add_element(
         "colortest-rgb",
         UIElementWrapper {
-            y: 300,
-            x: 960,
+            position: cgmath::Point2 { x: 960, y: 300 },
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: Some(draw_color_test_rgb),
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "Show RGB Test Image".to_owned(),
-                scale: 35,
+                scale: 35.0,
                 border_px: 3,
             },
             ..Default::default()
@@ -665,15 +657,14 @@ fn main() {
     app.add_element(
         "zoomoutButton",
         UIElementWrapper {
-            y: 370,
-            x: 960,
+            position: cgmath::Point2 { x: 960, y: 370 },
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: Some(on_zoom_out),
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "Zoom Out".to_owned(),
-                scale: 45,
+                scale: 45.0,
                 border_px: 5,
             },
             ..Default::default()
@@ -683,15 +674,14 @@ fn main() {
     app.add_element(
         "blurToggle",
         UIElementWrapper {
-            y: 370,
-            x: 1155,
+            position: cgmath::Point2 { x: 1155, y: 370 },
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: Some(on_blur_canvas),
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "Blur".to_owned(),
-                scale: 45,
+                scale: 45.0,
                 border_px: 5,
             },
             ..Default::default()
@@ -701,15 +691,14 @@ fn main() {
     app.add_element(
         "invertToggle",
         UIElementWrapper {
-            y: 370,
-            x: 1247,
+            position: cgmath::Point2 { x: 1247, y: 370 },
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: Some(on_invert_canvas),
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "Invert".to_owned(),
-                scale: 45,
+                scale: 45.0,
                 border_px: 5,
             },
             ..Default::default()
@@ -720,15 +709,14 @@ fn main() {
     app.add_element(
         "saveButton",
         UIElementWrapper {
-            y: 440,
-            x: 960,
+            position: cgmath::Point2 { x: 960, y: 440 },
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: Some(on_save_canvas),
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "Save".to_owned(),
-                scale: 45,
+                scale: 45.0,
                 border_px: 5,
             },
             ..Default::default()
@@ -738,15 +726,14 @@ fn main() {
     app.add_element(
         "restoreButton",
         UIElementWrapper {
-            y: 440,
-            x: 1080,
+            position: cgmath::Point2 { x: 1080, y: 440 },
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: Some(on_load_canvas),
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "Load".to_owned(),
-                scale: 45,
+                scale: 45.0,
                 border_px: 5,
             },
             ..Default::default()
@@ -757,15 +744,14 @@ fn main() {
     app.add_element(
         "touchMode",
         UIElementWrapper {
-            y: 510,
-            x: 960,
+            position: cgmath::Point2 { x: 960, y: 510 },
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: Some(on_change_touchdraw_mode),
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "Touch Mode".to_owned(),
-                scale: 45,
+                scale: 45.0,
                 border_px: 5,
             },
             ..Default::default()
@@ -774,15 +760,14 @@ fn main() {
     app.add_element(
         "touchModeIndicator",
         UIElementWrapper {
-            y: 510,
-            x: 1210,
+            position: cgmath::Point2 { x: 1210, y: 510 },
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: None,
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "None".to_owned(),
-                scale: 40,
+                scale: 40.0,
                 border_px: 0,
             },
             ..Default::default()
@@ -793,15 +778,14 @@ fn main() {
     app.add_element(
         "colorToggle",
         UIElementWrapper {
-            y: 580,
-            x: 960,
+            position: cgmath::Point2 { x: 960, y: 580 },
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: Some(on_toggle_eraser),
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "Draw Color".to_owned(),
-                scale: 45,
+                scale: 45.0,
                 border_px: 5,
             },
             ..Default::default()
@@ -810,15 +794,14 @@ fn main() {
     app.add_element(
         "colorIndicator",
         UIElementWrapper {
-            y: 580,
-            x: 1210,
+            position: cgmath::Point2 { x: 1210, y: 580 },
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: None,
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: G_DRAW_MODE.load(Ordering::Relaxed).color_as_string(),
-                scale: 40,
+                scale: 40.0,
                 border_px: 0,
             },
             ..Default::default()
@@ -829,8 +812,7 @@ fn main() {
     app.add_element(
         "decreaseSize",
         UIElementWrapper {
-            y: 670,
-            x: 960,
+            position: cgmath::Point2 { x: 960, y: 670 },
             refresh: UIConstraintRefresh::Refresh,
             onclick: Some(|appctx, _| {
                 change_brush_width(appctx, -1);
@@ -838,7 +820,7 @@ fn main() {
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "-".to_owned(),
-                scale: 90,
+                scale: 90.0,
                 border_px: 5,
             },
             ..Default::default()
@@ -847,13 +829,12 @@ fn main() {
     app.add_element(
         "displaySize",
         UIElementWrapper {
-            y: 670,
-            x: 1030,
+            position: cgmath::Point2 { x: 1030, y: 670 },
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: format!("size: {0}", G_DRAW_MODE.load(Ordering::Relaxed).get_size()),
-                scale: 45,
+                scale: 45.0,
                 border_px: 0,
             },
             ..Default::default()
@@ -862,8 +843,7 @@ fn main() {
     app.add_element(
         "increaseSize",
         UIElementWrapper {
-            y: 670,
-            x: 1210,
+            position: cgmath::Point2 { x: 1210, y: 670 },
             refresh: UIConstraintRefresh::Refresh,
             onclick: Some(|appctx, _| {
                 change_brush_width(appctx, 1);
@@ -871,7 +851,7 @@ fn main() {
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "+".to_owned(),
-                scale: 90,
+                scale: 90.0,
                 border_px: 5,
             },
             ..Default::default()
@@ -881,15 +861,14 @@ fn main() {
     app.add_element(
         "exitToXochitl",
         UIElementWrapper {
-            y: 50,
-            x: 30,
+            position: cgmath::Point2 { x: 30, y: 50 },
             refresh: UIConstraintRefresh::Refresh,
 
             onclick: None,
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "Press POWER to return to reMarkable".to_owned(),
-                scale: 35,
+                scale: 35.0,
                 border_px: 0,
             },
             ..Default::default()
@@ -898,13 +877,12 @@ fn main() {
     app.add_element(
         "availAt",
         UIElementWrapper {
-            y: 620,
-            x: 30,
+            position: cgmath::Point2 { x: 30, y: 620 },
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "Available at:".to_owned(),
-                scale: 70,
+                scale: 70.0,
                 border_px: 0,
             },
             ..Default::default()
@@ -913,13 +891,12 @@ fn main() {
     app.add_element(
         "github",
         UIElementWrapper {
-            y: 690,
-            x: 30,
+            position: cgmath::Point2 { x: 30, y: 690 },
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "github.com/canselcik/libremarkable".to_owned(),
-                scale: 55,
+                scale: 55.0,
                 border_px: 0,
             },
             ..Default::default()
@@ -928,13 +905,12 @@ fn main() {
     app.add_element(
         "l1",
         UIElementWrapper {
-            y: 350,
-            x: 30,
+            position: cgmath::Point2 { x: 30, y: 350 },
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "Low Latency eInk Display Partial Refresh API".to_owned(),
-                scale: 45,
+                scale: 45.0,
                 border_px: 0,
             },
             ..Default::default()
@@ -943,13 +919,12 @@ fn main() {
     app.add_element(
         "l3",
         UIElementWrapper {
-            y: 400,
-            x: 30,
+            position: cgmath::Point2 { x: 30, y: 400 },
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "Capacitive Multitouch Input Support".to_owned(),
-                scale: 45,
+                scale: 45.0,
                 border_px: 0,
             },
             ..Default::default()
@@ -958,13 +933,12 @@ fn main() {
     app.add_element(
         "l2",
         UIElementWrapper {
-            y: 450,
-            x: 30,
+            position: cgmath::Point2 { x: 30, y: 450 },
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "Physical Button Support".to_owned(),
-                scale: 45,
+                scale: 45.0,
                 border_px: 0,
             },
             ..Default::default()
@@ -973,13 +947,12 @@ fn main() {
     app.add_element(
         "l4",
         UIElementWrapper {
-            y: 500,
-            x: 30,
+            position: cgmath::Point2 { x: 30, y: 500 },
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "Wacom Digitizer Support".to_owned(),
-                scale: 45,
+                scale: 45.0,
                 border_px: 0,
             },
             ..Default::default()
@@ -989,14 +962,13 @@ fn main() {
     app.add_element(
         "tooltipLeft",
         UIElementWrapper {
-            y: 1850,
-            x: 15,
+            position: cgmath::Point2 { x: 15, y: 1850 },
             refresh: UIConstraintRefresh::Refresh,
             onclick: None,
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "Quick Redraw".to_owned(), // maybe quick redraw for the demo or waveform change?
-                scale: 50,
+                scale: 50.0,
                 border_px: 0,
             },
             ..Default::default()
@@ -1005,13 +977,12 @@ fn main() {
     app.add_element(
         "tooltipMiddle",
         UIElementWrapper {
-            y: 1850,
-            x: 565,
+            position: cgmath::Point2 { x: 565, y: 1850 },
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "Full Redraw".to_owned(),
-                scale: 50,
+                scale: 50.0,
                 border_px: 0,
             },
             ..Default::default()
@@ -1020,13 +991,12 @@ fn main() {
     app.add_element(
         "tooltipRight",
         UIElementWrapper {
-            y: 1850,
-            x: 1112,
+            position: cgmath::Point2 { x: 1112, y: 1850 },
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "Disable Touch".to_owned(),
-                scale: 50,
+                scale: 50.0,
                 border_px: 0,
             },
             ..Default::default()
@@ -1038,8 +1008,7 @@ fn main() {
     app.add_element(
         "battery",
         UIElementWrapper {
-            y: 215,
-            x: 30,
+            position: cgmath::Point2 { x: 30, y: 215 },
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
@@ -1051,7 +1020,7 @@ fn main() {
                         battery::percentage().unwrap()
                     )
                 ),
-                scale: 44,
+                scale: 44.0,
                 border_px: 0,
             },
             ..Default::default()
@@ -1060,13 +1029,12 @@ fn main() {
     app.add_element(
         "time",
         UIElementWrapper {
-            y: 150,
-            x: 30,
+            position: cgmath::Point2 { x: 30, y: 150 },
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: format!("{}", dt.format("%F %r")),
-                scale: 75,
+                scale: 75.0,
                 border_px: 0,
             },
             ..Default::default()
