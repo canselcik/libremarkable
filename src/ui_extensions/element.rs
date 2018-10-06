@@ -4,6 +4,7 @@ use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use image;
 
+use framebuffer::cgmath;
 use framebuffer::common;
 use framebuffer::common::{color, mxcfb_rect};
 use framebuffer::refresh::PartialRefreshMode;
@@ -42,26 +43,37 @@ impl Default for UIConstraintRefresh {
 #[derive(Clone)]
 pub struct UIElementHandle(Arc<RwLock<UIElementWrapper>>);
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct UIElementWrapper {
-    pub y: usize,
-    pub x: usize,
+    pub position: cgmath::Point2<isize>,
     pub refresh: UIConstraintRefresh,
     pub last_drawn_rect: Option<common::mxcfb_rect>,
     pub onclick: Option<ActiveRegionFunction>,
     pub inner: UIElement,
 }
 
+impl Default for UIElementWrapper {
+    fn default() -> UIElementWrapper {
+        UIElementWrapper {
+            position: cgmath::Point2 { x: 0, y: 0 },
+            refresh: UIConstraintRefresh::default(),
+            last_drawn_rect: Option::default(),
+            onclick: Option::default(),
+            inner: UIElement::default(),
+        }
+    }
+}
+
 impl Hash for UIElementWrapper {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.x.hash(state);
-        self.y.hash(state);
+        self.position.x.hash(state);
+        self.position.y.hash(state);
     }
 }
 
 impl PartialEq for UIElementWrapper {
     fn eq(&self, other: &UIElementWrapper) -> bool {
-        self.x == other.x && self.y == other.y
+        self.position == other.position
     }
 }
 
@@ -71,7 +83,7 @@ impl Eq for UIElementWrapper {}
 pub enum UIElement {
     Text {
         text: String,
-        scale: usize,
+        scale: f32,
         foreground: color,
         border_px: usize,
     },
@@ -79,8 +91,7 @@ pub enum UIElement {
         img: image::DynamicImage,
     },
     Region {
-        height: usize,
-        width: usize,
+        size: cgmath::Vector2<usize>,
         border_color: color,
         border_px: usize,
     },
@@ -107,27 +118,20 @@ impl UIElementWrapper {
         app: &mut appctx::ApplicationContext,
         handler: &Option<ActiveRegionHandler>,
     ) {
-        let (x, y) = (self.x, self.y);
         let refresh = self.refresh;
         let framebuffer = app.get_framebuffer_ref();
 
         let old_filled_rect = match self.last_drawn_rect {
             Some(rect) => {
                 // Clear the background on the last occupied region
-                framebuffer.fill_rect(
-                    rect.top as usize,
-                    rect.left as usize,
-                    rect.height as usize,
-                    rect.width as usize,
-                    color::WHITE,
-                );
+                framebuffer.fill_rect(rect.top_left().cast().unwrap(), rect.size(), color::WHITE);
 
                 // We have filled the old_filled_rect, now we need to also refresh that but if
                 // only if it isn't at the same spot. Otherwise we will be refreshing it for no
                 // reason and showing a blank frame. There is of course still a caveat since we don't
                 // know the dimensions of a drawn text before it is actually drawn.
                 // TODO: Take care of the point above ^
-                if rect.top != y as u32 && rect.left != x as u32 {
+                if rect.top_left() != self.position.cast().unwrap() {
                     framebuffer.partial_refresh(
                         &rect,
                         PartialRefreshMode::Wait,
@@ -153,22 +157,28 @@ impl UIElementWrapper {
                 foreground,
                 border_px,
             } => app.display_text(
-                y,
-                x,
+                self.position.cast().unwrap(),
                 foreground,
                 scale,
-                border_px,
+                border_px as u32,
                 8,
                 text.to_string(),
                 refresh,
             ),
-            UIElement::Image { ref img } => app.display_image(&img, y, x, refresh),
+            UIElement::Image { ref img } => {
+                app.display_image(&img, self.position.cast().unwrap(), refresh)
+            }
             UIElement::Region {
-                height,
-                width,
+                size,
                 border_color,
                 border_px,
-            } => app.display_rect(y, x, height, width, border_px, border_color, refresh),
+            } => app.display_rect(
+                self.position.cast().unwrap(),
+                size.cast().unwrap(),
+                border_px,
+                border_color,
+                refresh,
+            ),
             UIElement::Unspecified => return,
         };
 
@@ -182,7 +192,10 @@ impl UIElementWrapper {
                     );
                 }
 
-                if app.find_active_region(y as u16, x as u16).is_none() {
+                if app
+                    .find_active_region(self.position.y as u16, self.position.x as u16)
+                    .is_none()
+                {
                     app.create_active_region(
                         rect.top as u16,
                         rect.left as u16,

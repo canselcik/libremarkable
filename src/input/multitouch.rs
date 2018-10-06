@@ -1,3 +1,4 @@
+use framebuffer::cgmath;
 use framebuffer::common::{DISPLAYHEIGHT, DISPLAYWIDTH, MTHEIGHT, MTWIDTH};
 
 use evdev::raw::input_event;
@@ -36,8 +37,7 @@ pub enum MultitouchEvent {
     Touch {
         gesture_seq: u16,
         finger_id: u16,
-        y: u16,
-        x: u16,
+        position: cgmath::Point2<u16>,
     },
     Unknown,
 }
@@ -75,8 +75,7 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
                     let event = MultitouchEvent::Touch {
                         gesture_seq: state.last_touch_id.load(Ordering::Relaxed),
                         finger_id: state.last_finger_id.load(Ordering::Relaxed),
-                        y,
-                        x,
+                        position: cgmath::Point2 { x: x, y: y },
                     };
 
                     Some(InputEvent::MultitouchEvent { event })

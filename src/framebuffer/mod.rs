@@ -6,14 +6,16 @@ pub mod storage;
 
 pub mod io;
 
+pub use cgmath;
+
 use image;
 pub trait FramebufferIO {
-    /// Writes an arbitrary length frame into the framebuffer
+    /// Writes an ausizerbitrary length frame into the framebuffer
     fn write_frame(&mut self, frame: &[u8]);
     /// Writes a single pixel at `(y, x)` with value `v`
-    fn write_pixel(&mut self, y: usize, x: usize, v: common::color);
+    fn write_pixel(&mut self, pos: cgmath::Point2<isize>, v: common::color);
     /// Reads the value of the pixel at `(y, x)`
-    fn read_pixel(&self, y: usize, x: usize) -> common::color;
+    fn read_pixel(&self, pos: cgmath::Point2<usize>) -> common::color;
     /// Reads the value at offset `ofst` from the mmapp'ed framebuffer region
     fn read_offset(&self, ofst: isize) -> u8;
     /// Dumps the contents of the specified rectangle into a `Vec<u8>` from which
@@ -30,65 +32,59 @@ pub trait FramebufferIO {
 
 pub mod draw;
 pub trait FramebufferDraw {
-    /// Draws `img` at y=top, x=left coordinates with 1:1 scaling
-    fn draw_image(&mut self, img: &image::RgbImage, top: usize, left: usize) -> common::mxcfb_rect;
+    /// Draws `img` at `pos` with 1:1 scaling
+    fn draw_image(&mut self, img: &image::RgbImage, pos: cgmath::Point2<i32>)
+        -> common::mxcfb_rect;
     /// Draws a straight line
     fn draw_line(
         &mut self,
-        y0: i32,
-        x0: i32,
-        y1: i32,
-        x1: i32,
-        width: usize,
+        start: cgmath::Point2<i32>,
+        end: cgmath::Point2<i32>,
+        width: u32,
         v: common::color,
     ) -> common::mxcfb_rect;
     /// Draws a circle using Bresenham circle algorithm
     fn draw_circle(
         &mut self,
-        y: usize,
-        x: usize,
-        rad: usize,
+        pos: cgmath::Point2<i32>,
+        rad: u32,
         c: common::color,
     ) -> common::mxcfb_rect;
     /// Fills a circle
     fn fill_circle(
         &mut self,
-        y: usize,
-        x: usize,
-        rad: usize,
+        pos: cgmath::Point2<i32>,
+        rad: u32,
         c: common::color,
     ) -> common::mxcfb_rect;
     /// Draws a bezier curve begining at `startpt`, with control point `ctrlpt`, ending at `endpt` with `color`
     fn draw_bezier(
         &mut self,
-        startpt: (f32, f32),
-        ctrlpt: (f32, f32),
-        endpt: (f32, f32),
-        width: usize,
+        startpt: cgmath::Point2<f32>,
+        ctrlpt: cgmath::Point2<f32>,
+        endpt: cgmath::Point2<f32>,
+        width: f32,
         v: common::color,
     ) -> common::mxcfb_rect;
-    /// Draws `text` at `(y, x)` with `color` using `scale`
+    /// Draws `text` at `pos` with `color` using scale `size`
     fn draw_text(
         &mut self,
-        y: usize,
-        x: usize,
+        pos: cgmath::Point2<f32>,
         text: String,
-        size: usize,
+        size: f32,
         col: common::color,
         dryrun: bool,
     ) -> common::mxcfb_rect;
-    /// Draws a 1px border rectangle of `height` and `width` at `(y, x)` with `border_px` border thickness
+    /// Draws a 1px border rectangle of size `size` at `pos` with `border_px` border thickness
     fn draw_rect(
         &mut self,
-        y: usize,
-        x: usize,
-        height: usize,
-        width: usize,
-        border_px: usize,
+        pos: cgmath::Point2<i32>,
+        size: cgmath::Vector2<u32>,
+        border_px: u32,
         c: common::color,
     );
-    /// Fills rectangle of `height` and `width` at `(y, x)`
-    fn fill_rect(&mut self, y: usize, x: usize, height: usize, width: usize, c: common::color);
+    /// Fills rectangle of size `size` at `pos`
+    fn fill_rect(&mut self, pos: cgmath::Point2<i32>, size: cgmath::Vector2<u32>, c: common::color);
     /// Clears the framebuffer however does not perform a refresh
     fn clear(&mut self);
 }

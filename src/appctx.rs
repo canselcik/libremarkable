@@ -21,6 +21,7 @@ use ui_extensions::luaext;
 
 use aabb_quadtree::{geom, ItemId, QuadTree};
 
+use framebuffer::cgmath;
 use framebuffer::core;
 use framebuffer::refresh::PartialRefreshMode;
 use framebuffer::FramebufferBase;
@@ -155,29 +156,23 @@ impl<'a> ApplicationContext<'a> {
 
     pub fn display_text(
         &mut self,
-        y: usize,
-        x: usize,
+        position: cgmath::Point2<f32>,
         c: color,
-        scale: usize,
-        border_px: usize,
-        border_padding: usize,
+        scale: f32,
+        border_px: u32,
+        border_padding: u32,
         text: String,
         refresh: UIConstraintRefresh,
     ) -> mxcfb_rect {
         let framebuffer = self.get_framebuffer_ref();
-        let mut draw_area: mxcfb_rect = framebuffer.draw_text(y, x, text, scale, c, false);
+        let mut draw_area: mxcfb_rect = framebuffer.draw_text(position, text, scale, c, false);
 
         // Draw the border if border_px is set to a non-default value
         if border_px > 0 {
-            draw_area.top -= border_padding as u32;
-            draw_area.left -= border_padding as u32;
-            draw_area.height += 2 * border_padding as u32;
-            draw_area.width += 2 * border_padding as u32;
+            draw_area = draw_area.expand(border_padding);
             framebuffer.draw_rect(
-                draw_area.top as usize,
-                draw_area.left as usize,
-                draw_area.height as usize,
-                draw_area.width as usize,
+                draw_area.top_left().cast().unwrap(),
+                draw_area.size(),
                 border_px,
                 c,
             );
@@ -200,28 +195,21 @@ impl<'a> ApplicationContext<'a> {
         if let UIConstraintRefresh::RefreshAndWait = refresh {
             framebuffer.wait_refresh_complete(marker);
         }
-        draw_area
+        draw_area.expand(border_px)
     }
 
     pub fn display_rect(
         &mut self,
-        y: usize,
-        x: usize,
-        height: usize,
-        width: usize,
+        position: cgmath::Point2<i32>,
+        size: cgmath::Vector2<u32>,
         border_px: usize,
         border_color: color,
         refresh: UIConstraintRefresh,
     ) -> mxcfb_rect {
         let framebuffer = self.get_framebuffer_ref();
 
-        framebuffer.draw_rect(y, x, height, width, border_px, border_color);
-        let draw_area = mxcfb_rect {
-            top: y as u32,
-            left: x as u32,
-            height: height as u32,
-            width: width as u32,
-        };
+        framebuffer.draw_rect(position, size, border_px as u32, border_color);
+        let draw_area = mxcfb_rect::from(position.cast().unwrap(), size);
         let marker = match refresh {
             UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer
                 .partial_refresh(
@@ -245,14 +233,13 @@ impl<'a> ApplicationContext<'a> {
     pub fn display_image(
         &mut self,
         img: &image::DynamicImage,
-        y: usize,
-        x: usize,
+        position: cgmath::Point2<i32>,
         refresh: UIConstraintRefresh,
     ) -> mxcfb_rect {
         let framebuffer = self.get_framebuffer_ref();
         let draw_area = match img {
-            image::DynamicImage::ImageRgb8(ref rgb) => framebuffer.draw_image(rgb, y, x),
-            other => framebuffer.draw_image(&other.to_rgb(), y, x),
+            image::DynamicImage::ImageRgb8(ref rgb) => framebuffer.draw_image(rgb, position),
+            other => framebuffer.draw_image(&other.to_rgb(), position),
         };
         let marker = match refresh {
             UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer
@@ -346,13 +333,7 @@ impl<'a> ApplicationContext<'a> {
         if let Some(locked_element) = self.get_element_by_name(name) {
             let mut element = locked_element.write();
             if let Some(rect) = element.last_drawn_rect {
-                framebuffer.fill_rect(
-                    rect.top as usize,
-                    rect.left as usize,
-                    rect.height as usize,
-                    rect.width as usize,
-                    color::BLACK,
-                );
+                framebuffer.fill_rect(rect.top_left().cast().unwrap(), rect.size(), color::BLACK);
                 framebuffer.partial_refresh(
                     &rect,
                     PartialRefreshMode::Wait,
@@ -521,12 +502,16 @@ impl<'a> ApplicationContext<'a> {
                     InputEvent::MultitouchEvent { event } => {
                         // Check for and notify clickable active regions for multitouch events
                         if let MultitouchEvent::Touch {
-                            gesture_seq, y, x, ..
+                            gesture_seq,
+                            position,
+                            ..
                         } = event
                         {
                             let gseq = i32::from(gesture_seq);
                             if last_active_region_gesture_id != gseq {
-                                if let Some((h, _)) = self.find_active_region(y, x) {
+                                if let Some((h, _)) =
+                                    self.find_active_region(position.y, position.x)
+                                {
                                     (h.handler)(appref, h.element.clone());
                                 }
                                 last_active_region_gesture_id = gseq;

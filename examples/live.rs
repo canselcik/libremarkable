@@ -25,8 +25,8 @@ fn main() {
             continue;
         }
 
-        let rgb565 =
-            fb.dump_region(framebuffer::common::mxcfb_rect {
+        let rgb565 = fb
+            .dump_region(framebuffer::common::mxcfb_rect {
                 top: 0,
                 left: 0,
                 width: DISPLAYWIDTH as u32,
@@ -45,8 +45,7 @@ fn main() {
                 DISPLAYWIDTH.into(),
                 DISPLAYHEIGHT.into(),
                 image::ColorType::RGB(8),
-            )
-            .unwrap();
+            ).unwrap();
 
         let jpg = writer.into_inner().unwrap();
         let mut response = Response::new_empty(tiny_http::StatusCode(200))
