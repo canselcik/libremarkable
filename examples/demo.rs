@@ -37,11 +37,11 @@ use std::time::Duration;
 
 #[derive(Copy, Clone, PartialEq)]
 enum DrawMode {
-    Draw(usize),
-    Erase(usize),
+    Draw(u32),
+    Erase(u32),
 }
 impl DrawMode {
-    fn set_size(self, new_size: usize) -> Self {
+    fn set_size(self, new_size: u32) -> Self {
         match self {
             DrawMode::Draw(_) => DrawMode::Draw(new_size),
             DrawMode::Erase(_) => DrawMode::Erase(new_size),
@@ -54,7 +54,7 @@ impl DrawMode {
         }
         .into()
     }
-    fn get_size(self) -> usize {
+    fn get_size(self) -> u32 {
         match self {
             DrawMode::Draw(s) => s,
             DrawMode::Erase(s) => s,
@@ -353,14 +353,14 @@ fn draw_color_test_rgb(app: &mut appctx::ApplicationContext, _element: UIElement
     );
 }
 
-fn change_brush_width(app: &mut appctx::ApplicationContext, delta: isize) {
+fn change_brush_width(app: &mut appctx::ApplicationContext, delta: i32) {
     let current = G_DRAW_MODE.load(Ordering::Relaxed);
-    let new_size = current.get_size() as isize + delta;
+    let new_size = current.get_size() as i32 + delta;
     if new_size < 1 || new_size > 99 {
         return;
     }
 
-    G_DRAW_MODE.store(current.set_size(new_size as usize), Ordering::Relaxed);
+    G_DRAW_MODE.store(current.set_size(new_size as u32), Ordering::Relaxed);
 
     let element = app.get_element_by_name("displaySize").unwrap();
     if let UIElement::Text { ref mut text, .. } = element.write().inner {

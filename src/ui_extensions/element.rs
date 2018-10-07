@@ -45,7 +45,7 @@ pub struct UIElementHandle(Arc<RwLock<UIElementWrapper>>);
 
 #[derive(Clone)]
 pub struct UIElementWrapper {
-    pub position: cgmath::Point2<isize>,
+    pub position: cgmath::Point2<i32>,
     pub refresh: UIConstraintRefresh,
     pub last_drawn_rect: Option<common::mxcfb_rect>,
     pub onclick: Option<ActiveRegionFunction>,
@@ -85,15 +85,15 @@ pub enum UIElement {
         text: String,
         scale: f32,
         foreground: color,
-        border_px: usize,
+        border_px: u32,
     },
     Image {
         img: image::DynamicImage,
     },
     Region {
-        size: cgmath::Vector2<usize>,
+        size: cgmath::Vector2<u32>,
         border_color: color,
-        border_px: usize,
+        border_px: u32,
     },
     Unspecified,
 }

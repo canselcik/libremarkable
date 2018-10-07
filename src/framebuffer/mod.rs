@@ -10,12 +10,12 @@ pub use cgmath;
 
 use image;
 pub trait FramebufferIO {
-    /// Writes an ausizerbitrary length frame into the framebuffer
+    /// Writes an arbitrary length frame into the framebuffer
     fn write_frame(&mut self, frame: &[u8]);
     /// Writes a single pixel at `(y, x)` with value `v`
-    fn write_pixel(&mut self, pos: cgmath::Point2<isize>, v: common::color);
+    fn write_pixel(&mut self, pos: cgmath::Point2<i32>, v: common::color);
     /// Reads the value of the pixel at `(y, x)`
-    fn read_pixel(&self, pos: cgmath::Point2<usize>) -> common::color;
+    fn read_pixel(&self, pos: cgmath::Point2<u32>) -> common::color;
     /// Reads the value at offset `ofst` from the mmapp'ed framebuffer region
     fn read_offset(&self, ofst: isize) -> u8;
     /// Dumps the contents of the specified rectangle into a `Vec<u8>` from which

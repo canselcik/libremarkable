@@ -119,8 +119,8 @@ pub fn lua_set_pixel(y: hlua::AnyLuaValue, x: hlua::AnyLuaValue, color: hlua::An
         let framebuffer = get_current_framebuffer!();
         framebuffer.write_pixel(
             cgmath::Point2 {
-                x: nx as isize,
-                y: ny as isize,
+                x: nx as i32,
+                y: ny as i32,
             },
             color::GRAY(ncolor as u8),
         );

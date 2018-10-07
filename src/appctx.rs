@@ -202,7 +202,7 @@ impl<'a> ApplicationContext<'a> {
         &mut self,
         position: cgmath::Point2<i32>,
         size: cgmath::Vector2<u32>,
-        border_px: usize,
+        border_px: u32,
         border_color: color,
         refresh: UIConstraintRefresh,
     ) -> mxcfb_rect {
