@@ -31,13 +31,15 @@ fn main() {
                 left: 0,
                 width: DISPLAYWIDTH as u32,
                 height: DISPLAYHEIGHT as u32,
-            }).unwrap();
+            })
+            .unwrap();
 
         let rgb888 = framebuffer::storage::rgbimage_from_u8_slice(
             DISPLAYWIDTH.into(),
             DISPLAYHEIGHT.into(),
             &rgb565,
-        ).unwrap();
+        )
+        .unwrap();
         let mut writer = BufWriter::new(Vec::new());
         image::jpeg::JPEGEncoder::new(&mut writer)
             .encode(
@@ -45,7 +47,8 @@ fn main() {
                 DISPLAYWIDTH.into(),
                 DISPLAYHEIGHT.into(),
                 image::ColorType::RGB(8),
-            ).unwrap();
+            )
+            .unwrap();
 
         let jpg = writer.into_inner().unwrap();
         let mut response = Response::new_empty(tiny_http::StatusCode(200))

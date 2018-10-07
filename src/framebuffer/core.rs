@@ -73,7 +73,8 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
                 mmap::MapOption::MapOffset(0),
                 mmap::MapOption::MapNonStandardFlags(libc::MAP_SHARED),
             ],
-        ).unwrap();
+        )
+        .unwrap();
 
         // Load the font
         let font_data = include_bytes!("../../assets/Roboto-Regular.ttf");

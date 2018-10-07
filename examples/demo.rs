@@ -51,7 +51,8 @@ impl DrawMode {
         match self {
             DrawMode::Draw(_) => "Black",
             DrawMode::Erase(_) => "White",
-        }.into()
+        }
+        .into()
     }
     fn get_size(self) -> usize {
         match self {
@@ -80,7 +81,8 @@ impl TouchMode {
             TouchMode::OnlyUI => "None",
             TouchMode::Bezier => "Bezier",
             TouchMode::Circles => "Circles",
-        }.into()
+        }
+        .into()
     }
 }
 
@@ -137,8 +139,10 @@ fn on_zoom_out(app: &mut appctx::ApplicationContext, _element: UIElementHandle) 
                     CANVAS_REGION.width,
                     CANVAS_REGION.height,
                     buff.as_slice(),
-                ).unwrap(),
-            ).resize(
+                )
+                .unwrap(),
+            )
+            .resize(
                 (CANVAS_REGION.width as f32 / 1.25f32) as u32,
                 (CANVAS_REGION.height as f32 / 1.25f32) as u32,
                 image::imageops::Nearest,
@@ -181,8 +185,10 @@ fn on_blur_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandl
                     CANVAS_REGION.width,
                     CANVAS_REGION.height,
                     buff.as_slice(),
-                ).unwrap(),
-            ).blur(0.6f32);
+                )
+                .unwrap(),
+            )
+            .blur(0.6f32);
 
             framebuffer.draw_image(
                 &dynamic.as_rgb8().unwrap(),
@@ -608,7 +614,7 @@ fn main() {
             refresh: UIConstraintRefresh::Refresh,
 
             /* We could have alternatively done this:
-
+            
                // Create a clickable region for multitouch input and associate it with its handler fn
                app.create_active_region(10, 900, 240, 480, on_touch_rustlogo);
             */
