@@ -14,7 +14,7 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
     }
 
     #[inline]
-    fn write_pixel(&mut self, pos: cgmath::Point2<isize>, col: framebuffer::common::color) {
+    fn write_pixel(&mut self, pos: cgmath::Point2<i32>, col: framebuffer::common::color) {
         let w = self.var_screen_info.xres as usize;
         let h = self.var_screen_info.yres as usize;
         if pos.y < 0 || pos.x < 0 {
@@ -25,7 +25,7 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         }
         let line_length = self.fix_screen_info.line_length as isize;
         let bytespp = (self.var_screen_info.bits_per_pixel / 8) as isize;
-        let curr_index = pos.y * line_length + pos.x * bytespp;
+        let curr_index = pos.y as isize * line_length + pos.x as isize * bytespp;
 
         let begin = self.frame.data() as *mut u8;
         let components = col.as_native();
@@ -35,16 +35,16 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         }
     }
 
-    fn read_pixel(&self, pos: cgmath::Point2<usize>) -> framebuffer::common::color {
+    fn read_pixel(&self, pos: cgmath::Point2<u32>) -> framebuffer::common::color {
         let w = self.var_screen_info.xres as usize;
         let h = self.var_screen_info.yres as usize;
-        if pos.y >= h || pos.x >= w {
+        if pos.y as usize >= h || pos.x as usize >= w {
             error!("Attempting to read pixel out of range. Returning a white pixel.");
             return framebuffer::common::color::WHITE;
         }
         let line_length = self.fix_screen_info.line_length as usize;
         let bytespp = (self.var_screen_info.bits_per_pixel / 8) as usize;
-        let curr_index = pos.y * line_length + pos.x * bytespp;
+        let curr_index = pos.y as usize * line_length + pos.x as usize * bytespp;
 
         let begin = self.frame.data() as *mut u8;
         let (c1, c2) = unsafe {

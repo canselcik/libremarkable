@@ -37,11 +37,11 @@ use std::time::Duration;
 
 #[derive(Copy, Clone, PartialEq)]
 enum DrawMode {
-    Draw(usize),
-    Erase(usize),
+    Draw(u32),
+    Erase(u32),
 }
 impl DrawMode {
-    fn set_size(self, new_size: usize) -> Self {
+    fn set_size(self, new_size: u32) -> Self {
         match self {
             DrawMode::Draw(_) => DrawMode::Draw(new_size),
             DrawMode::Erase(_) => DrawMode::Erase(new_size),
@@ -51,9 +51,10 @@ impl DrawMode {
         match self {
             DrawMode::Draw(_) => "Black",
             DrawMode::Erase(_) => "White",
-        }.into()
+        }
+        .into()
     }
-    fn get_size(self) -> usize {
+    fn get_size(self) -> u32 {
         match self {
             DrawMode::Draw(s) => s,
             DrawMode::Erase(s) => s,
@@ -80,7 +81,8 @@ impl TouchMode {
             TouchMode::OnlyUI => "None",
             TouchMode::Bezier => "Bezier",
             TouchMode::Circles => "Circles",
-        }.into()
+        }
+        .into()
     }
 }
 
@@ -137,8 +139,10 @@ fn on_zoom_out(app: &mut appctx::ApplicationContext, _element: UIElementHandle) 
                     CANVAS_REGION.width,
                     CANVAS_REGION.height,
                     buff.as_slice(),
-                ).unwrap(),
-            ).resize(
+                )
+                .unwrap(),
+            )
+            .resize(
                 (CANVAS_REGION.width as f32 / 1.25f32) as u32,
                 (CANVAS_REGION.height as f32 / 1.25f32) as u32,
                 image::imageops::Nearest,
@@ -181,8 +185,10 @@ fn on_blur_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandl
                     CANVAS_REGION.width,
                     CANVAS_REGION.height,
                     buff.as_slice(),
-                ).unwrap(),
-            ).blur(0.6f32);
+                )
+                .unwrap(),
+            )
+            .blur(0.6f32);
 
             framebuffer.draw_image(
                 &dynamic.as_rgb8().unwrap(),
@@ -347,14 +353,14 @@ fn draw_color_test_rgb(app: &mut appctx::ApplicationContext, _element: UIElement
     );
 }
 
-fn change_brush_width(app: &mut appctx::ApplicationContext, delta: isize) {
+fn change_brush_width(app: &mut appctx::ApplicationContext, delta: i32) {
     let current = G_DRAW_MODE.load(Ordering::Relaxed);
-    let new_size = current.get_size() as isize + delta;
+    let new_size = current.get_size() as i32 + delta;
     if new_size < 1 || new_size > 99 {
         return;
     }
 
-    G_DRAW_MODE.store(current.set_size(new_size as usize), Ordering::Relaxed);
+    G_DRAW_MODE.store(current.set_size(new_size as u32), Ordering::Relaxed);
 
     let element = app.get_element_by_name("displaySize").unwrap();
     if let UIElement::Text { ref mut text, .. } = element.write().inner {
@@ -608,7 +614,7 @@ fn main() {
             refresh: UIConstraintRefresh::Refresh,
 
             /* We could have alternatively done this:
-
+            
                // Create a clickable region for multitouch input and associate it with its handler fn
                app.create_active_region(10, 900, 240, 480, on_touch_rustlogo);
             */

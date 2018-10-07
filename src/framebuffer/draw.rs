@@ -95,8 +95,8 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
             match width {
                 1 => self.write_pixel(
                     Point2 {
-                        x: x0 as isize,
-                        y: y0 as isize,
+                        x: x0 as i32,
+                        y: y0 as i32,
                     },
                     v,
                 ),
@@ -147,8 +147,8 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         for (x, y) in line_drawing::BresenhamCircle::new(pos.x as i32, pos.y as i32, rad as i32) {
             self.write_pixel(
                 Point2 {
-                    x: x as isize,
-                    y: y as isize,
+                    x: x as i32,
+                    y: y as i32,
                 },
                 v,
             );
@@ -168,8 +168,8 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
             {
                 self.write_pixel(
                     Point2 {
-                        x: x as isize,
-                        y: y as isize,
+                        x: x as i32,
+                        y: y as i32,
                     },
                     v,
                 );
@@ -206,7 +206,7 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
                 1 => self.write_pixel(approx, v),
                 _ => self.fill_rect(
                     approx
-                        .sub_element_wise((width / 2.0) as isize)
+                        .sub_element_wise((width / 2.0) as i32)
                         .cast()
                         .unwrap(),
                     Vector2 {
@@ -278,8 +278,8 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
                     let mult = (1.0 - v).min(1.0);
                     self.write_pixel(
                         Point2 {
-                            x: (x + bounding_box.min.x as u32) as isize,
-                            y: (y + bounding_box.min.y as u32) as isize,
+                            x: (x + bounding_box.min.x as u32) as i32,
+                            y: (y + bounding_box.min.y as u32) as i32,
                         },
                         color::RGB((c1 * mult) as u8, (c2 * mult) as u8, (c3 * mult) as u8),
                     )
@@ -319,8 +319,8 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
             for xpos in pos.x..pos.x + size.x as i32 {
                 self.write_pixel(
                     Point2 {
-                        x: xpos as isize,
-                        y: ypos as isize,
+                        x: xpos as i32,
+                        y: ypos as i32,
                     },
                     c,
                 );
