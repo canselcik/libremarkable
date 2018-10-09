@@ -77,7 +77,7 @@ where
         height: (max_y - min_y) as u32,
     }
 }
-pub fn draw_polygon<F>(write_pixel: &mut F, points: Vec<Point2<i32>>, fill: bool) -> mxcfb_rect
+pub fn fill_polygon<F>(write_pixel: &mut F, points: &[Point2<i32>]) -> mxcfb_rect
 where
     F: FnMut(Point2<i32>),
 {
@@ -144,35 +144,17 @@ where
         active_list.sort_unstable_by_key(|p| p.x);
 
         // for every pair of edges on the active list,
-        // apply the fill method selected
-        if fill {
-            let mut prev_x = 0;
-            let mut winding_count = 0;
-            for edge in active_list.iter() {
-                if winding_count != 0 {
-                    for x in prev_x..edge.x {
-                        write_pixel(Point2 { x: x, y: scanline });
-                    }
-                }
-                prev_x = edge.x;
-                winding_count += edge.direction;
-            }
-        } else {
-            for pair in active_list.chunks(2) {
-                if pair.len() != 2 {
-                    continue;
-                }
-                if pair[0].x != pair[1].x {
-                    write_pixel(Point2 {
-                        x: pair[0].x,
-                        y: scanline,
-                    });
-                    write_pixel(Point2 {
-                        x: pair[1].x - 1,
-                        y: scanline,
-                    });
+        // apply the winding rule of nonzero
+        let mut prev_x = 0;
+        let mut winding_count = 0;
+        for edge in active_list.iter() {
+            if winding_count != 0 {
+                for x in prev_x..edge.x {
+                    write_pixel(Point2 { x: x, y: scanline });
                 }
             }
+            prev_x = edge.x;
+            winding_count += edge.direction;
         }
 
         // increment scanline
@@ -313,7 +295,7 @@ where
     right_edge.reverse();
     left_edge.append(&mut right_edge);
     if left_edge.len() > 2 {
-        draw_polygon(write_pixel, left_edge, true)
+        fill_polygon(write_pixel, &left_edge)
     } else {
         mxcfb_rect::invalid()
     }
@@ -346,7 +328,7 @@ mod test {
             Point2 { x: 101, y: 101 },
             Point2 { x: 101, y: 100 },
         ];
-        draw_polygon(&mut |p| mock.write_pixel(p), points, true);
+        fill_polygon(&mut |p| mock.write_pixel(p), &points);
         assert_eq!(mock.pixel_writes, &vec![Point2 { x: 100, y: 100 }]);
     }
 
@@ -360,13 +342,13 @@ mod test {
             Point2 { x: 100, y: 101 },
             Point2 { x: 102, y: 100 },
         ];
-        draw_polygon(&mut |p| mock.write_pixel(p), points, true);
+        fill_polygon(&mut |p| mock.write_pixel(p), &points);
         let points = vec![
             Point2 { x: 100, y: 101 },
             Point2 { x: 102, y: 100 },
             Point2 { x: 102, y: 101 },
         ];
-        draw_polygon(&mut |p| mock.write_pixel(p), points, true);
+        fill_polygon(&mut |p| mock.write_pixel(p), &points);
         assert_eq!(
             mock.pixel_writes,
             &vec![Point2 { x: 100, y: 100 }, Point2 { x: 101, y: 100 }]

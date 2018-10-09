@@ -51,13 +51,19 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         graphics::stamp_along_line(stamp, start, end).expand(margin)
     }
 
-    fn draw_polygon(
-        &mut self,
-        points: Vec<cgmath::Point2<i32>>,
-        fill: bool,
-        c: color,
-    ) -> mxcfb_rect {
-        graphics::draw_polygon(&mut |p| self.write_pixel(p, c), points, fill)
+    fn draw_polygon(&mut self, points: &[cgmath::Point2<i32>], fill: bool, c: color) -> mxcfb_rect {
+        if fill {
+            graphics::fill_polygon(&mut |p| self.write_pixel(p, c), points)
+        } else {
+            let num_edges = points.len();
+            let mut rect = mxcfb_rect::invalid();
+            for i in 0..num_edges {
+                let p0 = points[i];
+                let p1 = points[(i + 1) % num_edges];
+                rect = rect.merge_rect(&self.draw_line(p0, p1, 1, c));
+            }
+            rect
+        }
     }
 
     fn draw_circle(&mut self, pos: cgmath::Point2<i32>, rad: u32, v: color) -> mxcfb_rect {
@@ -192,6 +198,7 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
                 });
             }
         }
+
         // return the height and width of the drawn text so that refresh can be called on it
         mxcfb_rect {
             top: min_y as u32,

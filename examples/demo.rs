@@ -561,7 +561,7 @@ fn on_touch_handler(app: &mut appctx::ApplicationContext, input: multitouch::Mul
                 m @ TouchMode::Diamonds | m @ TouchMode::FillDiamonds => {
                     let position_int = position.cast().unwrap();
                     framebuffer.draw_polygon(
-                        vec![
+                        &vec![
                             position_int + cgmath::vec2(-10, 0),
                             position_int + cgmath::vec2(0, 20),
                             position_int + cgmath::vec2(10, 0),
