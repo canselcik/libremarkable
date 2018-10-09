@@ -12,9 +12,9 @@ use image;
 pub trait FramebufferIO {
     /// Writes an arbitrary length frame into the framebuffer
     fn write_frame(&mut self, frame: &[u8]);
-    /// Writes a single pixel at `(y, x)` with value `v`
+    /// Writes a single pixel at `pos` with value `v`
     fn write_pixel(&mut self, pos: cgmath::Point2<i32>, v: common::color);
-    /// Reads the value of the pixel at `(y, x)`
+    /// Reads the value of the pixel at `pos`
     fn read_pixel(&self, pos: cgmath::Point2<u32>) -> common::color;
     /// Reads the value at offset `ofst` from the mmapp'ed framebuffer region
     fn read_offset(&self, ofst: isize) -> u8;
@@ -29,6 +29,8 @@ pub trait FramebufferIO {
         data: &[u8],
     ) -> Result<u32, &'static str>;
 }
+
+pub mod graphics;
 
 pub mod draw;
 pub trait FramebufferDraw {
@@ -57,6 +59,13 @@ pub trait FramebufferDraw {
         rad: u32,
         c: common::color,
     ) -> common::mxcfb_rect;
+    /// Draws a polygon
+    fn draw_polygon(
+        &mut self,
+        Vec<cgmath::Point2<i32>>,
+        fill: bool,
+        c: common::color,
+    ) -> common::mxcfb_rect;
     /// Draws a bezier curve begining at `startpt`, with control point `ctrlpt`, ending at `endpt` with `color`
     fn draw_bezier(
         &mut self,
@@ -64,6 +73,17 @@ pub trait FramebufferDraw {
         ctrlpt: cgmath::Point2<f32>,
         endpt: cgmath::Point2<f32>,
         width: f32,
+        samples: i32,
+        v: common::color,
+    ) -> common::mxcfb_rect;
+    /// Draws a bezier curve begining at `startpt`, with control point `ctrlpt`, ending at `endpt`
+    /// with a width at each point and color `color`
+    fn draw_dynamic_bezier(
+        &mut self,
+        startpt: (cgmath::Point2<f32>, f32),
+        ctrlpt: (cgmath::Point2<f32>, f32),
+        endpt: (cgmath::Point2<f32>, f32),
+        samples: i32,
         v: common::color,
     ) -> common::mxcfb_rect;
     /// Draws `text` at `pos` with `color` using scale `size`

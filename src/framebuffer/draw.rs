@@ -9,45 +9,8 @@ use framebuffer;
 use framebuffer::cgmath::*;
 use framebuffer::common::*;
 use framebuffer::core;
+use framebuffer::graphics;
 use framebuffer::FramebufferIO;
-
-macro_rules! min {
-        ($x: expr) => ($x);
-        ($x: expr, $($z: expr),+) => (::std::cmp::min($x, min!($($z),*)));
-}
-
-macro_rules! max {
-        ($x: expr) => ($x);
-        ($x: expr, $($z: expr),+) => (::std::cmp::max($x, max!($($z),*)));
-}
-
-/// Helper function to sample pixels on the bezier curve.
-fn sample_bezier(
-    startpt: Point2<f32>,
-    ctrlpt: Point2<f32>,
-    endpt: Point2<f32>,
-) -> Vec<Point2<f32>> {
-    let mut points = Vec::new();
-    let mut lastpt = (-100, -100);
-    for i in 0..1000 {
-        let t = (i as f32) / 1000.0;
-        let precisept = Point2 {
-            x: (1.0 - t).powf(2.0) * startpt.x
-                + 2.0 * (1.0 - t) * t * ctrlpt.x
-                + t.powf(2.0) * endpt.x,
-            y: (1.0 - t).powf(2.0) * startpt.y
-                + 2.0 * (1.0 - t) * t * ctrlpt.y
-                + t.powf(2.0) * endpt.y,
-        };
-        let pt = (precisept.x as i32, precisept.y as i32);
-        // prevent oversampling
-        if pt != lastpt {
-            points.push(precisept);
-            lastpt = pt;
-        }
-    }
-    points
-}
 
 impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
     fn draw_image(&mut self, img: &RgbImage, pos: Point2<i32>) -> mxcfb_rect {
@@ -73,85 +36,33 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         width: u32,
         v: color,
     ) -> mxcfb_rect {
-        // Create local variables for moving start point
-        let mut x0 = start.x;
-        let mut y0 = start.y;
-
-        // Get absolute x/y offset
-        let dx = if x0 > end.x { x0 - end.x } else { end.x - x0 };
-        let dy = if y0 > end.y { y0 - end.y } else { end.y - y0 };
-
-        // Get slopes
-        let sx = if x0 < end.x { 1 } else { -1 };
-        let sy = if y0 < end.y { 1 } else { -1 };
-
-        // Initialize error
-        let mut err = if dx > dy { dx } else { -dy } / 2;
-        let mut err2;
-
-        let (mut min_x, mut max_x, mut min_y, mut max_y) = (x0, x0, y0, y0);
-        loop {
-            // Set pixel
-            match width {
-                1 => self.write_pixel(
-                    Point2 {
-                        x: x0 as i32,
-                        y: y0 as i32,
-                    },
-                    v,
-                ),
-                _ => self.fill_rect(
-                    Point2 {
-                        x: (x0 - (width / 2) as i32),
-                        y: (y0 - (width / 2) as i32),
-                    },
-                    Vector2 { x: width, y: width },
-                    v,
-                ),
-            }
-
-            max_y = max!(max_y, y0);
-            min_y = min!(min_y, y0);
-            min_x = min!(min_x, x0);
-            max_x = max!(max_x, x0);
-
-            // Check end condition
-            if x0 == end.x && y0 == end.y {
-                break;
-            };
-
-            // Store old error
-            err2 = 2 * err;
-
-            // Adjust error and start position
-            if err2 > -dx {
-                err -= dy;
-                x0 += sx;
-            }
-            if err2 < dy {
-                err += dx;
-                y0 += sy;
-            }
-        }
-
-        let margin = ((width + 1) / 2) as i32;
-        mxcfb_rect {
-            top: (min_y - margin) as u32,
-            left: (min_x - margin) as u32,
-            width: (max_x - min_x + margin * 2) as u32,
-            height: (max_y - min_y + margin * 2) as u32,
-        }
+        let stamp = &mut |p| match width {
+            1 => self.write_pixel(p, v),
+            _ => self.fill_rect(
+                p - Vector2::<i32> {
+                    x: width as i32 / 2,
+                    y: width as i32 / 2,
+                },
+                Vector2 { x: width, y: width },
+                v,
+            ),
+        };
+        let margin = ((width + 1) / 2) as u32;
+        graphics::stamp_along_line(stamp, start, end).expand(margin)
     }
 
-    fn draw_circle(&mut self, pos: Point2<i32>, rad: u32, v: color) -> mxcfb_rect {
-        for (x, y) in line_drawing::BresenhamCircle::new(pos.x as i32, pos.y as i32, rad as i32) {
-            self.write_pixel(
-                Point2 {
-                    x: x as i32,
-                    y: y as i32,
-                },
-                v,
-            );
+    fn draw_polygon(
+        &mut self,
+        points: Vec<cgmath::Point2<i32>>,
+        fill: bool,
+        c: color,
+    ) -> mxcfb_rect {
+        graphics::draw_polygon(&mut |p| self.write_pixel(p, c), points, fill)
+    }
+
+    fn draw_circle(&mut self, pos: cgmath::Point2<i32>, rad: u32, v: color) -> mxcfb_rect {
+        for (x, y) in line_drawing::BresenhamCircle::new(pos.x, pos.y, rad as i32) {
+            self.write_pixel(Point2 { x, y }, v);
         }
         mxcfb_rect {
             top: pos.y as u32 - rad as u32,
@@ -161,18 +72,16 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         }
     }
 
-    fn fill_circle(&mut self, pos: Point2<i32>, rad: u32, v: color) -> mxcfb_rect {
-        for current in { 1..rad + 1 } {
-            for (x, y) in
-                line_drawing::BresenhamCircle::new(pos.x as i32, pos.y as i32, current as i32)
-            {
-                self.write_pixel(
-                    Point2 {
-                        x: x as i32,
-                        y: y as i32,
-                    },
-                    v,
-                );
+    fn fill_circle(&mut self, pos: cgmath::Point2<i32>, rad: u32, v: color) -> mxcfb_rect {
+        let rad_square = (rad * rad) as i32;
+        let search_distance: i32 = (rad + 1) as i32;
+        for y in { (-search_distance)..search_distance } {
+            let y_square = y * y;
+            for x in (-search_distance)..search_distance {
+                let x_square = x * x;
+                if x_square + y_square <= rad_square {
+                    self.write_pixel(pos + Vector2 { x, y }, v);
+                }
             }
         }
         mxcfb_rect {
@@ -189,36 +98,33 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         ctrlpt: Point2<f32>,
         endpt: Point2<f32>,
         width: f32,
+        samples: i32,
         v: color,
     ) -> mxcfb_rect {
-        let mut bbox = mxcfb_rect {
-            top: startpt.y.max(0.0) as u32,
-            left: startpt.x.max(0.0) as u32,
-            width: 0,
-            height: 0,
-        };
-        for pt in sample_bezier(startpt, ctrlpt, endpt) {
-            let approx = pt.cast().unwrap();
-            bbox = bbox.merge_pixel(&pt.cast().unwrap());
+        self.draw_dynamic_bezier(
+            (startpt, width),
+            (ctrlpt, width),
+            (endpt, width),
+            samples,
+            v,
+        )
+    }
 
-            // Set pixel
-            match width as u32 {
-                1 => self.write_pixel(approx, v),
-                _ => self.fill_rect(
-                    approx
-                        .sub_element_wise((width / 2.0) as i32)
-                        .cast()
-                        .unwrap(),
-                    Vector2 {
-                        x: width as u32,
-                        y: width as u32,
-                    },
-                    v,
-                ),
-            };
-        }
-        let margin = ((width + 1.0) / 2.0) as u32;
-        bbox.expand(margin)
+    fn draw_dynamic_bezier(
+        &mut self,
+        startpt: (Point2<f32>, f32),
+        ctrlpt: (Point2<f32>, f32),
+        endpt: (Point2<f32>, f32),
+        samples: i32,
+        v: color,
+    ) -> mxcfb_rect {
+        graphics::draw_dynamic_bezier(
+            &mut |p| self.write_pixel(p, v),
+            startpt,
+            ctrlpt,
+            endpt,
+            samples,
+        )
     }
 
     fn draw_text(

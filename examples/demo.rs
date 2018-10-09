@@ -9,6 +9,7 @@ extern crate env_logger;
 #[macro_use]
 extern crate libremarkable;
 use libremarkable::framebuffer::cgmath;
+use libremarkable::framebuffer::cgmath::EuclideanSpace;
 use libremarkable::framebuffer::common::*;
 use libremarkable::framebuffer::refresh::PartialRefreshMode;
 use libremarkable::framebuffer::storage;
@@ -29,6 +30,7 @@ use chrono::{DateTime, Local};
 extern crate atomic;
 use atomic::Atomic;
 
+use std::collections::VecDeque;
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
@@ -38,18 +40,21 @@ use std::time::Duration;
 #[derive(Copy, Clone, PartialEq)]
 enum DrawMode {
     Draw(u32),
+    PolyDraw(u32),
     Erase(u32),
 }
 impl DrawMode {
     fn set_size(self, new_size: u32) -> Self {
         match self {
             DrawMode::Draw(_) => DrawMode::Draw(new_size),
+            DrawMode::PolyDraw(_) => DrawMode::PolyDraw(new_size),
             DrawMode::Erase(_) => DrawMode::Erase(new_size),
         }
     }
     fn color_as_string(self) -> String {
         match self {
             DrawMode::Draw(_) => "Black",
+            DrawMode::PolyDraw(_) => "Black (New)",
             DrawMode::Erase(_) => "White",
         }
         .into()
@@ -57,6 +62,7 @@ impl DrawMode {
     fn get_size(self) -> u32 {
         match self {
             DrawMode::Draw(s) => s,
+            DrawMode::PolyDraw(s) => s,
             DrawMode::Erase(s) => s,
         }
     }
@@ -67,13 +73,17 @@ enum TouchMode {
     OnlyUI,
     Bezier,
     Circles,
+    Diamonds,
+    FillDiamonds,
 }
 impl TouchMode {
     fn toggle(self) -> Self {
         match self {
             TouchMode::OnlyUI => TouchMode::Bezier,
             TouchMode::Bezier => TouchMode::Circles,
-            TouchMode::Circles => TouchMode::OnlyUI,
+            TouchMode::Circles => TouchMode::Diamonds,
+            TouchMode::Diamonds => TouchMode::FillDiamonds,
+            TouchMode::FillDiamonds => TouchMode::OnlyUI,
         }
     }
     fn to_string(self) -> String {
@@ -81,6 +91,8 @@ impl TouchMode {
             TouchMode::OnlyUI => "None",
             TouchMode::Bezier => "Bezier",
             TouchMode::Circles => "Circles",
+            TouchMode::Diamonds => "Diamonds",
+            TouchMode::FillDiamonds => "FDiamonds",
         }
         .into()
     }
@@ -101,7 +113,8 @@ lazy_static! {
     static ref G_DRAW_MODE: Atomic<DrawMode> = Atomic::new(DrawMode::Draw(2));
     static ref UNPRESS_OBSERVED: AtomicBool = AtomicBool::new(false);
     static ref WACOM_IN_RANGE: AtomicBool = AtomicBool::new(false);
-    static ref WACOM_HISTORY: Mutex<Vec<cgmath::Point2<i32>>> = Mutex::new(Vec::new());
+    static ref WACOM_HISTORY: Mutex<VecDeque<(cgmath::Point2<f32>, i32)>> =
+        Mutex::new(VecDeque::new());
     static ref G_COUNTER: Mutex<u32> = Mutex::new(0);
     static ref LAST_REFRESHED_CANVAS_RECT: Atomic<mxcfb_rect> = Atomic::new(mxcfb_rect::invalid());
     static ref SAVED_CANVAS: Mutex<Option<storage::CompressedCanvasState>> = Mutex::new(None);
@@ -306,7 +319,8 @@ fn on_touch_rustlogo(app: &mut appctx::ApplicationContext, _element: UIElementHa
 fn on_toggle_eraser(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
     let (new_mode, name) = match G_DRAW_MODE.load(Ordering::Relaxed) {
         DrawMode::Erase(s) => (DrawMode::Draw(s), "Black".to_owned()),
-        DrawMode::Draw(s) => (DrawMode::Erase(s), "White".to_owned()),
+        DrawMode::Draw(s) => (DrawMode::PolyDraw(s), "Black (New)".to_owned()),
+        DrawMode::PolyDraw(s) => (DrawMode::Erase(s), "White".to_owned()),
     };
     G_DRAW_MODE.store(new_mode, Ordering::Relaxed);
 
@@ -414,7 +428,9 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
             if !CANVAS_REGION.contains_point(&position.cast().unwrap()) {
                 wacom_stack.clear();
                 if UNPRESS_OBSERVED.fetch_and(false, Ordering::Relaxed) {
-                    match app.find_active_region(position.y, position.x) {
+                    match app
+                        .find_active_region(position.y.round() as u16, position.x.round() as u16)
+                    {
                         Some((region, _)) => (region.handler)(app, region.element.clone()),
                         None => {}
                     };
@@ -422,41 +438,65 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
                 return;
             }
 
-            let (col, mult) = match G_DRAW_MODE.load(Ordering::Relaxed) {
-                DrawMode::Draw(s) => (color::BLACK, s),
-                DrawMode::Erase(s) => (color::WHITE, s * 3),
+            let (col, mult, use_poly) = match G_DRAW_MODE.load(Ordering::Relaxed) {
+                DrawMode::Draw(s) => (color::BLACK, s, false),
+                DrawMode::PolyDraw(s) => (color::BLACK, s, true),
+                DrawMode::Erase(s) => (color::WHITE, s * 3, false),
             };
 
-            let rad = mult as f32 * (pressure as f32) / 2048.;
-            if wacom_stack.len() >= 2 {
-                let framebuffer = app.get_framebuffer_ref();
-                let controlpt = wacom_stack.pop().unwrap();
-                let beginpt = wacom_stack.pop().unwrap();
-                let rect = framebuffer.draw_bezier(
-                    beginpt.cast().unwrap(),
-                    controlpt.cast().unwrap(),
-                    position.cast().unwrap(),
-                    rad,
-                    col,
-                );
+            wacom_stack.push_back((position.cast().unwrap(), pressure as i32));
 
-                if !LAST_REFRESHED_CANVAS_RECT
-                    .load(Ordering::Relaxed)
-                    .contains_rect(&rect)
-                {
-                    framebuffer.partial_refresh(
-                        &rect,
-                        PartialRefreshMode::Async,
-                        waveform_mode::WAVEFORM_MODE_DU,
-                        display_temp::TEMP_USE_REMARKABLE_DRAW,
-                        dither_mode::EPDC_FLAG_EXP1,
-                        DRAWING_QUANT_BIT,
-                        false,
-                    );
-                    LAST_REFRESHED_CANVAS_RECT.store(rect, Ordering::Relaxed);
-                }
+            while wacom_stack.len() >= 3 {
+                let framebuffer = app.get_framebuffer_ref();
+                let rect = if use_poly {
+                    let points = vec![
+                        wacom_stack.pop_front().unwrap(),
+                        wacom_stack.get(0).unwrap().clone(),
+                        wacom_stack.get(1).unwrap().clone(),
+                    ];
+                    let radii: Vec<f32> = points
+                        .iter()
+                        .map(|point| ((mult as f32 * (point.1 as f32) / 2048.) / 2.0))
+                        .collect();
+                    // calculate control points
+                    let start_point = points[2].0.midpoint(points[1].0);
+                    let ctrl_point = points[1].0;
+                    let end_point = points[1].0.midpoint(points[0].0);
+                    // calculate radii
+                    let start_width = (radii[2] + radii[1]) / 2.0;
+                    let ctrl_width = radii[1];
+                    let end_width = (radii[1] + radii[0]) / 2.0;
+                    framebuffer.draw_dynamic_bezier(
+                        (start_point, start_width),
+                        (ctrl_point, ctrl_width),
+                        (end_point, end_width),
+                        10,
+                        col,
+                    )
+                } else {
+                    let beginpt = wacom_stack.pop_front().unwrap();
+                    let controlpt = wacom_stack.pop_front().unwrap();
+                    let endpt = wacom_stack.get(0).unwrap();
+                    let width = (mult as f32 * (controlpt.1 as f32) / 2048.) / 2.0;
+                    framebuffer.draw_dynamic_bezier(
+                        (beginpt.0, width),
+                        (controlpt.0, width),
+                        (endpt.0, width),
+                        10,
+                        col,
+                    )
+                };
+
+                framebuffer.partial_refresh(
+                    &rect,
+                    PartialRefreshMode::Async,
+                    waveform_mode::WAVEFORM_MODE_DU,
+                    display_temp::TEMP_USE_REMARKABLE_DRAW,
+                    dither_mode::EPDC_FLAG_EXP1,
+                    DRAWING_QUANT_BIT,
+                    false,
+                );
             }
-            wacom_stack.push(position.cast().unwrap());
         }
         wacom::WacomEvent::InstrumentChange { pen, state } => {
             match pen {
@@ -502,17 +542,38 @@ fn on_touch_handler(app: &mut appctx::ApplicationContext, input: multitouch::Mul
             if !CANVAS_REGION.contains_point(&position.cast().unwrap()) {
                 return;
             }
-            let position_float = position.cast().unwrap();
             let rect = match G_TOUCH_MODE.load(Ordering::Relaxed) {
-                TouchMode::Bezier => framebuffer.draw_bezier(
-                    position_float,
-                    position_float + cgmath::vec2(155.0, 14.0),
-                    position_float + cgmath::vec2(200.0, 200.0),
-                    2.0,
-                    color::BLACK,
-                ),
+                TouchMode::Bezier => {
+                    let position_float = position.cast().unwrap();
+                    framebuffer.draw_bezier(
+                        position_float,
+                        position_float + cgmath::vec2(155.0, 14.0),
+                        position_float + cgmath::vec2(200.0, 200.0),
+                        2.0,
+                        1000,
+                        color::BLACK,
+                    )
+                }
                 TouchMode::Circles => {
                     framebuffer.draw_circle(position.cast().unwrap(), 20, color::BLACK)
+                }
+
+                m @ TouchMode::Diamonds | m @ TouchMode::FillDiamonds => {
+                    let position_int = position.cast().unwrap();
+                    framebuffer.draw_polygon(
+                        vec![
+                            position_int + cgmath::vec2(-10, 0),
+                            position_int + cgmath::vec2(0, 20),
+                            position_int + cgmath::vec2(10, 0),
+                            position_int + cgmath::vec2(0, -20),
+                        ],
+                        match m {
+                            TouchMode::Diamonds => false,
+                            TouchMode::FillDiamonds => true,
+                            _ => false,
+                        },
+                        color::BLACK,
+                    )
                 }
                 _ => return,
             };

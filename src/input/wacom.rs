@@ -71,12 +71,12 @@ pub enum WacomEvent {
         state: bool,
     },
     Hover {
-        position: cgmath::Point2<u16>,
+        position: cgmath::Point2<f32>,
         distance: u16,
         tilt: cgmath::Vector2<u16>,
     },
     Draw {
-        position: cgmath::Point2<u16>,
+        position: cgmath::Point2<f32>,
         pressure: u16,
         tilt: cgmath::Vector2<u16>,
     },
@@ -93,8 +93,8 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
             Some(WacomPen::ToolPen) => Some(InputEvent::WacomEvent {
                 event: WacomEvent::Hover {
                     position: cgmath::Point2 {
-                        x: (f32::from(state.last_x.load(Ordering::Relaxed)) * WACOM_HSCALAR) as u16,
-                        y: (f32::from(state.last_y.load(Ordering::Relaxed)) * WACOM_VSCALAR) as u16,
+                        x: (f32::from(state.last_x.load(Ordering::Relaxed)) * WACOM_HSCALAR),
+                        y: (f32::from(state.last_y.load(Ordering::Relaxed)) * WACOM_VSCALAR),
                     },
                     distance: state.last_dist.load(Ordering::Relaxed) as u16,
                     tilt: cgmath::Vector2 {
@@ -106,8 +106,8 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
             Some(WacomPen::Touch) => Some(InputEvent::WacomEvent {
                 event: WacomEvent::Draw {
                     position: cgmath::Point2 {
-                        x: (f32::from(state.last_x.load(Ordering::Relaxed)) * WACOM_HSCALAR) as u16,
-                        y: (f32::from(state.last_y.load(Ordering::Relaxed)) * WACOM_VSCALAR) as u16,
+                        x: (f32::from(state.last_x.load(Ordering::Relaxed)) * WACOM_HSCALAR),
+                        y: (f32::from(state.last_y.load(Ordering::Relaxed)) * WACOM_VSCALAR),
                     },
                     pressure: state.last_pressure.load(Ordering::Relaxed),
                     tilt: cgmath::Vector2 {
