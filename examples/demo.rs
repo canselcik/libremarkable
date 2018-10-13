@@ -40,21 +40,18 @@ use std::time::Duration;
 #[derive(Copy, Clone, PartialEq)]
 enum DrawMode {
     Draw(u32),
-    PolyDraw(u32),
     Erase(u32),
 }
 impl DrawMode {
     fn set_size(self, new_size: u32) -> Self {
         match self {
             DrawMode::Draw(_) => DrawMode::Draw(new_size),
-            DrawMode::PolyDraw(_) => DrawMode::PolyDraw(new_size),
             DrawMode::Erase(_) => DrawMode::Erase(new_size),
         }
     }
     fn color_as_string(self) -> String {
         match self {
             DrawMode::Draw(_) => "Black",
-            DrawMode::PolyDraw(_) => "Black (New)",
             DrawMode::Erase(_) => "White",
         }
         .into()
@@ -62,7 +59,6 @@ impl DrawMode {
     fn get_size(self) -> u32 {
         match self {
             DrawMode::Draw(s) => s,
-            DrawMode::PolyDraw(s) => s,
             DrawMode::Erase(s) => s,
         }
     }
@@ -319,8 +315,7 @@ fn on_touch_rustlogo(app: &mut appctx::ApplicationContext, _element: UIElementHa
 fn on_toggle_eraser(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
     let (new_mode, name) = match G_DRAW_MODE.load(Ordering::Relaxed) {
         DrawMode::Erase(s) => (DrawMode::Draw(s), "Black".to_owned()),
-        DrawMode::Draw(s) => (DrawMode::PolyDraw(s), "Black (New)".to_owned()),
-        DrawMode::PolyDraw(s) => (DrawMode::Erase(s), "White".to_owned()),
+        DrawMode::Draw(s) => (DrawMode::Erase(s), "White".to_owned()),
     };
     G_DRAW_MODE.store(new_mode, Ordering::Relaxed);
 
@@ -438,54 +433,39 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
                 return;
             }
 
-            let (col, mult, use_poly) = match G_DRAW_MODE.load(Ordering::Relaxed) {
-                DrawMode::Draw(s) => (color::BLACK, s, false),
-                DrawMode::PolyDraw(s) => (color::BLACK, s, true),
-                DrawMode::Erase(s) => (color::WHITE, s * 3, false),
+            let (col, mult) = match G_DRAW_MODE.load(Ordering::Relaxed) {
+                DrawMode::Draw(s) => (color::BLACK, s),
+                DrawMode::Erase(s) => (color::WHITE, s * 3),
             };
 
             wacom_stack.push_back((position.cast().unwrap(), pressure as i32));
 
             while wacom_stack.len() >= 3 {
                 let framebuffer = app.get_framebuffer_ref();
-                let rect = if use_poly {
-                    let points = vec![
-                        wacom_stack.pop_front().unwrap(),
-                        wacom_stack.get(0).unwrap().clone(),
-                        wacom_stack.get(1).unwrap().clone(),
-                    ];
-                    let radii: Vec<f32> = points
-                        .iter()
-                        .map(|point| ((mult as f32 * (point.1 as f32) / 2048.) / 2.0))
-                        .collect();
-                    // calculate control points
-                    let start_point = points[2].0.midpoint(points[1].0);
-                    let ctrl_point = points[1].0;
-                    let end_point = points[1].0.midpoint(points[0].0);
-                    // calculate radii
-                    let start_width = (radii[2] + radii[1]) / 2.0;
-                    let ctrl_width = radii[1];
-                    let end_width = (radii[1] + radii[0]) / 2.0;
-                    framebuffer.draw_dynamic_bezier(
-                        (start_point, start_width),
-                        (ctrl_point, ctrl_width),
-                        (end_point, end_width),
-                        10,
-                        col,
-                    )
-                } else {
-                    let beginpt = wacom_stack.pop_front().unwrap();
-                    let controlpt = wacom_stack.pop_front().unwrap();
-                    let endpt = wacom_stack.get(0).unwrap();
-                    let width = (mult as f32 * (controlpt.1 as f32) / 2048.) / 2.0;
-                    framebuffer.draw_dynamic_bezier(
-                        (beginpt.0, width),
-                        (controlpt.0, width),
-                        (endpt.0, width),
-                        10,
-                        col,
-                    )
-                };
+                let points = vec![
+                    wacom_stack.pop_front().unwrap(),
+                    wacom_stack.get(0).unwrap().clone(),
+                    wacom_stack.get(1).unwrap().clone(),
+                ];
+                let radii: Vec<f32> = points
+                    .iter()
+                    .map(|point| ((mult as f32 * (point.1 as f32) / 2048.) / 2.0))
+                    .collect();
+                // calculate control points
+                let start_point = points[2].0.midpoint(points[1].0);
+                let ctrl_point = points[1].0;
+                let end_point = points[1].0.midpoint(points[0].0);
+                // calculate radii
+                let start_width = (radii[2] + radii[1]) / 2.0;
+                let ctrl_width = radii[1];
+                let end_width = (radii[1] + radii[0]) / 2.0;
+                let rect = framebuffer.draw_dynamic_bezier(
+                    (start_point, start_width),
+                    (ctrl_point, ctrl_width),
+                    (end_point, end_width),
+                    10,
+                    col,
+                );
 
                 framebuffer.partial_refresh(
                     &rect,
