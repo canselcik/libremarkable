@@ -463,10 +463,10 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
                 let start_point = points[2].0.midpoint(points[1].0);
                 let ctrl_point = points[1].0;
                 let end_point = points[1].0.midpoint(points[0].0);
-                // calculate radii
-                let start_width = (radii[2] + radii[1]) / 2.0;
-                let ctrl_width = radii[1];
-                let end_width = (radii[1] + radii[0]) / 2.0;
+                // calculate diameters
+                let start_width = radii[2] + radii[1];
+                let ctrl_width = radii[1] * 2.0;
+                let end_width = radii[1] + radii[0];
                 let rect = framebuffer.draw_dynamic_bezier(
                     (start_point, start_width),
                     (ctrl_point, ctrl_width),
