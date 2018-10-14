@@ -533,14 +533,28 @@ fn on_touch_handler(app: &mut appctx::ApplicationContext, input: multitouch::Mul
             let rect = match G_TOUCH_MODE.load(Ordering::Relaxed) {
                 TouchMode::Bezier => {
                     let position_float = position.cast().unwrap();
-                    framebuffer.draw_bezier(
-                        position_float,
-                        position_float + cgmath::vec2(155.0, 14.0),
-                        position_float + cgmath::vec2(200.0, 200.0),
-                        2.0,
-                        1000,
-                        color::BLACK,
-                    )
+                    let points = vec![
+                        (cgmath::vec2(-40.0, 0.0), 2.5),
+                        (cgmath::vec2(40.0, -60.0), 5.5),
+                        (cgmath::vec2(0.0, 0.0), 3.5),
+                        (cgmath::vec2(-40.0, 60.0), 6.5),
+                        (cgmath::vec2(-10.0, 50.0), 5.0),
+                        (cgmath::vec2(10.0, 45.0), 4.5),
+                        (cgmath::vec2(30.0, 55.0), 3.5),
+                        (cgmath::vec2(50.0, 65.0), 3.0),
+                        (cgmath::vec2(70.0, 40.0), 0.0),
+                    ];
+                    let mut rect = mxcfb_rect::invalid();
+                    for window in points.windows(3).step_by(2) {
+                        rect = rect.merge_rect(&framebuffer.draw_dynamic_bezier(
+                            (position_float + window[0].0, window[0].1),
+                            (position_float + window[1].0, window[1].1),
+                            (position_float + window[2].0, window[2].1),
+                            100,
+                            color::BLACK,
+                        ));
+                    }
+                    rect
                 }
                 TouchMode::Circles => {
                     framebuffer.draw_circle(position.cast().unwrap(), 20, color::BLACK)
