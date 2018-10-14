@@ -30,7 +30,7 @@ pub trait FramebufferIO {
     ) -> Result<u32, &'static str>;
 }
 
-pub mod graphics;
+mod graphics;
 
 pub mod draw;
 pub trait FramebufferDraw {
