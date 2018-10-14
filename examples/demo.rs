@@ -364,8 +364,16 @@ fn draw_color_test_rgb(app: &mut appctx::ApplicationContext, _element: UIElement
 
 fn change_brush_width(app: &mut appctx::ApplicationContext, delta: i32) {
     let current = G_DRAW_MODE.load(Ordering::Relaxed);
-    let new_size = current.get_size() as i32 + delta;
-    if new_size < 1 || new_size > 99 {
+    let current_size = current.get_size() as i32;
+    let proposed_size = current_size + delta;
+    let new_size = if proposed_size < 1 {
+        1
+    } else if proposed_size > 99 {
+        99
+    } else {
+        proposed_size
+    };
+    if new_size == current_size {
         return;
     }
 
@@ -857,9 +865,26 @@ fn main() {
 
     // Size Controls
     app.add_element(
-        "decreaseSize",
+        "decreaseSizeSkip",
         UIElementWrapper {
             position: cgmath::Point2 { x: 960, y: 670 },
+            refresh: UIConstraintRefresh::Refresh,
+            onclick: Some(|appctx, _| {
+                change_brush_width(appctx, -10);
+            }),
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "--".to_owned(),
+                scale: 90.0,
+                border_px: 5,
+            },
+            ..Default::default()
+        },
+    );
+    app.add_element(
+        "decreaseSize",
+        UIElementWrapper {
+            position: cgmath::Point2 { x: 1030, y: 670 },
             refresh: UIConstraintRefresh::Refresh,
             onclick: Some(|appctx, _| {
                 change_brush_width(appctx, -1);
@@ -876,7 +901,7 @@ fn main() {
     app.add_element(
         "displaySize",
         UIElementWrapper {
-            position: cgmath::Point2 { x: 1030, y: 670 },
+            position: cgmath::Point2 { x: 1080, y: 670 },
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
@@ -890,7 +915,7 @@ fn main() {
     app.add_element(
         "increaseSize",
         UIElementWrapper {
-            position: cgmath::Point2 { x: 1210, y: 670 },
+            position: cgmath::Point2 { x: 1240, y: 670 },
             refresh: UIConstraintRefresh::Refresh,
             onclick: Some(|appctx, _| {
                 change_brush_width(appctx, 1);
@@ -898,7 +923,24 @@ fn main() {
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "+".to_owned(),
-                scale: 90.0,
+                scale: 60.0,
+                border_px: 5,
+            },
+            ..Default::default()
+        },
+    );
+    app.add_element(
+        "increaseSizeSkip",
+        UIElementWrapper {
+            position: cgmath::Point2 { x: 1295, y: 670 },
+            refresh: UIConstraintRefresh::Refresh,
+            onclick: Some(|appctx, _| {
+                change_brush_width(appctx, 10);
+            }),
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "++".to_owned(),
+                scale: 60.0,
                 border_px: 5,
             },
             ..Default::default()
