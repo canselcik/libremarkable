@@ -9,6 +9,7 @@ extern crate env_logger;
 #[macro_use]
 extern crate libremarkable;
 use libremarkable::framebuffer::cgmath;
+use libremarkable::framebuffer::cgmath::EuclideanSpace;
 use libremarkable::framebuffer::common::*;
 use libremarkable::framebuffer::refresh::PartialRefreshMode;
 use libremarkable::framebuffer::storage;
@@ -29,6 +30,7 @@ use chrono::{DateTime, Local};
 extern crate atomic;
 use atomic::Atomic;
 
+use std::collections::VecDeque;
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
@@ -67,13 +69,17 @@ enum TouchMode {
     OnlyUI,
     Bezier,
     Circles,
+    Diamonds,
+    FillDiamonds,
 }
 impl TouchMode {
     fn toggle(self) -> Self {
         match self {
             TouchMode::OnlyUI => TouchMode::Bezier,
             TouchMode::Bezier => TouchMode::Circles,
-            TouchMode::Circles => TouchMode::OnlyUI,
+            TouchMode::Circles => TouchMode::Diamonds,
+            TouchMode::Diamonds => TouchMode::FillDiamonds,
+            TouchMode::FillDiamonds => TouchMode::OnlyUI,
         }
     }
     fn to_string(self) -> String {
@@ -81,6 +87,8 @@ impl TouchMode {
             TouchMode::OnlyUI => "None",
             TouchMode::Bezier => "Bezier",
             TouchMode::Circles => "Circles",
+            TouchMode::Diamonds => "Diamonds",
+            TouchMode::FillDiamonds => "FDiamonds",
         }
         .into()
     }
@@ -101,7 +109,8 @@ lazy_static! {
     static ref G_DRAW_MODE: Atomic<DrawMode> = Atomic::new(DrawMode::Draw(2));
     static ref UNPRESS_OBSERVED: AtomicBool = AtomicBool::new(false);
     static ref WACOM_IN_RANGE: AtomicBool = AtomicBool::new(false);
-    static ref WACOM_HISTORY: Mutex<Vec<cgmath::Point2<i32>>> = Mutex::new(Vec::new());
+    static ref WACOM_HISTORY: Mutex<VecDeque<(cgmath::Point2<f32>, i32)>> =
+        Mutex::new(VecDeque::new());
     static ref G_COUNTER: Mutex<u32> = Mutex::new(0);
     static ref LAST_REFRESHED_CANVAS_RECT: Atomic<mxcfb_rect> = Atomic::new(mxcfb_rect::invalid());
     static ref SAVED_CANVAS: Mutex<Option<storage::CompressedCanvasState>> = Mutex::new(None);
@@ -355,8 +364,16 @@ fn draw_color_test_rgb(app: &mut appctx::ApplicationContext, _element: UIElement
 
 fn change_brush_width(app: &mut appctx::ApplicationContext, delta: i32) {
     let current = G_DRAW_MODE.load(Ordering::Relaxed);
-    let new_size = current.get_size() as i32 + delta;
-    if new_size < 1 || new_size > 99 {
+    let current_size = current.get_size() as i32;
+    let proposed_size = current_size + delta;
+    let new_size = if proposed_size < 1 {
+        1
+    } else if proposed_size > 99 {
+        99
+    } else {
+        proposed_size
+    };
+    if new_size == current_size {
         return;
     }
 
@@ -414,7 +431,9 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
             if !CANVAS_REGION.contains_point(&position.cast().unwrap()) {
                 wacom_stack.clear();
                 if UNPRESS_OBSERVED.fetch_and(false, Ordering::Relaxed) {
-                    match app.find_active_region(position.y, position.x) {
+                    match app
+                        .find_active_region(position.y.round() as u16, position.x.round() as u16)
+                    {
                         Some((region, _)) => (region.handler)(app, region.element.clone()),
                         None => {}
                     };
@@ -427,36 +446,45 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
                 DrawMode::Erase(s) => (color::WHITE, s * 3),
             };
 
-            let rad = mult as f32 * (pressure as f32) / 2048.;
-            if wacom_stack.len() >= 2 {
+            wacom_stack.push_back((position.cast().unwrap(), pressure as i32));
+
+            while wacom_stack.len() >= 3 {
                 let framebuffer = app.get_framebuffer_ref();
-                let controlpt = wacom_stack.pop().unwrap();
-                let beginpt = wacom_stack.pop().unwrap();
-                let rect = framebuffer.draw_bezier(
-                    beginpt.cast().unwrap(),
-                    controlpt.cast().unwrap(),
-                    position.cast().unwrap(),
-                    rad,
+                let points = vec![
+                    wacom_stack.pop_front().unwrap(),
+                    wacom_stack.get(0).unwrap().clone(),
+                    wacom_stack.get(1).unwrap().clone(),
+                ];
+                let radii: Vec<f32> = points
+                    .iter()
+                    .map(|point| ((mult as f32 * (point.1 as f32) / 2048.) / 2.0))
+                    .collect();
+                // calculate control points
+                let start_point = points[2].0.midpoint(points[1].0);
+                let ctrl_point = points[1].0;
+                let end_point = points[1].0.midpoint(points[0].0);
+                // calculate diameters
+                let start_width = radii[2] + radii[1];
+                let ctrl_width = radii[1] * 2.0;
+                let end_width = radii[1] + radii[0];
+                let rect = framebuffer.draw_dynamic_bezier(
+                    (start_point, start_width),
+                    (ctrl_point, ctrl_width),
+                    (end_point, end_width),
+                    10,
                     col,
                 );
 
-                if !LAST_REFRESHED_CANVAS_RECT
-                    .load(Ordering::Relaxed)
-                    .contains_rect(&rect)
-                {
-                    framebuffer.partial_refresh(
-                        &rect,
-                        PartialRefreshMode::Async,
-                        waveform_mode::WAVEFORM_MODE_DU,
-                        display_temp::TEMP_USE_REMARKABLE_DRAW,
-                        dither_mode::EPDC_FLAG_EXP1,
-                        DRAWING_QUANT_BIT,
-                        false,
-                    );
-                    LAST_REFRESHED_CANVAS_RECT.store(rect, Ordering::Relaxed);
-                }
+                framebuffer.partial_refresh(
+                    &rect,
+                    PartialRefreshMode::Async,
+                    waveform_mode::WAVEFORM_MODE_DU,
+                    display_temp::TEMP_USE_REMARKABLE_DRAW,
+                    dither_mode::EPDC_FLAG_EXP1,
+                    DRAWING_QUANT_BIT,
+                    false,
+                );
             }
-            wacom_stack.push(position.cast().unwrap());
         }
         wacom::WacomEvent::InstrumentChange { pen, state } => {
             match pen {
@@ -502,17 +530,52 @@ fn on_touch_handler(app: &mut appctx::ApplicationContext, input: multitouch::Mul
             if !CANVAS_REGION.contains_point(&position.cast().unwrap()) {
                 return;
             }
-            let position_float = position.cast().unwrap();
             let rect = match G_TOUCH_MODE.load(Ordering::Relaxed) {
-                TouchMode::Bezier => framebuffer.draw_bezier(
-                    position_float,
-                    position_float + cgmath::vec2(155.0, 14.0),
-                    position_float + cgmath::vec2(200.0, 200.0),
-                    2.0,
-                    color::BLACK,
-                ),
+                TouchMode::Bezier => {
+                    let position_float = position.cast().unwrap();
+                    let points = vec![
+                        (cgmath::vec2(-40.0, 0.0), 2.5),
+                        (cgmath::vec2(40.0, -60.0), 5.5),
+                        (cgmath::vec2(0.0, 0.0), 3.5),
+                        (cgmath::vec2(-40.0, 60.0), 6.5),
+                        (cgmath::vec2(-10.0, 50.0), 5.0),
+                        (cgmath::vec2(10.0, 45.0), 4.5),
+                        (cgmath::vec2(30.0, 55.0), 3.5),
+                        (cgmath::vec2(50.0, 65.0), 3.0),
+                        (cgmath::vec2(70.0, 40.0), 0.0),
+                    ];
+                    let mut rect = mxcfb_rect::invalid();
+                    for window in points.windows(3).step_by(2) {
+                        rect = rect.merge_rect(&framebuffer.draw_dynamic_bezier(
+                            (position_float + window[0].0, window[0].1),
+                            (position_float + window[1].0, window[1].1),
+                            (position_float + window[2].0, window[2].1),
+                            100,
+                            color::BLACK,
+                        ));
+                    }
+                    rect
+                }
                 TouchMode::Circles => {
                     framebuffer.draw_circle(position.cast().unwrap(), 20, color::BLACK)
+                }
+
+                m @ TouchMode::Diamonds | m @ TouchMode::FillDiamonds => {
+                    let position_int = position.cast().unwrap();
+                    framebuffer.draw_polygon(
+                        &vec![
+                            position_int + cgmath::vec2(-10, 0),
+                            position_int + cgmath::vec2(0, 20),
+                            position_int + cgmath::vec2(10, 0),
+                            position_int + cgmath::vec2(0, -20),
+                        ],
+                        match m {
+                            TouchMode::Diamonds => false,
+                            TouchMode::FillDiamonds => true,
+                            _ => false,
+                        },
+                        color::BLACK,
+                    )
                 }
                 _ => return,
             };
@@ -816,9 +879,26 @@ fn main() {
 
     // Size Controls
     app.add_element(
-        "decreaseSize",
+        "decreaseSizeSkip",
         UIElementWrapper {
             position: cgmath::Point2 { x: 960, y: 670 },
+            refresh: UIConstraintRefresh::Refresh,
+            onclick: Some(|appctx, _| {
+                change_brush_width(appctx, -10);
+            }),
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "--".to_owned(),
+                scale: 90.0,
+                border_px: 5,
+            },
+            ..Default::default()
+        },
+    );
+    app.add_element(
+        "decreaseSize",
+        UIElementWrapper {
+            position: cgmath::Point2 { x: 1030, y: 670 },
             refresh: UIConstraintRefresh::Refresh,
             onclick: Some(|appctx, _| {
                 change_brush_width(appctx, -1);
@@ -835,7 +915,7 @@ fn main() {
     app.add_element(
         "displaySize",
         UIElementWrapper {
-            position: cgmath::Point2 { x: 1030, y: 670 },
+            position: cgmath::Point2 { x: 1080, y: 670 },
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
@@ -849,7 +929,7 @@ fn main() {
     app.add_element(
         "increaseSize",
         UIElementWrapper {
-            position: cgmath::Point2 { x: 1210, y: 670 },
+            position: cgmath::Point2 { x: 1240, y: 670 },
             refresh: UIConstraintRefresh::Refresh,
             onclick: Some(|appctx, _| {
                 change_brush_width(appctx, 1);
@@ -857,7 +937,24 @@ fn main() {
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "+".to_owned(),
-                scale: 90.0,
+                scale: 60.0,
+                border_px: 5,
+            },
+            ..Default::default()
+        },
+    );
+    app.add_element(
+        "increaseSizeSkip",
+        UIElementWrapper {
+            position: cgmath::Point2 { x: 1295, y: 670 },
+            refresh: UIConstraintRefresh::Refresh,
+            onclick: Some(|appctx, _| {
+                change_brush_width(appctx, 10);
+            }),
+            inner: UIElement::Text {
+                foreground: color::BLACK,
+                text: "++".to_owned(),
+                scale: 60.0,
                 border_px: 5,
             },
             ..Default::default()
