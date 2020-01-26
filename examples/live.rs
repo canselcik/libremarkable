@@ -51,7 +51,7 @@ fn main() {
             .unwrap();
 
         let jpg = writer.into_inner().unwrap();
-        let mut response = Response::new_empty(tiny_http::StatusCode(200))
+        let response = Response::new_empty(tiny_http::StatusCode(200))
             .with_data(&*jpg, Some(jpg.len()))
             .with_header(
                 "Content-Type: image/jpeg"

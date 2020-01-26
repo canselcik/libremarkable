@@ -168,7 +168,7 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
                     // contact made with pressure val up to 4095
                     state
                         .last_pressure
-                        .store(ev.value as u16, Ordering::Relaxed);;
+                        .store(ev.value as u16, Ordering::Relaxed);
                 }
                 WACOM_EVCODE_XPOS => {
                     // x and y are inverted due to remarkable
