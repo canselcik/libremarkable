@@ -48,13 +48,9 @@ pub fn charge_full() -> Result<i32, String> {
 /// 1340000
 pub fn charge_full_design() -> Result<i32, String> {
     let curr = read_attribute("charge_full_design")?;
-    match curr.parse::<i32>() {
-        Ok(r) => Ok(r),
-        Err(_) => Err(
-            "Unable to parse the contents of 'charge_full_design' during a battery query"
-                .to_owned(),
-        ),
-    }
+    curr.parse::<i32>().map_err(|_| {
+        "Unable to parse the contents of 'charge_full_design' during a battery query".to_owned()
+    })
 }
 
 /// $ cat /sys/class/power_supply/bq27441/charge_now

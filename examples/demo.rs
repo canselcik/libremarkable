@@ -433,11 +433,7 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
                 if UNPRESS_OBSERVED.fetch_and(false, Ordering::Relaxed) {
                     let region = app
                         .find_active_region(position.y.round() as u16, position.x.round() as u16);
-                    let element = match region {
-                        Some((region, _)) => Some(region.element.clone()),
-                        None => None,
-                        
-                    };
+                    let element = region.map(|(region, _)| { region.element.clone() });
                     match element {
                       Some(element) => (region.unwrap().0.handler)(app, element),
                       None => {}

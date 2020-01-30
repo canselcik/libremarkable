@@ -83,7 +83,9 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
             marker: AtomicU32::new(1),
             device,
             frame: mem_map,
-            default_font: collection.into_font().unwrap(),
+            default_font: collection
+                .and_then(|ft| ft.into_fonts().next().unwrap())
+                .unwrap(),
             var_screen_info,
             fix_screen_info,
         }

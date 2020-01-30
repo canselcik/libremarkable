@@ -299,10 +299,7 @@ impl<'a> ApplicationContext<'a> {
     }
 
     pub fn get_element_by_name(&mut self, name: &str) -> Option<UIElementHandle> {
-        match self.ui_elements.get(name) {
-            None => None,
-            Some(element) => Some(element.clone()),
-        }
+        self.ui_elements.get(name).cloned()
     }
 
     pub fn draw_elements(&mut self) {
@@ -536,10 +533,7 @@ impl<'a> ApplicationContext<'a> {
             },
             2.0,
         ));
-        match matches.first() {
-            None => None,
-            Some(res) => Some((res.0, res.2)),
-        }
+        matches.first().map(|res| { (res.0, res.2) })
     }
 
     pub fn remove_active_region_at_point(&mut self, y: u16, x: u16) -> bool {
