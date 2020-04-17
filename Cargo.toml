@@ -2,17 +2,11 @@
 name = "libremarkable"
 version = "0.3.2"
 authors = ["Can Selcik <contact@cselcik.com>"]
-is-it-maintained-issue-resolution = { repository = "https://github.com/canselcik/libremarkable" }
-is-it-maintained-open-issues = { repository = "https://github.com/canselcik/libremarkable" }
 repository = "https://github.com/canselcik/libremarkable"
-maintenance = { status = "actively-developed" }
 license = "MIT"
 description = "The only publicly available Framework for developing applications for the Remarkable Paper Tablet w/ Low Latency Partial Refresh Support"
 readme = "README.md"
 exclude = [ "reference-material/*", "legacy-c-impl/*", "private/*" ]
-
-[build]
-target= "armv7-unknown-linux-gnueabihf"
 
 [dependencies]
 log = "0.4.1"
