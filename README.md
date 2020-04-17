@@ -44,7 +44,7 @@ A simple Makefile wrapper is created for convenience. It exposes the following v
   - `examples`: Builds examples
   - `library`: Builds library
   - `all`: library + examples
-  
+
 #### Testing libremarkable and the examples on the device
 The provided `Makefile` assumes the device is reachable at `10.11.99.1` and that SSH Key-Based Authentication is set up for SSH so that you won't be prompted a password every time. The following actions are available:
   - `run`: Builds and runs `demo.rs` on the device after stopping `xochitl`
