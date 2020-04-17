@@ -34,31 +34,31 @@ test:
 	# Notice we aren't using the armv7 target here
 	cargo test
 
-DEVICE_IP ?= "10.11.99.1"
+DEVICE_IP ?= '10.11.99.1'
+DEVICE_HOST ?= root@$(DEVICE_IP)
 deploy-demo:
-	ssh root@$(DEVICE_IP) 'kill -9 `pidof demo` || true; systemctl stop xochitl || true'
-	scp ./target/armv7-unknown-linux-gnueabihf/release/examples/demo root@$(DEVICE_IP):~/
-	ssh root@$(DEVICE_IP) './demo'
+	ssh $(DEVICE_HOST) 'kill -9 `pidof demo` || true; systemctl stop xochitl || true'
+	scp ./target/armv7-unknown-linux-gnueabihf/release/examples/demo $(DEVICE_HOST):~/
+	ssh $(DEVICE_HOST) './demo'
 
 run: examples deploy-demo
 
 run-docker: examples-docker deploy-demo
 
 live: examples
-	ssh root@$(DEVICE_IP) 'kill -9 `pidof live` || true'
-	scp ./target/armv7-unknown-linux-gnueabihf/release/examples/live root@$(DEVICE_IP):~/
-	ssh root@$(DEVICE_IP) './live'
+	ssh $(DEVICE_HOST) 'kill -9 `pidof live` || true'
+	scp ./target/armv7-unknown-linux-gnueabihf/release/examples/live $(DEVICE_HOST):~/
+	ssh $(DEVICE_HOST) './live'
 
 run-bench: bench
-	ssh root@$(DEVICE_IP) 'kill -9 `pidof demo` || true; systemctl stop xochitl || true'
-	scp ./target/armv7-unknown-linux-gnueabihf/release/examples/demo root@$(DEVICE_IP):~/
-	ssh root@$(DEVICE_IP) './demo'
+	ssh $(DEVICE_HOST) 'kill -9 `pidof demo` || true; systemctl stop xochitl || true'
+	scp ./target/armv7-unknown-linux-gnueabihf/release/examples/demo $(DEVICE_HOST):~/
+	ssh $(DEVICE_HOST) './demo'
 
 spy-xochitl: examples
-	ssh root@$(DEVICE_IP) 'systemctl stop xochitl'
-	scp ./target/armv7-unknown-linux-gnueabihf/release/examples/libspy.so root@$(DEVICE_IP):~/
-	ssh root@$(DEVICE_IP) 'LD_PRELOAD="/home/root/libspy.so" xochitl'
+	ssh $(DEVICE_HOST) 'systemctl stop xochitl'
+	scp ./target/armv7-unknown-linux-gnueabihf/release/examples/libspy.so $(DEVICE_HOST):~/
+	ssh $(DEVICE_HOST) 'LD_PRELOAD="/home/root/libspy.so" xochitl'
 
 start-xochitl:
-	ssh root@$(DEVICE_IP) 'kill -9 `pidof demo` || true; systemctl start xochitl'
-	
+	ssh $(DEVICE_HOST) 'kill -9 `pidof demo` || true; systemctl start xochitl'
