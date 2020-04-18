@@ -1,11 +1,13 @@
+TARGET ?= armv7-unknown-linux-gnueabihf
+
 all: library examples
 
 .PHONY: examples
 examples:
-	cargo build --examples --release --target=armv7-unknown-linux-gnueabihf
+	cargo build --examples --release --target=$(TARGET)
 
 bench:
-	cargo build --examples --release --target=armv7-unknown-linux-gnueabihf --features "enable-runtime-benchmarking"
+	cargo build --examples --release --target=$(TARGET) --features "enable-runtime-benchmarking"
 
 .PHONY: docker-env
 docker-env:
@@ -25,10 +27,10 @@ examples-docker: docker-env
 		-v cargo-registry:/home/builder/.cargo/registry \
 		-w /home/builder/libremarkable \
 		rust-build-remarkable:latest \
-		cargo build --examples --release --target=armv7-unknown-linux-gnueabihf
+		cargo build --examples --release --target=$(TARGET)
 
 library:
-	cargo build --release --target=armv7-unknown-linux-gnueabihf
+	cargo build --release --target=$(TARGET)
 
 test:
 	# Notice we aren't using the armv7 target here
@@ -38,7 +40,7 @@ DEVICE_IP ?= '10.11.99.1'
 DEVICE_HOST ?= root@$(DEVICE_IP)
 deploy-demo:
 	ssh $(DEVICE_HOST) 'kill -9 `pidof demo` || true; systemctl stop xochitl || true'
-	scp ./target/armv7-unknown-linux-gnueabihf/release/examples/demo $(DEVICE_HOST):~/
+	scp ./target/$(TARGET)/release/examples/demo $(DEVICE_HOST):~/
 	ssh $(DEVICE_HOST) './demo'
 
 run: examples deploy-demo
@@ -47,17 +49,17 @@ run-docker: examples-docker deploy-demo
 
 live: examples
 	ssh $(DEVICE_HOST) 'kill -9 `pidof live` || true'
-	scp ./target/armv7-unknown-linux-gnueabihf/release/examples/live $(DEVICE_HOST):~/
+	scp ./target/$(TARGET)/release/examples/live $(DEVICE_HOST):~/
 	ssh $(DEVICE_HOST) './live'
 
 run-bench: bench
 	ssh $(DEVICE_HOST) 'kill -9 `pidof demo` || true; systemctl stop xochitl || true'
-	scp ./target/armv7-unknown-linux-gnueabihf/release/examples/demo $(DEVICE_HOST):~/
+	scp ./target/$(TARGET)/release/examples/demo $(DEVICE_HOST):~/
 	ssh $(DEVICE_HOST) './demo'
 
 spy-xochitl: examples
 	ssh $(DEVICE_HOST) 'systemctl stop xochitl'
-	scp ./target/armv7-unknown-linux-gnueabihf/release/examples/libspy.so $(DEVICE_HOST):~/
+	scp ./target/$(TARGET)/release/examples/libspy.so $(DEVICE_HOST):~/
 	ssh $(DEVICE_HOST) 'LD_PRELOAD="/home/root/libspy.so" xochitl'
 
 start-xochitl:
