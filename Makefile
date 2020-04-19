@@ -6,6 +6,9 @@ all: library examples
 examples:
 	cargo build --examples --release --target=$(TARGET)
 
+demo:
+	cargo build --example demo --release --target=$(TARGET)
+
 bench:
 	cargo build --examples --release --target=$(TARGET) --features "enable-runtime-benchmarking"
 
@@ -44,7 +47,7 @@ deploy-demo:
 	ssh $(DEVICE_HOST) './demo'
 run-demo:
 	ssh $(DEVICE_HOST) 'killall -q -9 demo || true; systemctl stop xochitl || true'
-	ssh $(DEVICE_HOST) 'RUST_LOG=info ./demo'
+	ssh $(DEVICE_HOST) 'RUST_BACKTRACE=1 RUST_LOG=info ./demo'
 
 run: examples deploy-demo
 

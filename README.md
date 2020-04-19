@@ -63,3 +63,15 @@ If you choose to skip the `Makefile` and call `cargo` yourself, make sure to inc
     Finished dev [unoptimized + debuginfo] target(s) in 24.85 secs
 ```
 The `--release` argument is important as this enables optimizations and without optimizations you'll be looking at ~70% CPU utilization even when idle. With optimizations, the framework runs really light, 0% CPU utilization when idle and 1-2% at peak.
+
+#### Linking against musl WIP
+Use
+```
+[target.armv7-unknown-linux-musleabihf]
+linker = "arm-linux-gnueabihf-gcc"
+```
+```
+TARGET=armv7-unknown-linux-musleabihf make demo deploy-demo
+```
+so far:
+> thread 'main' panicked at 'called `Result::unwrap()` on an `Err` value: ErrUnaligned', src/framebuffer/core.rs:67:23
