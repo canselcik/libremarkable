@@ -43,7 +43,7 @@ DEVICE_IP ?= '10.11.99.1'
 DEVICE_HOST ?= root@$(DEVICE_IP)
 deploy-demo:
 	ssh $(DEVICE_HOST) 'killall -q -9 demo || true; systemctl stop xochitl || true'
-	scp ./target/$(TARGET)/release/examples/demo $(DEVICE_HOST):~/
+	scp ./target/$(TARGET)/release/examples/demo $(DEVICE_HOST):
 	ssh $(DEVICE_HOST) './demo'
 run-demo:
 	ssh $(DEVICE_HOST) 'killall -q -9 demo || true; systemctl stop xochitl || true'
@@ -55,17 +55,17 @@ run-docker: examples-docker deploy-demo
 
 live: examples
 	ssh $(DEVICE_HOST) 'killall -q -9 live || true'
-	scp ./target/$(TARGET)/release/examples/live $(DEVICE_HOST):~/
+	scp ./target/$(TARGET)/release/examples/live $(DEVICE_HOST):
 	ssh $(DEVICE_HOST) './live'
 
 run-bench: bench
 	ssh $(DEVICE_HOST) 'killall -q -9 demo || true; systemctl stop xochitl || true'
-	scp ./target/$(TARGET)/release/examples/demo $(DEVICE_HOST):~/
+	scp ./target/$(TARGET)/release/examples/demo $(DEVICE_HOST):
 	ssh $(DEVICE_HOST) './demo'
 
 spy-xochitl: examples
 	ssh $(DEVICE_HOST) 'systemctl stop xochitl'
-	scp ./target/$(TARGET)/release/examples/libspy.so $(DEVICE_HOST):~/
+	scp ./target/$(TARGET)/release/examples/libspy.so $(DEVICE_HOST):
 	ssh $(DEVICE_HOST) 'LD_PRELOAD="/home/root/libspy.so" xochitl'
 
 start-xochitl:
