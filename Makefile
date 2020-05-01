@@ -9,6 +9,10 @@ examples:
 demo:
 	cargo build --example demo --release --target=$(TARGET)
 
+demo-musl:
+	# cargo install cross
+	cross build --example demo --release --target=armv7-unknown-linux-musleabihf
+
 bench:
 	cargo build --examples --release --target=$(TARGET) --features "enable-runtime-benchmarking"
 
@@ -31,10 +35,6 @@ examples-docker: docker-env
 		-w /home/builder/libremarkable \
 		rust-build-remarkable:latest \
 		cargo build --examples --release --target=$(TARGET)
-
-docker-musl-demo:
-	# cargo install cross
-	cross build --example demo --release --target=armv7-unknown-linux-musleabihf
 
 library:
 	cargo build --release --target=$(TARGET)
