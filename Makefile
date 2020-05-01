@@ -32,6 +32,10 @@ examples-docker: docker-env
 		rust-build-remarkable:latest \
 		cargo build --examples --release --target=$(TARGET)
 
+docker-musl-demo:
+	# cargo install cross
+	cross build --example demo --release --target=armv7-unknown-linux-musleabihf
+
 library:
 	cargo build --release --target=$(TARGET)
 
@@ -44,10 +48,10 @@ DEVICE_HOST ?= root@$(DEVICE_IP)
 deploy-demo:
 	ssh $(DEVICE_HOST) 'killall -q -9 demo || true; systemctl stop xochitl || true'
 	scp ./target/$(TARGET)/release/examples/demo $(DEVICE_HOST):
-	ssh $(DEVICE_HOST) './demo'
+	ssh $(DEVICE_HOST) 'RUST_BACKTRACE=1 RUST_LOG=debug ./demo'
 run-demo:
 	ssh $(DEVICE_HOST) 'killall -q -9 demo || true; systemctl stop xochitl || true'
-	ssh $(DEVICE_HOST) 'RUST_BACKTRACE=1 RUST_LOG=info ./demo'
+	ssh $(DEVICE_HOST) './demo'
 
 run: examples deploy-demo
 
