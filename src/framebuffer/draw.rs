@@ -81,7 +81,7 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
     fn fill_circle(&mut self, pos: cgmath::Point2<i32>, rad: u32, v: color) -> mxcfb_rect {
         let rad_square = (rad * rad) as i32;
         let search_distance: i32 = (rad + 1) as i32;
-        for y in { (-search_distance)..search_distance } {
+        for y in (-search_distance)..search_distance {
             let y_square = y * y;
             for x in (-search_distance)..search_distance {
                 let x_square = x * x;

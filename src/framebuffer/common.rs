@@ -8,7 +8,9 @@ use std;
 /// It doesn't make a difference since we will be mocking the ioctl calls.
 #[cfg(target_pointer_width = "64")]
 pub type NativeWidthType = u64;
-#[cfg(target_pointer_width = "32")]
+#[cfg(all(target_pointer_width = "32", target_env = "musl"))]
+pub type NativeWidthType = i32;
+#[cfg(all(target_pointer_width = "32", target_env = "gnu"))]
 pub type NativeWidthType = u32;
 
 pub const DISPLAYWIDTH: u16 = 1404;
