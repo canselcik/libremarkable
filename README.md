@@ -19,25 +19,25 @@ For further documentation see the [wiki](https://github.com/canselcik/libremarka
 ### Build Instructions
 
 #### Setting up the toolchain
-In order to build `libremarkable` and the examples (`spy.so` and `demo`), you'll need the following configuration after having installed the proper toolchain to your `$PATH`. The `arm-linux-gnueabihf-gcc` toolchain is used to build both implementations.
-
-The toolchain that would be acquired from either of these sources would be able to cross-compile for the Remarkable Tablet:
-```
-AUR:
-  https://aur.archlinux.org/packages/arm-linux-gnueabihf-gcc/
-Remarkable:
-  https://remarkable.engineering/deploy/sdk/poky-glibc-x86_64-meta-toolchain-qt5-cortexa9hf-neon-toolchain-2.1.3.sh
-```
+In order to build `libremarkable` and the examples (`spy.so` and `demo`), you'll need the toolchain from Remarkable. Download the installation script from https://remarkable.engineering/deploy/sdk/poky-glibc-x86_64-meta-toolchain-qt5-cortexa9hf-neon-toolchain-2.1.3.sh and install the toolchain.
 
 You can then set up your Rust toolchain for cross compilation with: `rustup target add armv7-unknown-linux-gnueabihf`.
 
-Once that's done, you should add the following to your `~/.cargo/config`:
+Once that's done, you should add the following to `.cargo/config` (replace `<path-to-installed-poky-toochain>` with the directory you installed the Remarkable toolchain to):
 ```
 [target.armv7-unknown-linux-gnueabihf]
-linker = "arm-linux-gnueabihf-gcc"
+linker = "<path-to-the-installed-poky-toolchain>/sysroots/x86_64-pokysdk-linux/usr/bin/arm-poky-linux-gnueabi/arm-poky-linux-gnueabi-gcc"
+rustflags = [
+  "-C", "link-arg=-march=armv7-a",
+  "-C", "link-arg=-marm",
+  "-C", "link-arg=-mfpu=neon",
+  "-C", "link-arg=-mfloat-abi=hard",
+  "-C", "link-arg=-mcpu=cortex-a9",
+  "-C", "link-arg=--sysroot=<path-to-the-installed-poky-toolchain>/sysroots/cortexa9hf-neon-poky-linux-gnueabi",
+]
 ```
 
-If you have further questions, feel free to ask in Issues or take a look at [this comment](https://github.com/canselcik/libremarkable/issues/5#issuecomment-377592830) on one of the issues under this repo.
+If you have further questions, feel free to ask in Issues.
 
 #### Building libremarkable and the examples
 A simple Makefile wrapper is created for convenience. It exposes the following verbs:
