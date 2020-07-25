@@ -43,14 +43,13 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
             .open(path_to_device)
             .unwrap();
 
-        let fix_screen_info = Framebuffer::get_fix_screeninfo(&device);
         let mut var_screen_info = Framebuffer::get_var_screeninfo(&device);
-        var_screen_info.xres = 1872;
-        var_screen_info.yres = 1404;
+        var_screen_info.xres = 1404;
+        var_screen_info.yres = 1872;
         var_screen_info.rotate = 1;
         var_screen_info.width = 0xffff_ffff;
         var_screen_info.height = 0xffff_ffff;
-        var_screen_info.pixclock = 160_000_000;
+        var_screen_info.pixclock = 6250;
         var_screen_info.left_margin = 32;
         var_screen_info.right_margin = 326;
         var_screen_info.upper_margin = 4;
@@ -63,6 +62,7 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
 
         Framebuffer::put_var_screeninfo(&device, &mut var_screen_info);
 
+        let fix_screen_info = Framebuffer::get_fix_screeninfo(&device);
         let frame_length = (fix_screen_info.line_length * var_screen_info.yres) as usize;
         let mem_map = MemoryMap::new(
             frame_length,
