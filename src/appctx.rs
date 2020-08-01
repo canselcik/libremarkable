@@ -467,6 +467,10 @@ impl<'a> ApplicationContext<'a> {
         }
     }
 
+    pub fn event_receiver(&self) -> &std::sync::mpsc::Receiver<InputEvent> {
+        &self.input_rx
+    }
+
     pub fn dispatch_events(
         &mut self,
         activate_wacom: bool,
