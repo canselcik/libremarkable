@@ -11,6 +11,9 @@ pub mod gpio;
 /// Contains the code to decode multitouch events
 pub mod multitouch;
 
+/// Contains the ev codes in use
+pub mod ecodes;
+
 #[derive(PartialEq, Copy, Clone)]
 pub enum InputDevice {
     Wacom,

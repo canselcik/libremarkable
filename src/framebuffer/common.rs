@@ -26,6 +26,9 @@ pub const MXCFB_SET_AUTO_UPDATE_MODE: NativeWidthType =
     iow!(b'F', 0x2D, std::mem::size_of::<u32>()) as NativeWidthType;
 pub const MXCFB_SET_UPDATE_SCHEME: NativeWidthType =
     iow!(b'F', 0x32, std::mem::size_of::<u32>()) as NativeWidthType;
+/// Should be 0x4048462e. This is not the ordinary value which is
+/// used in most software. Even the official toolchain(s).
+/// See: https://github.com/canselcik/libremarkable/wiki/Framebuffer-Overview
 pub const MXCFB_SEND_UPDATE: NativeWidthType =
     iow!(b'F', 0x2E, std::mem::size_of::<mxcfb_update_data>()) as NativeWidthType;
 pub const MXCFB_WAIT_FOR_UPDATE_COMPLETE: NativeWidthType =
