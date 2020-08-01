@@ -279,6 +279,10 @@ impl<'a> ApplicationContext<'a> {
         self.ui_elements.remove(name).is_some()
     }
 
+    pub fn remove_elements(&mut self) {
+        self.ui_elements.clear();
+    }
+
     pub fn draw_element(&mut self, name: &str) -> bool {
         let appref = self.upgrade_ref();
         match self.ui_elements.get(name) {
