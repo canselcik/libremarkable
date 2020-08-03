@@ -1,6 +1,7 @@
 use evdev::raw::input_event;
 use input::{InputDeviceState, InputEvent};
 use std::sync::atomic::{AtomicBool, Ordering};
+use super::ecodes;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum PhysicalButton {
@@ -48,23 +49,23 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
         }
         1 => {
             let (p, before_state) = match ev.code {
-                102 => (
+                ecodes::KEY_HOME => (
                     PhysicalButton::MIDDLE,
                     state.states[0].fetch_and(ev.value != 0, Ordering::Relaxed),
                 ),
-                105 => (
+                ecodes::KEY_LEFT => (
                     PhysicalButton::LEFT,
                     state.states[1].fetch_and(ev.value != 0, Ordering::Relaxed),
                 ),
-                106 => (
+                ecodes::KEY_RIGHT => (
                     PhysicalButton::RIGHT,
                     state.states[2].fetch_and(ev.value != 0, Ordering::Relaxed),
                 ),
-                116 => (
+                ecodes::KEY_POWER => (
                     PhysicalButton::POWER,
                     state.states[3].fetch_and(ev.value != 0, Ordering::Relaxed),
                 ),
-                143 => (
+                ecodes::KEY_WAKEUP => (
                     PhysicalButton::WAKEUP,
                     state.states[4].fetch_and(ev.value != 0, Ordering::Relaxed),
                 ),
