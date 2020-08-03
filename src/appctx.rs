@@ -533,6 +533,46 @@ impl<'a> ApplicationContext<'a> {
         }
     }
 
+    pub fn handle_event(&mut self, event: InputEvent) {
+        let appref = self.upgrade_ref();
+
+        // Now we consume the input events
+        self.running.store(true, Ordering::Relaxed);
+
+        let mut last_active_region_gesture_id: i32 = -1;
+        if self.running.load(Ordering::Relaxed) {
+            match event {
+                InputEvent::GPIO { event } => {
+                    (self.on_button)(appref, event);
+                }
+                InputEvent::MultitouchEvent { event } => {
+                    // Check for and notify clickable active regions for multitouch events
+                    if let MultitouchEvent::Touch {
+                        gesture_seq,
+                        position,
+                        ..
+                    } = event
+                    {
+                        let gseq = i32::from(gesture_seq);
+                        if last_active_region_gesture_id != gseq {
+                            if let Some((h, _)) =
+                                self.find_active_region(position.y, position.x)
+                            {
+                                (h.handler)(appref, h.element.clone());
+                            }
+                            last_active_region_gesture_id = gseq;
+                        }
+                    }
+                    (self.on_touch)(appref, event);
+                }
+                InputEvent::WacomEvent { event } => {
+                    (self.on_wacom)(appref, event);
+                }
+                _ => {}
+            }
+        }
+    }
+
     pub fn find_active_region(&self, y: u16, x: u16) -> Option<(&ActiveRegionHandler, ItemId)> {
         let matches = self.active_regions.query(geom::Rect::centered_with_radius(
             &geom::Point {
