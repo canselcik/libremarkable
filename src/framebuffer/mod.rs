@@ -131,6 +131,8 @@ pub trait FramebufferBase<'a> {
         device: &std::fs::File,
         var_screen_info: &mut screeninfo::VarScreeninfo,
     ) -> bool;
+
+    fn update_var_screeninfo(&mut self) -> bool;
 }
 
 pub mod refresh;

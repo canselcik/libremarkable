@@ -148,4 +148,8 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
         let result = unsafe { ioctl(device.as_raw_fd(), FBIOPUT_VSCREENINFO, var_screen_info) };
         result == 0
     }
+
+    fn update_var_screeninfo(&mut self) -> bool {
+        Self::put_var_screeninfo(&self.device, &mut self.var_screen_info)
+    }
 }
