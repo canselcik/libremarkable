@@ -175,6 +175,7 @@ pub trait FramebufferRefresh {
     ///    line than the original update line width, the EPDC would
     ///    cause screen artifacts by incorrectly handling the 8+ pixels
     ///    at the end of each line.
+    #[allow(clippy::too_many_arguments)]
     fn partial_refresh(
         &self,
         region: &common::mxcfb_rect,

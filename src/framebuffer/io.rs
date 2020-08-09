@@ -8,7 +8,7 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         unsafe {
             let begin = self.frame.data() as *mut u8;
             for (i, elem) in frame.iter().enumerate() {
-                begin.offset(i as isize).write_volatile(*elem);
+                begin.add(i).write_volatile(*elem);
             }
         }
     }
@@ -49,8 +49,8 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         let begin = self.frame.data() as *mut u8;
         let (c1, c2) = unsafe {
             (
-                begin.offset(curr_index as isize).read_volatile(),
-                begin.offset((curr_index + 1) as isize).read_volatile(),
+                begin.add(curr_index).read_volatile(),
+                begin.add(curr_index + 1).read_volatile(),
             )
         };
         framebuffer::common::color::NATIVE_COMPONENTS(c1, c2)

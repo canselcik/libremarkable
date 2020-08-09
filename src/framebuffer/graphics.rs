@@ -113,7 +113,7 @@ where
             ymin: lower.y,
             x: lower.x,
             sign: if lower.x > higher.x { 1 } else { -1 },
-            direction: direction,
+            direction,
             dx: (higher.x - lower.x).abs(),
             dy: (higher.y - lower.y).abs(),
             sum: 0,
@@ -126,17 +126,17 @@ where
     let mut active_list = Vec::<EdgeBucket>::new();
 
     // initialise scanline with lowest ymin
-    let mut scanline = edge_table[0].clone().ymin;
+    let mut scanline = edge_table[0].ymin;
 
-    while edge_table.len() > 0 {
+    while !edge_table.is_empty() {
         // remove edges that end on the current scanline
-        edge_table.retain(|edge| if edge.ymax == scanline { false } else { true });
-        active_list.retain(|edge| if edge.ymax == scanline { false } else { true });
+        edge_table.retain(|edge| edge.ymax != scanline);
+        active_list.retain(|edge| edge.ymax != scanline);
 
         // push edges that start on this scanline to the active list
         for edge in edge_table.iter() {
             if edge.ymin == scanline {
-                active_list.push(edge.clone());
+                active_list.push(*edge);
             }
         }
 
@@ -150,7 +150,7 @@ where
         for edge in active_list.iter() {
             if winding_count != 0 {
                 for x in prev_x..edge.x {
-                    write_pixel(Point2 { x: x, y: scanline });
+                    write_pixel(Point2 { x, y: scanline });
                 }
             }
             prev_x = edge.x;
@@ -315,6 +315,7 @@ mod test {
         fn write_pixel(&mut self, point: Point2<i32>) {
             self.pixel_writes.push(point)
         }
+        #[allow(dead_code)]
         fn clear(&mut self) {
             self.pixel_writes.clear()
         }
