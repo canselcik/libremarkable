@@ -89,23 +89,17 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Vec<InputEven
                             finger.last_pressed = finger.pressed;
 
                             events.push(InputEvent::MultitouchEvent {
-                                event: MultitouchEvent::Press {
-                                    finger: finger.clone(),
-                                },
+                                event: MultitouchEvent::Press { finger: *finger },
                             });
                         } else if finger.last_pressed && !finger.pressed {
                             // Released
                             finger.last_pressed = finger.pressed;
                             events.push(InputEvent::MultitouchEvent {
-                                event: MultitouchEvent::Release {
-                                    finger: finger.clone(),
-                                },
+                                event: MultitouchEvent::Release { finger: *finger },
                             });
                         } else if finger.last_pressed && finger.pressed && finger.pos_updated {
                             events.push(InputEvent::MultitouchEvent {
-                                event: MultitouchEvent::Move {
-                                    finger: finger.clone(),
-                                },
+                                event: MultitouchEvent::Move { finger: *finger },
                             });
                         }
 

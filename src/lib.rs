@@ -28,7 +28,7 @@ macro_rules! end_bench {
     ($name:ident) => {
         let dur = $name.elapsed();
         let s = dur.as_secs();
-        let mut us = dur.subsec_nanos() / 1000;
+        let mut us = dur.subsec_micros();
         let ms = us / 1000;
         us -= ms * 1000;
         println!("'{}' took {}s {}ms {}us", stringify!($name), s, ms, us);

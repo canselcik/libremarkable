@@ -81,7 +81,10 @@ impl<'a> ApplicationContext<'a> {
     }
 
     pub fn get_lua_ref(&mut self) -> &'a mut Lua<'static> {
-        unsafe { std::mem::transmute::<_, &'a mut Lua<'static>>(self.lua.get()) }
+        #[allow(clippy::transmute_ptr_to_ref)]
+        unsafe {
+            std::mem::transmute::<_, &'a mut Lua<'static>>(self.lua.get())
+        }
     }
 
     pub fn get_dimensions(&self) -> (u32, u32) {
@@ -154,6 +157,7 @@ impl<'a> ApplicationContext<'a> {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn display_text(
         &mut self,
         position: cgmath::Point2<f32>,
@@ -509,7 +513,7 @@ impl<'a> ApplicationContext<'a> {
                         if let MultitouchEvent::Press { finger }
                         | MultitouchEvent::Move { finger } = event
                         {
-                            let gseq = i32::from(finger.tracking_id);
+                            let gseq = finger.tracking_id;
                             if last_active_region_gesture_id != gseq {
                                 if let Some((h, _)) =
                                     self.find_active_region(finger.pos.y, finger.pos.x)
@@ -536,7 +540,6 @@ impl<'a> ApplicationContext<'a> {
         // Now we consume the input events
         self.running.store(true, Ordering::Relaxed);
 
-        let mut last_active_region_gesture_id: i32 = -1;
         if self.running.load(Ordering::Relaxed) {
             match event {
                 InputEvent::GPIO { event } => {
@@ -547,14 +550,8 @@ impl<'a> ApplicationContext<'a> {
                     if let MultitouchEvent::Press { finger } | MultitouchEvent::Move { finger } =
                         event
                     {
-                        let gseq = i32::from(finger.tracking_id);
-                        if last_active_region_gesture_id != gseq {
-                            if let Some((h, _)) =
-                                self.find_active_region(finger.pos.y, finger.pos.x)
-                            {
-                                (h.handler)(appref, h.element.clone());
-                            }
-                            last_active_region_gesture_id = gseq;
+                        if let Some((h, _)) = self.find_active_region(finger.pos.y, finger.pos.x) {
+                            (h.handler)(appref, h.element.clone());
                         }
                     }
                     (self.on_touch)(appref, event);

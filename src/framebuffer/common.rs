@@ -223,8 +223,8 @@ impl mxcfb_rect {
         let bottom = std::cmp::max(self.top + self.height, p.y);
         let right = std::cmp::max(self.left + self.width, p.x);
         mxcfb_rect {
-            left: left,
-            top: top,
+            left,
+            top,
             width: right - left,
             height: bottom - top,
         }
@@ -236,17 +236,17 @@ impl mxcfb_rect {
         if self_is_empty && rect_is_empty {
             mxcfb_rect::invalid()
         } else if self_is_empty {
-            rect.clone()
+            *rect
         } else if rect_is_empty {
-            self.clone()
+            *self
         } else {
             let top = std::cmp::min(self.top, rect.top);
             let left = std::cmp::min(self.left, rect.left);
             let bottom = std::cmp::max(self.top + self.height, rect.top + rect.height);
             let right = std::cmp::max(self.left + self.width, rect.left + rect.width);
             mxcfb_rect {
-                left: left,
-                top: top,
+                left,
+                top,
                 width: right - left,
                 height: bottom - top,
             }
