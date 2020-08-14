@@ -1,6 +1,5 @@
 #![allow(non_camel_case_types)]
 
-use libc;
 use libc::intptr_t;
 
 use crate::framebuffer::common::mxcfb_rect;

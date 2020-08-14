@@ -2,7 +2,6 @@
 #![allow(non_camel_case_types)]
 use crate::framebuffer::cgmath;
 use crate::framebuffer::mxcfb::*;
-use std;
 
 /// This is to allow tests to run on systems with 64bit pointer types.
 /// It doesn't make a difference since we will be mocking the ioctl calls.

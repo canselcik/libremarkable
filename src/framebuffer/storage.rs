@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use zstd;
 
 #[derive(Clone)]
 pub struct CompressedCanvasState {
@@ -40,7 +39,6 @@ impl CompressedCanvasState {
 }
 
 use crate::framebuffer::common;
-use image;
 
 pub fn rgbimage_from_u8_slice(w: u32, h: u32, buff: &[u8]) -> Option<image::RgbImage> {
     // rgb565 is the input so it is 16bits (2 bytes) per pixel

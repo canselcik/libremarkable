@@ -8,7 +8,6 @@ pub mod io;
 
 pub use cgmath;
 
-use image;
 pub trait FramebufferIO {
     /// Writes an arbitrary length frame into the framebuffer
     fn write_frame(&mut self, frame: &[u8]);
@@ -109,7 +108,6 @@ pub trait FramebufferDraw {
     fn clear(&mut self);
 }
 
-use std;
 pub mod core;
 pub trait FramebufferBase<'a> {
     /// Creates a new instance of Framebuffer

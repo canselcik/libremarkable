@@ -1,8 +1,5 @@
-use std;
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
-
-use image;
 
 use crate::framebuffer::cgmath;
 use crate::framebuffer::common;

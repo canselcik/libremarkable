@@ -1,5 +1,3 @@
-use libc;
-
 use std::os::unix::io::AsRawFd;
 use std::sync::atomic::Ordering;
 
