@@ -1,4 +1,3 @@
-use std;
 use std::cell::UnsafeCell;
 use std::ops::DerefMut;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -7,7 +6,6 @@ use std::sync::RwLock;
 use std::collections::HashMap;
 
 use crate::input::ev;
-use image;
 
 use crate::framebuffer::common::*;
 
@@ -16,7 +14,6 @@ use crate::ui_extensions::element::{
     UIElementWrapper,
 };
 use crate::ui_extensions::luaext;
-use hlua;
 use hlua::Lua;
 
 use aabb_quadtree::{geom, ItemId, QuadTree};
@@ -32,9 +29,6 @@ use crate::input::gpio::GPIOEvent;
 use crate::input::multitouch::MultitouchEvent;
 use crate::input::wacom::WacomEvent;
 use crate::input::{InputDevice, InputEvent};
-
-#[cfg(feature = "enable-runtime-benchmarking")]
-use stopwatch;
 
 unsafe impl<'a> Send for ApplicationContext<'a> {}
 unsafe impl<'a> Sync for ApplicationContext<'a> {}

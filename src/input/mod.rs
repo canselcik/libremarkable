@@ -28,7 +28,6 @@ pub enum InputDeviceState {
     GPIOState(std::sync::Arc<gpio::GPIOState>),
 }
 
-use std;
 use std::sync::Arc;
 impl Clone for InputDeviceState {
     fn clone(&self) -> InputDeviceState {

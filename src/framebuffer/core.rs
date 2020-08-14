@@ -1,8 +1,6 @@
 #![allow(dead_code)]
 
-use libc;
 use libc::ioctl;
-use mmap;
 use mmap::MemoryMap;
 
 use std::fs::{File, OpenOptions};

@@ -1,8 +1,4 @@
-use std;
-
 use image::RgbImage;
-use libc;
-use line_drawing;
 use rusttype::{point, Scale};
 
 use crate::framebuffer;
