@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use libc::ioctl;
 use mmap::MemoryMap;
 

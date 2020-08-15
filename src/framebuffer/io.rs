@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use log::error;
 
 use crate::framebuffer;

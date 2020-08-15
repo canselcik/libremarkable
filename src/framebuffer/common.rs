@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 #![allow(non_camel_case_types)]
 use crate::framebuffer::cgmath;
 use crate::framebuffer::mxcfb::*;

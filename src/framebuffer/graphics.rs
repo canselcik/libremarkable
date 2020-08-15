@@ -313,10 +313,6 @@ mod test {
         fn write_pixel(&mut self, point: Point2<i32>) {
             self.pixel_writes.push(point)
         }
-        #[allow(dead_code)]
-        fn clear(&mut self) {
-            self.pixel_writes.clear()
-        }
     }
 
     #[test]
