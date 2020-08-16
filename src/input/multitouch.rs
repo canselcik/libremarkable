@@ -54,6 +54,17 @@ pub enum MultitouchEvent {
     Unknown,
 }
 
+impl MultitouchEvent {
+    pub fn finger(&self) -> Option<&Finger> {
+        match self {
+            MultitouchEvent::Press { ref finger } |
+            MultitouchEvent::Release { ref finger } |
+            MultitouchEvent::Move { ref finger } => Some(finger),
+            _ => None
+        }
+    }
+}
+
 pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Vec<InputEvent> {
     let state = match outer_state {
         InputDeviceState::MultitouchState(ref state_arc) => state_arc,
