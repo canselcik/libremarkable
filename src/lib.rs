@@ -1,5 +1,4 @@
 #![feature(integer_atomics)]
-#![feature(box_syntax)]
 #![feature(nll)]
 
 #[cfg(not(feature = "enable-runtime-benchmarking"))]
