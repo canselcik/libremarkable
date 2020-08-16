@@ -506,7 +506,7 @@ impl<'a> ApplicationContext<'a> {
                     },
                     InputEvent::MultitouchEvent { event } => {
                         // Check for and notify clickable active regions for multitouch events
-                        if let MultitouchEvent::Press { finger, .. } | MultitouchEvent::Move { finger, .. } = event
+                        if let MultitouchEvent::Press { finger } | MultitouchEvent::Move { finger } = event
                         {
                             let gseq = i32::from(finger.tracking_id);
                             if last_active_region_gesture_id != gseq {
@@ -543,7 +543,7 @@ impl<'a> ApplicationContext<'a> {
                 },
                 InputEvent::MultitouchEvent { event } => {
                     // Check for and notify clickable active regions for multitouch events
-                    if let MultitouchEvent::Press { finger, .. } | MultitouchEvent::Move { finger, .. } = event
+                    if let MultitouchEvent::Press { finger } | MultitouchEvent::Move { finger } = event
                     {
                         let gseq = i32::from(finger.tracking_id);
                         if last_active_region_gesture_id != gseq {

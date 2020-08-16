@@ -5,7 +5,6 @@ use evdev::raw::input_event;
 use input::{InputDeviceState, InputEvent};
 use super::ecodes;
 use std::sync::{Mutex, atomic::{AtomicI32, Ordering}};
-use std::convert::TryInto;
 use fxhash::FxHashMap;
 
 const MT_HSCALAR: f32 = (DISPLAYWIDTH as f32) / (MTWIDTH as f32);
@@ -49,9 +48,9 @@ impl ::std::default::Default for MultitouchState {
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum MultitouchEvent {
-    Press { finger: Finger, slot: u8 },
-    Release { finger: Finger, slot: u8 },
-    Move { finger: Finger, slot: u8 },
+    Press { finger: Finger },
+    Release { finger: Finger },
+    Move { finger: Finger },
     Unknown,
 }
 
@@ -73,26 +72,17 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Vec<InputEven
                             finger.last_pressed = finger.pressed;
 
                             events.push(InputEvent::MultitouchEvent {
-                                event: MultitouchEvent::Press {
-                                    finger: finger.clone(),
-                                    slot: (*slot).try_into().unwrap(),
-                                }
+                                event: MultitouchEvent::Press { finger: finger.clone() }
                             });
                         } else if finger.last_pressed && ! finger.pressed {
                             // Released
                             finger.last_pressed = finger.pressed;
                             events.push(InputEvent::MultitouchEvent {
-                                event: MultitouchEvent::Release {
-                                    finger: finger.clone(),
-                                    slot: (*slot).try_into().unwrap(),
-                                }
+                                event: MultitouchEvent::Release { finger: finger.clone() }
                             });
                         }else if finger.last_pressed && finger.pressed && finger.pos_updated {
                             events.push(InputEvent::MultitouchEvent {
-                                event: MultitouchEvent::Move {
-                                    finger: finger.clone(),
-                                    slot: (*slot).try_into().unwrap(),
-                                }
+                                event: MultitouchEvent::Move { finger: finger.clone() }
                             });
                         }
 
