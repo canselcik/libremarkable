@@ -93,23 +93,30 @@ impl EvDevContext {
 
                         for ev in dev.events_no_sync().unwrap() {
                             // event callback
-                            let decoded_event = match device_type {
+                            match device_type {
                                 input::InputDevice::Multitouch => {
-                                    input::multitouch::decode(&ev, &state)
-                                }
-                                input::InputDevice::Wacom => input::wacom::decode(&ev, &state),
-                                input::InputDevice::GPIO => input::gpio::decode(&ev, &state),
+                                    for event in input::multitouch::decode(&ev, &state) {
+                                        if let Err(e) = tx.send(event) {
+                                            error!("Failed to write InputEvent into the channel: {}", e);
+                                        }
+                                    }
+                                },
+                                input::InputDevice::Wacom => {
+                                    if let Some(event) = input::wacom::decode(&ev, &state) {
+                                        if let Err(e) = tx.send(event) {
+                                            error!("Failed to write InputEvent into the channel: {}", e);
+                                        }
+                                    }
+                                },
+                                input::InputDevice::GPIO => {
+                                    if let Some(event) = input::gpio::decode(&ev, &state) {
+                                        if let Err(e) = tx.send(event) {
+                                            error!("Failed to write InputEvent into the channel: {}", e);
+                                        }
+                                    }
+                                },
                                 _ => unreachable!(),
                             };
-                            if let Some(event) = decoded_event {
-                                match tx.send(event) {
-                                    Ok(_) => {}
-                                    Err(e) => error!(
-                                        "Failed to write InputEvent into the channel: {0}",
-                                        e
-                                    ),
-                                };
-                            }
                         }
                     }
                     exited.store(true, Ordering::Relaxed);

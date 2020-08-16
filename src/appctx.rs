@@ -503,19 +503,15 @@ impl<'a> ApplicationContext<'a> {
                 Ok(event) => match event {
                     InputEvent::GPIO { event } => {
                         (self.on_button)(appref, event);
-                    }
+                    },
                     InputEvent::MultitouchEvent { event } => {
                         // Check for and notify clickable active regions for multitouch events
-                        if let MultitouchEvent::Touch {
-                            gesture_seq,
-                            position,
-                            ..
-                        } = event
+                        if let MultitouchEvent::Press { finger, .. } | MultitouchEvent::Move { finger, .. } = event
                         {
-                            let gseq = i32::from(gesture_seq);
+                            let gseq = i32::from(finger.tracking_id);
                             if last_active_region_gesture_id != gseq {
                                 if let Some((h, _)) =
-                                    self.find_active_region(position.y, position.x)
+                                    self.find_active_region(finger.pos.y, finger.pos.x)
                                 {
                                     (h.handler)(appref, h.element.clone());
                                 }
@@ -523,10 +519,10 @@ impl<'a> ApplicationContext<'a> {
                             }
                         }
                         (self.on_touch)(appref, event);
-                    }
+                    },
                     InputEvent::WacomEvent { event } => {
                         (self.on_wacom)(appref, event);
-                    }
+                    },
                     _ => {}
                 },
             };
@@ -544,19 +540,15 @@ impl<'a> ApplicationContext<'a> {
             match event {
                 InputEvent::GPIO { event } => {
                     (self.on_button)(appref, event);
-                }
+                },
                 InputEvent::MultitouchEvent { event } => {
                     // Check for and notify clickable active regions for multitouch events
-                    if let MultitouchEvent::Touch {
-                        gesture_seq,
-                        position,
-                        ..
-                    } = event
+                    if let MultitouchEvent::Press { finger, .. } | MultitouchEvent::Move { finger, .. } = event
                     {
-                        let gseq = i32::from(gesture_seq);
+                        let gseq = i32::from(finger.tracking_id);
                         if last_active_region_gesture_id != gseq {
                             if let Some((h, _)) =
-                                self.find_active_region(position.y, position.x)
+                                self.find_active_region(finger.pos.y, finger.pos.x)
                             {
                                 (h.handler)(appref, h.element.clone());
                             }
@@ -564,10 +556,10 @@ impl<'a> ApplicationContext<'a> {
                         }
                     }
                     (self.on_touch)(appref, event);
-                }
+                },
                 InputEvent::WacomEvent { event } => {
                     (self.on_wacom)(appref, event);
-                }
+                },
                 _ => {}
             }
         }
