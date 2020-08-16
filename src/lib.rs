@@ -1,5 +1,4 @@
 #![feature(integer_atomics)]
-#![feature(nll)]
 
 #[cfg(not(feature = "enable-runtime-benchmarking"))]
 #[macro_export]
