@@ -48,6 +48,7 @@ extern crate libc;
 extern crate mmap;
 extern crate rusttype;
 extern crate zstd;
+extern crate fxhash;
 
 pub extern crate cgmath;
 pub extern crate epoll;

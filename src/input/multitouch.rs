@@ -5,8 +5,8 @@ use evdev::raw::input_event;
 use input::{InputDeviceState, InputEvent};
 use super::ecodes;
 use std::sync::{Mutex, atomic::{AtomicI32, Ordering}};
-use std::collections::HashMap;
 use std::convert::TryInto;
+use fxhash::FxHashMap;
 
 const MT_HSCALAR: f32 = (DISPLAYWIDTH as f32) / (MTWIDTH as f32);
 const MT_VSCALAR: f32 = (DISPLAYHEIGHT as f32) / (MTHEIGHT as f32);
@@ -34,14 +34,14 @@ impl Default for Finger {
 }
 
 pub struct MultitouchState {
-    fingers: Mutex<HashMap<i32 /* slot */, Finger>>,
+    fingers: Mutex<FxHashMap<i32 /* slot */, Finger>>,
     current_slot: AtomicI32,
 }
 
 impl ::std::default::Default for MultitouchState {
     fn default() -> Self {
         MultitouchState {
-            fingers: Mutex::new(HashMap::new()),
+            fingers: Mutex::new(FxHashMap::default()),
             current_slot: AtomicI32::new(0),
         }
     }
