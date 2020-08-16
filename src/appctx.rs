@@ -91,7 +91,7 @@ impl<'a> ApplicationContext<'a> {
         on_wacom: fn(&mut ApplicationContext<'_>, WacomEvent),
         on_touch: fn(&mut ApplicationContext<'_>, MultitouchEvent),
     ) -> ApplicationContext<'static> {
-        let framebuffer = box core::Framebuffer::new("/dev/fb0");
+        let framebuffer = Box::new(core::Framebuffer::new("/dev/fb0"));
         let yres = framebuffer.var_screen_info.yres;
         let xres = framebuffer.var_screen_info.xres;
 
