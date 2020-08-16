@@ -1,5 +1,3 @@
-#![feature(integer_atomics)]
-
 #[cfg(not(feature = "enable-runtime-benchmarking"))]
 #[macro_export]
 macro_rules! start_bench {
