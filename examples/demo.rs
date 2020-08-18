@@ -1,13 +1,3 @@
-#![feature(nll)]
-#[macro_use]
-extern crate lazy_static;
-
-#[macro_use]
-extern crate log;
-use env_logger;
-
-#[macro_use]
-extern crate libremarkable;
 use libremarkable::framebuffer::cgmath;
 use libremarkable::framebuffer::cgmath::EuclideanSpace;
 use libremarkable::framebuffer::common::*;
@@ -20,13 +10,15 @@ use libremarkable::ui_extensions::element::{
     UIConstraintRefresh, UIElement, UIElementHandle, UIElementWrapper,
 };
 use libremarkable::{appctx, battery, image};
+use libremarkable::{end_bench, start_bench};
 
 #[cfg(feature = "enable-runtime-benchmarking")]
 use libremarkable::stopwatch;
 
-use chrono::{DateTime, Local};
-
 use atomic::Atomic;
+use chrono::{DateTime, Local};
+use lazy_static::lazy_static;
+use log::info;
 
 use std::collections::VecDeque;
 use std::process::Command;

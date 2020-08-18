@@ -1,16 +1,10 @@
-#[macro_use]
-extern crate lazy_static;
-
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-use libc;
-
+use lazy_static::lazy_static;
 use libc::c_int;
 use libc::intptr_t;
-
-#[macro_use]
-extern crate redhook;
+use redhook::{hook, real};
 
 use libremarkable::framebuffer::common::*;
 use libremarkable::framebuffer::mxcfb::*;
