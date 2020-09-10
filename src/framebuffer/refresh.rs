@@ -79,8 +79,8 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
         let mut update_region = region.to_owned();
 
         // No accounting for this, out of bounds, entirely ignored
-        if update_region.left >= u32::from(common::DISPLAYWIDTH)
-            || update_region.top >= u32::from(common::DISPLAYHEIGHT)
+        if update_region.left >= u32::from(self.var_screen_info.xres)
+            || update_region.top >= u32::from(self.var_screen_info.yres)
         {
             return 0;
         }
@@ -94,14 +94,14 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
 
         // Dont try to refresh OOB horizontally
         let max_x = update_region.left + update_region.width;
-        if max_x > u32::from(common::DISPLAYWIDTH) {
-            update_region.width -= max_x - u32::from(common::DISPLAYWIDTH);
+        if max_x > u32::from(self.var_screen_info.xres) {
+            update_region.width -= max_x - u32::from(self.var_screen_info.xres);
         }
 
         // Dont try to refresh OOB vertically
         let max_y = update_region.top + update_region.height;
-        if max_y > u32::from(common::DISPLAYHEIGHT) {
-            update_region.height -= max_y - u32::from(common::DISPLAYHEIGHT);
+        if max_y > u32::from(self.var_screen_info.yres) {
+            update_region.height -= max_y - u32::from(self.var_screen_info.yres);
         }
 
         let update_mode = if force_full_refresh {

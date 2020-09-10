@@ -3,6 +3,7 @@ use framebuffer::common::{DISPLAYHEIGHT, DISPLAYWIDTH, MTHEIGHT, MTWIDTH};
 
 use evdev::raw::input_event;
 use input::{InputDeviceState, InputEvent};
+use super::ecodes;
 use std::sync::atomic::{AtomicBool, AtomicU16, AtomicU8, Ordering};
 
 const MT_HSCALAR: f32 = (DISPLAYWIDTH as f32) / (MTWIDTH as f32);
@@ -48,25 +49,37 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
         _ => unreachable!(),
     };
     match ev._type {
-        0 => {
-            /* sync */
-            None
+        ecodes::EV_SYN => {
+            match ev.code {
+                ecodes::SYN_REPORT => {
+                    /* sync */
+                    None
+                },
+                _ => {
+                    debug!(
+                        "Unsupported event code for syn [type: {0} code: {1} value: {2}]",
+                        ev._type, ev.code, ev.value
+                    );
+                    None
+                }
+            }
+            
         }
-        3 => {
+        ecodes::EV_ABS => {
             // Absolute
             match ev.code {
-                47 => {
+                ecodes::ABS_MT_SLOT => {
                     state
                         .last_finger_id
                         .store(ev.value as u16, Ordering::Relaxed);
                     None
                 }
-                53 => {
+                ecodes::ABS_MT_POSITION_X => {
                     let val = ev.value as u16;
                     state.last_x.store(MTWIDTH - val, Ordering::Relaxed);
                     None
                 }
-                54 => {
+                ecodes::ABS_MT_POSITION_Y => {
                     let val = ev.value as u16;
                     state.last_y.store(MTHEIGHT - val, Ordering::Relaxed);
 
@@ -80,25 +93,25 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
 
                     Some(InputEvent::MultitouchEvent { event })
                 }
-                52 | 48 => {
+                ecodes::ABS_MT_ORIENTATION | ecodes::ABS_MT_TOUCH_MAJOR => {
                     debug!(
                         "unknown_absolute_touch_event(code={0}, value={1})",
                         ev.code, ev.value
                     );
                     None
                 }
-                58 => {
+                ecodes::ABS_MT_PRESSURE => {
                     state.last_pressure.store(ev.value as u8, Ordering::Relaxed);
                     None
                 }
-                49 => {
+                ecodes::ABS_MT_TOUCH_MINOR => {
                     // potentially incorrect
                     state
                         .last_touch_size
                         .store(ev.value as u8, Ordering::Relaxed);
                     None
                 }
-                57 => match ev.value {
+                ecodes::ABS_MT_TRACKING_ID => match ev.value {
                     -1 => {
                         state.currently_touching.store(false, Ordering::Relaxed);
                         None
@@ -112,6 +125,9 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
                     }
                 },
                 // very unlikely
+                // Technically possible (but maybe not for the reMarkable):
+                // ABS_MT_DISTANCE, ABS_MT_TOOL_X, ABS_MT_TOOL_Y, ABS_MT_WIDTH_MAJOR,
+                // ABS_MT_WIDTH_MINOR, ABS_MT_TOOL_TYPE or ABS_MT_BLOB_ID
                 _ => {
                     warn!(
                         "Unknown event code for multitouch [type: {0} code: {1} value: {2}]",

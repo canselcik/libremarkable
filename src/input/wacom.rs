@@ -3,22 +3,13 @@ use evdev::raw::input_event;
 use input::{InputDeviceState, InputEvent};
 use std;
 use std::sync::atomic::{AtomicU16, Ordering};
+use super::ecodes;
 
 use framebuffer::cgmath;
 use framebuffer::common::{DISPLAYHEIGHT, DISPLAYWIDTH, WACOMHEIGHT, WACOMWIDTH};
 
 const WACOM_HSCALAR: f32 = (DISPLAYWIDTH as f32) / (WACOMWIDTH as f32);
 const WACOM_VSCALAR: f32 = (DISPLAYHEIGHT as f32) / (WACOMHEIGHT as f32);
-
-const EV_SYNC: u16 = 0;
-const EV_KEY: u16 = 1;
-const EV_ABS: u16 = 3;
-const WACOM_EVCODE_PRESSURE: u16 = 24;
-const WACOM_EVCODE_DISTANCE: u16 = 25;
-const WACOM_EVCODE_XTILT: u16 = 26;
-const WACOM_EVCODE_YTILT: u16 = 27;
-const WACOM_EVCODE_XPOS: u16 = 0;
-const WACOM_EVCODE_YPOS: u16 = 1;
 
 pub struct WacomState {
     last_x: AtomicU16,
@@ -47,13 +38,17 @@ impl ::std::default::Default for WacomState {
 #[repr(u16)]
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum WacomPen {
-    /// This includes the pen hovering
-    ToolPen = 320,
-    ToolRubber = 321,
+    /// When the pen gets into the reach of the digitizer
+    /// a tool will be selected. This is useful for software
+    /// to know whether the user is hovering the backside (rubber)
+    /// or frontside (pen) of a stylus above the screen.
+    /// Both at once shouldn't be possible.
+    ToolPen = ecodes::BTN_TOOL_PEN,
+    ToolRubber = ecodes::BTN_TOOL_RUBBER,
     /// This is the pen making contact with the display
-    Touch = 330,
-    Stylus = 331,
-    Stylus2 = 332,
+    Touch = ecodes::BTN_TOUCH,
+    Stylus = ecodes::BTN_STYLUS,
+    Stylus2 = ecodes::BTN_STYLUS2,
 }
 
 #[derive(PartialEq, Copy, Clone)]
@@ -89,7 +84,7 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
         _ => unreachable!(),
     };
     match ev._type {
-        EV_SYNC => match state.last_tool.load(Ordering::Relaxed) {
+        ecodes::EV_SYN => match state.last_tool.load(Ordering::Relaxed) {
             Some(WacomPen::ToolPen) => Some(InputEvent::WacomEvent {
                 event: WacomEvent::Hover {
                     position: cgmath::Point2 {
@@ -118,7 +113,7 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
             }),
             _ => None,
         },
-        EV_KEY => {
+        ecodes::EV_KEY => {
             /* key (device detected - device out of range etc.) */
             if ev.code < WacomPen::ToolPen as u16 || ev.code > WacomPen::Stylus2 as u16 {
                 return None;
@@ -134,10 +129,10 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
                 },
             })
         }
-        EV_ABS => {
+        ecodes::EV_ABS => {
             // Absolute
             match ev.code {
-                WACOM_EVCODE_DISTANCE => {
+                ecodes::ABS_DISTANCE => {
                     // distance up to 255
                     // So we have an interesting behavior here.
                     // When the tip is pressed to the point where last_pressure is 4095,
@@ -156,26 +151,26 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
                             .store(Some(WacomPen::Touch), Ordering::Relaxed);
                     }
                 }
-                WACOM_EVCODE_XTILT => {
+                ecodes::ABS_TILT_X => {
                     // xtilt -9000 to 9000
                     state.last_xtilt.store(ev.value as u16, Ordering::Relaxed);
                 }
-                WACOM_EVCODE_YTILT => {
+                ecodes::ABS_TILT_Y => {
                     // ytilt -9000 to 9000
                     state.last_ytilt.store(ev.value as u16, Ordering::Relaxed);
                 }
-                WACOM_EVCODE_PRESSURE => {
+                ecodes::ABS_PRESSURE => {
                     // contact made with pressure val up to 4095
                     state
                         .last_pressure
                         .store(ev.value as u16, Ordering::Relaxed);
                 }
-                WACOM_EVCODE_XPOS => {
+                ecodes::ABS_X => {
                     // x and y are inverted due to remarkable
                     let val = ev.value as u16;
                     state.last_y.store(WACOMHEIGHT - val, Ordering::Relaxed);
                 }
-                WACOM_EVCODE_YPOS => {
+                ecodes::ABS_Y => {
                     state.last_x.store(ev.value as u16, Ordering::Relaxed);
                 }
                 _ => {
