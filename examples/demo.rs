@@ -523,17 +523,14 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
 fn on_touch_handler(app: &mut appctx::ApplicationContext, input: multitouch::MultitouchEvent) {
     let framebuffer = app.get_framebuffer_ref();
     match input {
-        multitouch::MultitouchEvent::Touch {
-            gesture_seq: _,
-            finger_id: _,
-            position,
-        } => {
-            if !CANVAS_REGION.contains_point(&position.cast().unwrap()) {
+        multitouch::MultitouchEvent::Press { finger } |
+        multitouch::MultitouchEvent::Move { finger } => {
+            if !CANVAS_REGION.contains_point(&finger.pos.cast().unwrap()) {
                 return;
             }
             let rect = match G_TOUCH_MODE.load(Ordering::Relaxed) {
                 TouchMode::Bezier => {
-                    let position_float = position.cast().unwrap();
+                    let position_float = finger.pos.cast().unwrap();
                     let points = vec![
                         (cgmath::vec2(-40.0, 0.0), 2.5),
                         (cgmath::vec2(40.0, -60.0), 5.5),
@@ -558,11 +555,11 @@ fn on_touch_handler(app: &mut appctx::ApplicationContext, input: multitouch::Mul
                     rect
                 }
                 TouchMode::Circles => {
-                    framebuffer.draw_circle(position.cast().unwrap(), 20, color::BLACK)
+                    framebuffer.draw_circle(finger.pos.cast().unwrap(), 20, color::BLACK)
                 }
 
                 m @ TouchMode::Diamonds | m @ TouchMode::FillDiamonds => {
-                    let position_int = position.cast().unwrap();
+                    let position_int = finger.pos.cast().unwrap();
                     framebuffer.draw_polygon(
                         &vec![
                             position_int + cgmath::vec2(-10, 0),

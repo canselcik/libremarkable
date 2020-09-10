@@ -43,6 +43,7 @@ extern crate ioctl_gen;
 
 extern crate aabb_quadtree;
 extern crate atomic;
+extern crate fxhash;
 extern crate hlua;
 extern crate libc;
 extern crate mmap;
