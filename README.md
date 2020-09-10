@@ -19,25 +19,35 @@ For further documentation see the [wiki](https://github.com/canselcik/libremarka
 ### Build Instructions
 
 #### Setting up the toolchain
-In order to build `libremarkable` and the examples (`spy.so` and `demo`), you'll need the toolchain from Remarkable. Download the installation script from https://remarkable.engineering/deploy/sdk/poky-glibc-x86_64-meta-toolchain-qt5-cortexa9hf-neon-toolchain-2.1.3.sh and install the toolchain.
+In order to build `libremarkable` and the examples (`spy.so` and `demo`), you'll need the toolchain from Remarkable. Download the [installation script](https://remarkable.engineering/oecore-x86_64-cortexa9hf-neon-toolchain-zero-gravitas-1.8-23.9.2019.sh) from [remarkable.engineering](https://remarkable.engineering/) and install the toolchain.
 
 You can then set up your Rust toolchain for cross compilation with: `rustup target add armv7-unknown-linux-gnueabihf`.
 
-Once that's done, you should add the following to `.cargo/config` (replace `<path-to-installed-poky-toochain>` with the directory you installed the Remarkable toolchain to):
+Once that's done, you should add the following to `.cargo/config` (replace `<path-to-installed-oecore-toochain>` with the directory you installed the Remarkable toolchain to):
 ```
 [target.armv7-unknown-linux-gnueabihf]
-linker = "<path-to-the-installed-poky-toolchain>/sysroots/x86_64-pokysdk-linux/usr/bin/arm-poky-linux-gnueabi/arm-poky-linux-gnueabi-gcc"
+linker = "<path-to-the-installed-oecore-toolchain>/sysroots/x86_64-oesdk-linux/usr/bin/arm-oe-linux-gnueabi/arm-oe-linux-gnueabi-gcc"
 rustflags = [
   "-C", "link-arg=-march=armv7-a",
   "-C", "link-arg=-marm",
   "-C", "link-arg=-mfpu=neon",
   "-C", "link-arg=-mfloat-abi=hard",
   "-C", "link-arg=-mcpu=cortex-a9",
-  "-C", "link-arg=--sysroot=<path-to-the-installed-poky-toolchain>/sysroots/cortexa9hf-neon-poky-linux-gnueabi",
+  "-C", "link-arg=--sysroot=<path-to-the-installed-oecore-toolchain>/sysroots/cortexa9hf-neon-oe-linux-gnueabi",
 ]
 ```
 
+(`<path-to-the-installed-oecore-toolchain` will likely be `/usr/local/oecore-x86_64/`, if you did the default install on Linux.)
+
 If you have further questions, feel free to ask in Issues.
+
+You can also add this snipped to the above file to default to cross-compiling for this project:
+
+```
+[build]
+# Set the default --target flag
+target = "armv7-unknown-linux-gnueabihf"
+```
 
 #### Building libremarkable and the examples
 A simple Makefile wrapper is created for convenience. It exposes the following verbs:
