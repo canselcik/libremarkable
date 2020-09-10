@@ -77,7 +77,7 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Vec<InputEven
             match ev.code {
                 ecodes::SYN_REPORT => {
                     let mut events: Vec<InputEvent> = vec![];
-                    for (slot, mut finger) in fingers.iter_mut() {
+                    for (_slot, mut finger) in fingers.iter_mut() {
                         if ! finger.last_pressed && finger.pressed {
                             // Pressed
                             finger.last_pressed = finger.pressed;

@@ -43,12 +43,12 @@ extern crate ioctl_gen;
 
 extern crate aabb_quadtree;
 extern crate atomic;
+extern crate fxhash;
 extern crate hlua;
 extern crate libc;
 extern crate mmap;
 extern crate rusttype;
 extern crate zstd;
-extern crate fxhash;
 
 pub extern crate cgmath;
 pub extern crate epoll;
