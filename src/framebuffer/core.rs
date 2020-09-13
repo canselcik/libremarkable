@@ -36,7 +36,7 @@ unsafe impl<'a> Send for Framebuffer<'a> {}
 unsafe impl<'a> Sync for Framebuffer<'a> {}
 
 impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
-    fn new(path_to_device: &str) -> Framebuffer {
+    fn new(path_to_device: &str) -> Framebuffer<'_> {
         let device = OpenOptions::new()
             .read(true)
             .write(true)

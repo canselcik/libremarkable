@@ -113,7 +113,7 @@ use std;
 pub mod core;
 pub trait FramebufferBase<'a> {
     /// Creates a new instance of Framebuffer
-    fn new(path_to_device: &str) -> core::Framebuffer;
+    fn new(path_to_device: &str) -> core::Framebuffer<'_>;
     /// Toggles the EPD Controller (see https://wiki.mobileread.com/wiki/EPD_controller)
     fn set_epdc_access(&mut self, state: bool);
     /// Toggles autoupdate mode

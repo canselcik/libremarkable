@@ -52,13 +52,13 @@ pub struct ApplicationContext<'a> {
     input_rx: std::sync::mpsc::Receiver<InputEvent>,
 
     button_ctx: RwLock<Option<ev::EvDevContext>>,
-    on_button: fn(&mut ApplicationContext, GPIOEvent),
+    on_button: fn(&mut ApplicationContext<'_>, GPIOEvent),
 
     wacom_ctx: RwLock<Option<ev::EvDevContext>>,
-    on_wacom: fn(&mut ApplicationContext, WacomEvent),
+    on_wacom: fn(&mut ApplicationContext<'_>, WacomEvent),
 
     touch_ctx: RwLock<Option<ev::EvDevContext>>,
-    on_touch: fn(&mut ApplicationContext, MultitouchEvent),
+    on_touch: fn(&mut ApplicationContext<'_>, MultitouchEvent),
 
     active_regions: QuadTree<ActiveRegionHandler>,
     ui_elements: HashMap<String, UIElementHandle>,
@@ -92,9 +92,9 @@ impl<'a> ApplicationContext<'a> {
     }
 
     pub fn new(
-        on_button: fn(&mut ApplicationContext, GPIOEvent),
-        on_wacom: fn(&mut ApplicationContext, WacomEvent),
-        on_touch: fn(&mut ApplicationContext, MultitouchEvent),
+        on_button: fn(&mut ApplicationContext<'_>, GPIOEvent),
+        on_wacom: fn(&mut ApplicationContext<'_>, WacomEvent),
+        on_touch: fn(&mut ApplicationContext<'_>, MultitouchEvent),
     ) -> ApplicationContext<'static> {
         let framebuffer = box core::Framebuffer::new("/dev/fb0");
         let yres = framebuffer.var_screen_info.yres;
@@ -131,7 +131,7 @@ impl<'a> ApplicationContext<'a> {
 
         // Reluctantly resort to using a static global to associate the lua context with the
         // one and only framebuffer that's going to be used
-        unsafe { luaext::G_FB = res.framebuffer.deref_mut() as *mut core::Framebuffer };
+        unsafe { luaext::G_FB = res.framebuffer.deref_mut() as *mut core::Framebuffer<'_> };
 
         let mut nms = lua.empty_array("fb");
         // Clears and refreshes the entire screen
