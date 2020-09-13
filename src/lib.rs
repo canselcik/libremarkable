@@ -36,9 +36,6 @@ macro_rules! end_bench {
 }
 
 #[macro_use]
-extern crate log;
-
-#[macro_use]
 extern crate ioctl_gen;
 
 pub use cgmath;

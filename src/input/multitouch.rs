@@ -5,6 +5,7 @@ use super::ecodes;
 use crate::input::{InputDeviceState, InputEvent};
 use evdev::raw::input_event;
 use fxhash::FxHashMap;
+use log::{debug, warn};
 use std::sync::{
     atomic::{AtomicI32, Ordering},
     Mutex,
