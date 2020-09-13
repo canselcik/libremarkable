@@ -52,7 +52,7 @@ crate-type = ["bin"]
 
 [dev-dependencies]
 # For spy
-redhook = "1.0.0"
+redhook = "2.0.0"
 libc = "0.2.69"
 lazy_static = "1.4.0"
 # For demo
