@@ -104,12 +104,12 @@ hook! {
 
     let res = real!(ioctl)(fd, request, p1, p2, p3, p4);
     let event = ioctl_intercept_event {
-      fd: fd,
-      request: request,
-      p1: p1,
-      p2: p2,
-      p3: p3,
-      p4: p4,
+      fd,
+      request,
+      p1,
+      p2,
+      p3,
+      p4,
       ret: res,
     };
 
@@ -130,6 +130,6 @@ hook! {
         MXCFB_SEND_UPDATE => handle_send_update(event),
         _ => println!("unknown_ioctl({0:#?})", event),
     }
-    return res;
+    res
   }
 }

@@ -21,6 +21,7 @@ use lazy_static::lazy_static;
 use log::info;
 
 use std::collections::VecDeque;
+use std::fmt;
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
@@ -72,15 +73,18 @@ impl TouchMode {
             TouchMode::FillDiamonds => TouchMode::OnlyUI,
         }
     }
-    fn to_string(self) -> String {
-        match self {
+}
+
+impl fmt::Display for TouchMode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mode = match self {
             TouchMode::OnlyUI => "None",
             TouchMode::Bezier => "Bezier",
             TouchMode::Circles => "Circles",
             TouchMode::Diamonds => "Diamonds",
             TouchMode::FillDiamonds => "FDiamonds",
-        }
-        .into()
+        };
+        write!(f, "{}", mode)
     }
 }
 
@@ -270,7 +274,7 @@ fn on_touch_rustlogo(app: &mut appctx::ApplicationContext<'_>, _element: UIEleme
     let new_press_count = {
         let mut v = G_COUNTER.lock().unwrap();
         *v += 1;
-        (*v).clone()
+        *v
     };
 
     // First drawing with GC16_FAST to draw it thoroughly and then
@@ -424,9 +428,8 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext<'_>, input: wacom::WacomE
                     let region = app
                         .find_active_region(position.y.round() as u16, position.x.round() as u16);
                     let element = region.map(|(region, _)| region.element.clone());
-                    match element {
-                        Some(element) => (region.unwrap().0.handler)(app, element),
-                        None => {}
+                    if let Some(element) = element {
+                        (region.unwrap().0.handler)(app, element)
                     }
                 }
                 return;
@@ -443,8 +446,8 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext<'_>, input: wacom::WacomE
                 let framebuffer = app.get_framebuffer_ref();
                 let points = vec![
                     wacom_stack.pop_front().unwrap(),
-                    wacom_stack.get(0).unwrap().clone(),
-                    wacom_stack.get(1).unwrap().clone(),
+                    *wacom_stack.get(0).unwrap(),
+                    *wacom_stack.get(1).unwrap(),
                 ];
                 let radii: Vec<f32> = points
                     .iter()
@@ -551,7 +554,7 @@ fn on_touch_handler(app: &mut appctx::ApplicationContext<'_>, input: multitouch:
                 m @ TouchMode::Diamonds | m @ TouchMode::FillDiamonds => {
                     let position_int = finger.pos.cast().unwrap();
                     framebuffer.draw_polygon(
-                        &vec![
+                        &[
                             position_int + cgmath::vec2(-10, 0),
                             position_int + cgmath::vec2(0, 20),
                             position_int + cgmath::vec2(10, 0),
@@ -611,22 +614,18 @@ fn on_button_press(app: &mut appctx::ApplicationContext<'_>, input: gpio::GPIOEv
                 }
             };
 
-            match app.get_element_by_name("tooltipRight") {
-                Some(ref elem) => {
-                    if let UIElement::Text {
-                        ref mut text,
-                        scale: _,
-                        foreground: _,
-                        border_px: _,
-                    } = elem.write().inner
-                    {
-                        *text = new_state.to_string();
-                    }
+            if let Some(ref elem) = app.get_element_by_name("tooltipRight") {
+                if let UIElement::Text {
+                    ref mut text,
+                    scale: _,
+                    foreground: _,
+                    border_px: _,
+                } = elem.write().inner
+                {
+                    *text = new_state.to_string();
                 }
-                None => {}
             }
             app.draw_element("tooltipRight");
-            return;
         }
         gpio::PhysicalButton::MIDDLE | gpio::PhysicalButton::LEFT => {
             app.clear(btn == gpio::PhysicalButton::MIDDLE);
