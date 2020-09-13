@@ -4,7 +4,7 @@ extern crate lazy_static;
 
 #[macro_use]
 extern crate log;
-extern crate env_logger;
+use env_logger;
 
 #[macro_use]
 extern crate libremarkable;
@@ -24,10 +24,8 @@ use libremarkable::{appctx, battery, image};
 #[cfg(feature = "enable-runtime-benchmarking")]
 use libremarkable::stopwatch;
 
-extern crate chrono;
 use chrono::{DateTime, Local};
 
-extern crate atomic;
 use atomic::Atomic;
 
 use std::collections::VecDeque;
@@ -120,7 +118,7 @@ lazy_static! {
 // ## Button Handlers
 // ####################
 
-fn on_save_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
+fn on_save_canvas(app: &mut appctx::ApplicationContext<'_>, _element: UIElementHandle) {
     start_bench!(stopwatch, save_canvas);
     let framebuffer = app.get_framebuffer_ref();
     match framebuffer.dump_region(CANVAS_REGION) {
@@ -137,7 +135,7 @@ fn on_save_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandl
     end_bench!(save_canvas);
 }
 
-fn on_zoom_out(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
+fn on_zoom_out(app: &mut appctx::ApplicationContext<'_>, _element: UIElementHandle) {
     start_bench!(stopwatch, zoom_out);
     let framebuffer = app.get_framebuffer_ref();
     match framebuffer.dump_region(CANVAS_REGION) {
@@ -183,7 +181,7 @@ fn on_zoom_out(app: &mut appctx::ApplicationContext, _element: UIElementHandle) 
     end_bench!(zoom_out);
 }
 
-fn on_blur_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
+fn on_blur_canvas(app: &mut appctx::ApplicationContext<'_>, _element: UIElementHandle) {
     start_bench!(stopwatch, blur_canvas);
     let framebuffer = app.get_framebuffer_ref();
     match framebuffer.dump_region(CANVAS_REGION) {
@@ -217,7 +215,7 @@ fn on_blur_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandl
     end_bench!(blur_canvas);
 }
 
-fn on_invert_canvas(app: &mut appctx::ApplicationContext, element: UIElementHandle) {
+fn on_invert_canvas(app: &mut appctx::ApplicationContext<'_>, element: UIElementHandle) {
     start_bench!(stopwatch, invert);
     let framebuffer = app.get_framebuffer_ref();
     match framebuffer.dump_region(CANVAS_REGION) {
@@ -248,7 +246,7 @@ fn on_invert_canvas(app: &mut appctx::ApplicationContext, element: UIElementHand
     on_toggle_eraser(app, element);
 }
 
-fn on_load_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
+fn on_load_canvas(app: &mut appctx::ApplicationContext<'_>, _element: UIElementHandle) {
     start_bench!(stopwatch, load_canvas);
     match *SAVED_CANVAS.lock().unwrap() {
         None => {}
@@ -275,7 +273,7 @@ fn on_load_canvas(app: &mut appctx::ApplicationContext, _element: UIElementHandl
     end_bench!(load_canvas);
 }
 
-fn on_touch_rustlogo(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
+fn on_touch_rustlogo(app: &mut appctx::ApplicationContext<'_>, _element: UIElementHandle) {
     let framebuffer = app.get_framebuffer_ref();
     let new_press_count = {
         let mut v = G_COUNTER.lock().unwrap();
@@ -312,7 +310,7 @@ fn on_touch_rustlogo(app: &mut appctx::ApplicationContext, _element: UIElementHa
     );
 }
 
-fn on_toggle_eraser(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
+fn on_toggle_eraser(app: &mut appctx::ApplicationContext<'_>, _: UIElementHandle) {
     let (new_mode, name) = match G_DRAW_MODE.load(Ordering::Relaxed) {
         DrawMode::Erase(s) => (DrawMode::Draw(s), "Black".to_owned()),
         DrawMode::Draw(s) => (DrawMode::Erase(s), "White".to_owned()),
@@ -326,7 +324,7 @@ fn on_toggle_eraser(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
     app.draw_element("colorIndicator");
 }
 
-fn on_change_touchdraw_mode(app: &mut appctx::ApplicationContext, _: UIElementHandle) {
+fn on_change_touchdraw_mode(app: &mut appctx::ApplicationContext<'_>, _: UIElementHandle) {
     let new_val = G_TOUCH_MODE.load(Ordering::Relaxed).toggle();
     G_TOUCH_MODE.store(new_val, Ordering::Relaxed);
 
@@ -343,7 +341,7 @@ fn on_change_touchdraw_mode(app: &mut appctx::ApplicationContext, _: UIElementHa
 // ## Miscellaneous
 // ####################
 
-fn draw_color_test_rgb(app: &mut appctx::ApplicationContext, _element: UIElementHandle) {
+fn draw_color_test_rgb(app: &mut appctx::ApplicationContext<'_>, _element: UIElementHandle) {
     let fb = app.get_framebuffer_ref();
 
     let img_rgb565 = image::load_from_memory(include_bytes!("../assets/colorspace.png")).unwrap();
@@ -362,7 +360,7 @@ fn draw_color_test_rgb(app: &mut appctx::ApplicationContext, _element: UIElement
     );
 }
 
-fn change_brush_width(app: &mut appctx::ApplicationContext, delta: i32) {
+fn change_brush_width(app: &mut appctx::ApplicationContext<'_>, delta: i32) {
     let current = G_DRAW_MODE.load(Ordering::Relaxed);
     let current_size = current.get_size() as i32;
     let proposed_size = current_size + delta;
@@ -386,7 +384,7 @@ fn change_brush_width(app: &mut appctx::ApplicationContext, delta: i32) {
     app.draw_element("displaySize");
 }
 
-fn loop_update_topbar(app: &mut appctx::ApplicationContext, millis: u64) {
+fn loop_update_topbar(app: &mut appctx::ApplicationContext<'_>, millis: u64) {
     let time_label = app.get_element_by_name("time").unwrap();
     let battery_label = app.get_element_by_name("battery").unwrap();
     loop {
@@ -417,7 +415,7 @@ fn loop_update_topbar(app: &mut appctx::ApplicationContext, millis: u64) {
 // ## Input Handlers
 // ####################
 
-fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent) {
+fn on_wacom_input(app: &mut appctx::ApplicationContext<'_>, input: wacom::WacomEvent) {
     match input {
         wacom::WacomEvent::Draw {
             position,
@@ -520,7 +518,7 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
     };
 }
 
-fn on_touch_handler(app: &mut appctx::ApplicationContext, input: multitouch::MultitouchEvent) {
+fn on_touch_handler(app: &mut appctx::ApplicationContext<'_>, input: multitouch::MultitouchEvent) {
     let framebuffer = app.get_framebuffer_ref();
     match input {
         multitouch::MultitouchEvent::Press { finger }
@@ -591,7 +589,7 @@ fn on_touch_handler(app: &mut appctx::ApplicationContext, input: multitouch::Mul
     }
 }
 
-fn on_button_press(app: &mut appctx::ApplicationContext, input: gpio::GPIOEvent) {
+fn on_button_press(app: &mut appctx::ApplicationContext<'_>, input: gpio::GPIOEvent) {
     let (btn, new_state) = match input {
         gpio::GPIOEvent::Press { button } => (button, true),
         gpio::GPIOEvent::Unpress { button } => (button, false),
@@ -661,7 +659,7 @@ fn main() {
 
     // Takes callback functions as arguments
     // They are called with the event and the &mut framebuffer
-    let mut app: appctx::ApplicationContext =
+    let mut app: appctx::ApplicationContext<'_> =
         appctx::ApplicationContext::new(on_button_press, on_wacom_input, on_touch_handler);
 
     // Alternatively we could have called `app.execute_lua("fb.clear()")`

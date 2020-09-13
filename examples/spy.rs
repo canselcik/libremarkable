@@ -4,15 +4,13 @@ extern crate lazy_static;
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-extern crate libc;
+use libc;
 
 use libc::c_int;
 use libc::intptr_t;
 
 #[macro_use]
 extern crate redhook;
-
-extern crate libremarkable;
 
 use libremarkable::framebuffer::common::*;
 use libremarkable::framebuffer::mxcfb::*;

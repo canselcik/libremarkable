@@ -1,5 +1,4 @@
-extern crate libremarkable;
-extern crate tiny_http;
+use tiny_http;
 
 use libremarkable::framebuffer;
 use libremarkable::framebuffer::core::Framebuffer;
