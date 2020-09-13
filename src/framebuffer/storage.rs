@@ -39,7 +39,7 @@ impl CompressedCanvasState {
     }
 }
 
-use framebuffer::common;
+use crate::framebuffer::common;
 use image;
 
 pub fn rgbimage_from_u8_slice(w: u32, h: u32, buff: &[u8]) -> Option<image::RgbImage> {

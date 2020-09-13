@@ -3,7 +3,7 @@
 use libc;
 use libc::intptr_t;
 
-use framebuffer::common::mxcfb_rect;
+use crate::framebuffer::common::mxcfb_rect;
 
 #[derive(Debug)]
 #[repr(C)]

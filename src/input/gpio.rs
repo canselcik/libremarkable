@@ -1,6 +1,6 @@
 use super::ecodes;
+use crate::input::{InputDeviceState, InputEvent};
 use evdev::raw::input_event;
-use input::{InputDeviceState, InputEvent};
 use std::sync::atomic::{AtomicBool, Ordering};
 
 #[derive(PartialEq, Copy, Clone)]

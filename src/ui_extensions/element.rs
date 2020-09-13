@@ -4,14 +4,14 @@ use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use image;
 
-use framebuffer::cgmath;
-use framebuffer::common;
-use framebuffer::common::{color, mxcfb_rect};
-use framebuffer::refresh::PartialRefreshMode;
-use framebuffer::FramebufferDraw;
-use framebuffer::FramebufferRefresh;
+use crate::framebuffer::cgmath;
+use crate::framebuffer::common;
+use crate::framebuffer::common::{color, mxcfb_rect};
+use crate::framebuffer::refresh::PartialRefreshMode;
+use crate::framebuffer::FramebufferDraw;
+use crate::framebuffer::FramebufferRefresh;
 
-use appctx;
+use crate::appctx;
 
 pub type ActiveRegionFunction = fn(&mut appctx::ApplicationContext, UIElementHandle);
 

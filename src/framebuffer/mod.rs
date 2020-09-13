@@ -62,7 +62,7 @@ pub trait FramebufferDraw {
     /// Draws a polygon
     fn draw_polygon(
         &mut self,
-        &[cgmath::Point2<i32>],
+        _: &[cgmath::Point2<i32>],
         fill: bool,
         c: common::color,
     ) -> common::mxcfb_rect;

@@ -1,15 +1,15 @@
 use hlua;
 use std;
 
-use framebuffer::cgmath;
-use framebuffer::common::*;
-use framebuffer::core;
+use crate::framebuffer::cgmath;
+use crate::framebuffer::common::*;
+use crate::framebuffer::core;
 
-use framebuffer::refresh::PartialRefreshMode;
+use crate::framebuffer::refresh::PartialRefreshMode;
 
-use framebuffer::FramebufferDraw;
-use framebuffer::FramebufferIO;
-use framebuffer::FramebufferRefresh;
+use crate::framebuffer::FramebufferDraw;
+use crate::framebuffer::FramebufferIO;
+use crate::framebuffer::FramebufferRefresh;
 
 /// We reluctantly resort to a static global here to associate the lua context
 /// with the only active framebuffer we will have
