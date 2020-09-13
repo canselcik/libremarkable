@@ -1,5 +1,3 @@
-use tiny_http;
-
 use libremarkable::framebuffer;
 use libremarkable::framebuffer::core::Framebuffer;
 use libremarkable::framebuffer::{FramebufferBase, FramebufferIO};
