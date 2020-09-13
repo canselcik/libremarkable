@@ -1,11 +1,14 @@
 use framebuffer::cgmath;
 use framebuffer::common::{DISPLAYHEIGHT, DISPLAYWIDTH, MTHEIGHT, MTWIDTH};
 
-use evdev::raw::input_event;
-use input::{InputDeviceState, InputEvent};
 use super::ecodes;
-use std::sync::{Mutex, atomic::{AtomicI32, Ordering}};
+use evdev::raw::input_event;
 use fxhash::FxHashMap;
+use input::{InputDeviceState, InputEvent};
+use std::sync::{
+    atomic::{AtomicI32, Ordering},
+    Mutex,
+};
 
 const MT_HSCALAR: f32 = (DISPLAYWIDTH as f32) / (MTWIDTH as f32);
 const MT_VSCALAR: f32 = (DISPLAYHEIGHT as f32) / (MTHEIGHT as f32);
@@ -13,10 +16,10 @@ const MT_VSCALAR: f32 = (DISPLAYHEIGHT as f32) / (MTHEIGHT as f32);
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Finger {
     pub tracking_id: i32,
-    
+
     pub pos: cgmath::Point2<u16>,
     pos_updated: bool, // Report motion at SYN_REPORT?
-    
+
     last_pressed: bool,
     pub pressed: bool,
 }
@@ -24,7 +27,10 @@ impl Default for Finger {
     fn default() -> Finger {
         Finger {
             tracking_id: -1, // -1 should never be seen by a InputEvent receiver
-            pos: cgmath::Point2 { x: u16::max_value(), y: u16::max_value() },
+            pos: cgmath::Point2 {
+                x: u16::max_value(),
+                y: u16::max_value(),
+            },
             pos_updated: false,
             last_pressed: false,
             pressed: false,
@@ -57,10 +63,10 @@ pub enum MultitouchEvent {
 impl MultitouchEvent {
     pub fn finger(&self) -> Option<&Finger> {
         match self {
-            MultitouchEvent::Press { ref finger } |
-            MultitouchEvent::Release { ref finger } |
-            MultitouchEvent::Move { ref finger } => Some(finger),
-            _ => None
+            MultitouchEvent::Press { ref finger }
+            | MultitouchEvent::Release { ref finger }
+            | MultitouchEvent::Move { ref finger } => Some(finger),
+            _ => None,
         }
     }
 }
@@ -78,22 +84,28 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Vec<InputEven
                 ecodes::SYN_REPORT => {
                     let mut events: Vec<InputEvent> = vec![];
                     for (_slot, mut finger) in fingers.iter_mut() {
-                        if ! finger.last_pressed && finger.pressed {
+                        if !finger.last_pressed && finger.pressed {
                             // Pressed
                             finger.last_pressed = finger.pressed;
 
                             events.push(InputEvent::MultitouchEvent {
-                                event: MultitouchEvent::Press { finger: finger.clone() }
+                                event: MultitouchEvent::Press {
+                                    finger: finger.clone(),
+                                },
                             });
-                        } else if finger.last_pressed && ! finger.pressed {
+                        } else if finger.last_pressed && !finger.pressed {
                             // Released
                             finger.last_pressed = finger.pressed;
                             events.push(InputEvent::MultitouchEvent {
-                                event: MultitouchEvent::Release { finger: finger.clone() }
+                                event: MultitouchEvent::Release {
+                                    finger: finger.clone(),
+                                },
                             });
-                        }else if finger.last_pressed && finger.pressed && finger.pos_updated {
+                        } else if finger.last_pressed && finger.pressed && finger.pos_updated {
                             events.push(InputEvent::MultitouchEvent {
-                                event: MultitouchEvent::Move { finger: finger.clone() }
+                                event: MultitouchEvent::Move {
+                                    finger: finger.clone(),
+                                },
                             });
                         }
 
@@ -102,7 +114,7 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Vec<InputEven
                         }
                     }
                     events
-                },
+                }
                 _ => {
                     debug!(
                         "Unsupported event code for syn [type: {0} code: {1} value: {2}]",
@@ -111,7 +123,6 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Vec<InputEven
                     vec![]
                 }
             }
-            
         }
         ecodes::EV_ABS => {
             // Absolute
@@ -133,26 +144,27 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Vec<InputEven
                     fingers.entry(current_slot).or_default().pos.y = scaled_val;
                     fingers.entry(current_slot).or_default().pos_updated = true;
                     vec![]
-                },
+                }
                 ecodes::ABS_MT_PRESSURE => {
-                    if ev.value > 0 { // Pretty much always true, but who knows
+                    if ev.value > 0 {
+                        // Pretty much always true, but who knows
                         fingers.entry(current_slot).or_default().pressed = true;
                     }
                     vec![]
-                },
+                }
                 ecodes::ABS_MT_TRACKING_ID => match ev.value {
                     -1 => {
                         fingers.entry(current_slot).or_default().pressed = false;
                         vec![]
-                    },
+                    }
                     _ => {
                         fingers.entry(current_slot).or_default().tracking_id = ev.value;
                         vec![]
                     }
                 },
-                ecodes::ABS_MT_ORIENTATION |
-                ecodes::ABS_MT_TOUCH_MAJOR |
-                ecodes::ABS_MT_TOUCH_MINOR => vec![], // Currently not needed
+                ecodes::ABS_MT_ORIENTATION
+                | ecodes::ABS_MT_TOUCH_MAJOR
+                | ecodes::ABS_MT_TOUCH_MINOR => vec![], // Currently not needed
                 // very unlikely
                 // Technically possible (but maybe not for the reMarkable):
                 // ABS_MT_DISTANCE, ABS_MT_TOOL_X, ABS_MT_TOOL_Y, ABS_MT_WIDTH_MAJOR,

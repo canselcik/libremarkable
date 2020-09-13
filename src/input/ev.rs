@@ -97,24 +97,33 @@ impl EvDevContext {
                                 input::InputDevice::Multitouch => {
                                     for event in input::multitouch::decode(&ev, &state) {
                                         if let Err(e) = tx.send(event) {
-                                            error!("Failed to write InputEvent into the channel: {}", e);
+                                            error!(
+                                                "Failed to write InputEvent into the channel: {}",
+                                                e
+                                            );
                                         }
                                     }
-                                },
+                                }
                                 input::InputDevice::Wacom => {
                                     if let Some(event) = input::wacom::decode(&ev, &state) {
                                         if let Err(e) = tx.send(event) {
-                                            error!("Failed to write InputEvent into the channel: {}", e);
+                                            error!(
+                                                "Failed to write InputEvent into the channel: {}",
+                                                e
+                                            );
                                         }
                                     }
-                                },
+                                }
                                 input::InputDevice::GPIO => {
                                     if let Some(event) = input::gpio::decode(&ev, &state) {
                                         if let Err(e) = tx.send(event) {
-                                            error!("Failed to write InputEvent into the channel: {}", e);
+                                            error!(
+                                                "Failed to write InputEvent into the channel: {}",
+                                                e
+                                            );
                                         }
                                     }
-                                },
+                                }
                                 _ => unreachable!(),
                             };
                         }

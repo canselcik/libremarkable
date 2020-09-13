@@ -433,10 +433,10 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
                 if UNPRESS_OBSERVED.fetch_and(false, Ordering::Relaxed) {
                     let region = app
                         .find_active_region(position.y.round() as u16, position.x.round() as u16);
-                    let element = region.map(|(region, _)| { region.element.clone() });
+                    let element = region.map(|(region, _)| region.element.clone());
                     match element {
-                      Some(element) => (region.unwrap().0.handler)(app, element),
-                      None => {}
+                        Some(element) => (region.unwrap().0.handler)(app, element),
+                        None => {}
                     }
                 }
                 return;
@@ -523,8 +523,8 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext, input: wacom::WacomEvent
 fn on_touch_handler(app: &mut appctx::ApplicationContext, input: multitouch::MultitouchEvent) {
     let framebuffer = app.get_framebuffer_ref();
     match input {
-        multitouch::MultitouchEvent::Press { finger } |
-        multitouch::MultitouchEvent::Move { finger } => {
+        multitouch::MultitouchEvent::Press { finger }
+        | multitouch::MultitouchEvent::Move { finger } => {
             if !CANVAS_REGION.contains_point(&finger.pos.cast().unwrap()) {
                 return;
             }
@@ -675,7 +675,7 @@ fn main() {
             refresh: UIConstraintRefresh::Refresh,
 
             /* We could have alternatively done this:
-            
+
                // Create a clickable region for multitouch input and associate it with its handler fn
                app.create_active_region(10, 900, 240, 480, on_touch_rustlogo);
             */

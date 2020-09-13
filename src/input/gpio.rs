@@ -1,7 +1,7 @@
+use super::ecodes;
 use evdev::raw::input_event;
 use input::{InputDeviceState, InputEvent};
 use std::sync::atomic::{AtomicBool, Ordering};
-use super::ecodes;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum PhysicalButton {

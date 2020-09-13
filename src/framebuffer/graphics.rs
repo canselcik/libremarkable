@@ -250,11 +250,12 @@ where
     };
     for (t, pt) in sample_bezier(startpt.0, ctrlpt.0, endpt.0, samples) {
         // interpolate width
-        let width = 2.0 * if t < 0.5 {
-            startpt.1 * (0.5 - t) + ctrlpt.1 * t
-        } else {
-            ctrlpt.1 * (1.0 - t) + endpt.1 * (t - 0.5)
-        };
+        let width = 2.0
+            * if t < 0.5 {
+                startpt.1 * (0.5 - t) + ctrlpt.1 * t
+            } else {
+                ctrlpt.1 * (1.0 - t) + endpt.1 * (t - 0.5)
+            };
 
         // calculate tangent
         let velocity = 2.0 * (1.0 - t) * (ctrlpt.0 - startpt.0) + 2.0 * t * (endpt.0 - ctrlpt.0);
@@ -271,20 +272,22 @@ where
                 Vector2 { x: 0.0, y: 0.0 }
             }
         };
-        let left_pt = (pt + Vector2 {
-            x: -tangent.y * width / 2.0,
-            y: tangent.x * width / 2.0,
-        })
+        let left_pt = (pt
+            + Vector2 {
+                x: -tangent.y * width / 2.0,
+                y: tangent.x * width / 2.0,
+            })
         .cast()
         .unwrap();
         if left_pt != prev_left_pt {
             left_edge.push(left_pt);
             prev_left_pt = left_pt;
         }
-        let right_pt = (pt + Vector2 {
-            x: tangent.y * width / 2.0,
-            y: -tangent.x * width / 2.0,
-        })
+        let right_pt = (pt
+            + Vector2 {
+                x: tangent.y * width / 2.0,
+                y: -tangent.x * width / 2.0,
+            })
         .cast()
         .unwrap();
         if right_pt != prev_right_pt {
