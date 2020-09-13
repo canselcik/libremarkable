@@ -503,10 +503,11 @@ impl<'a> ApplicationContext<'a> {
                 Ok(event) => match event {
                     InputEvent::GPIO { event } => {
                         (self.on_button)(appref, event);
-                    },
+                    }
                     InputEvent::MultitouchEvent { event } => {
                         // Check for and notify clickable active regions for multitouch events
-                        if let MultitouchEvent::Press { finger } | MultitouchEvent::Move { finger } = event
+                        if let MultitouchEvent::Press { finger }
+                        | MultitouchEvent::Move { finger } = event
                         {
                             let gseq = i32::from(finger.tracking_id);
                             if last_active_region_gesture_id != gseq {
@@ -519,10 +520,10 @@ impl<'a> ApplicationContext<'a> {
                             }
                         }
                         (self.on_touch)(appref, event);
-                    },
+                    }
                     InputEvent::WacomEvent { event } => {
                         (self.on_wacom)(appref, event);
-                    },
+                    }
                     _ => {}
                 },
             };
@@ -540,10 +541,11 @@ impl<'a> ApplicationContext<'a> {
             match event {
                 InputEvent::GPIO { event } => {
                     (self.on_button)(appref, event);
-                },
+                }
                 InputEvent::MultitouchEvent { event } => {
                     // Check for and notify clickable active regions for multitouch events
-                    if let MultitouchEvent::Press { finger } | MultitouchEvent::Move { finger } = event
+                    if let MultitouchEvent::Press { finger } | MultitouchEvent::Move { finger } =
+                        event
                     {
                         let gseq = i32::from(finger.tracking_id);
                         if last_active_region_gesture_id != gseq {
@@ -556,10 +558,10 @@ impl<'a> ApplicationContext<'a> {
                         }
                     }
                     (self.on_touch)(appref, event);
-                },
+                }
                 InputEvent::WacomEvent { event } => {
                     (self.on_wacom)(appref, event);
-                },
+                }
                 _ => {}
             }
         }
@@ -573,7 +575,7 @@ impl<'a> ApplicationContext<'a> {
             },
             2.0,
         ));
-        matches.first().map(|res| { (res.0, res.2) })
+        matches.first().map(|res| (res.0, res.2))
     }
 
     pub fn remove_active_region_at_point(&mut self, y: u16, x: u16) -> bool {

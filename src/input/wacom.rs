@@ -1,9 +1,9 @@
+use super::ecodes;
 use atomic::Atomic;
 use evdev::raw::input_event;
 use input::{InputDeviceState, InputEvent};
 use std;
 use std::sync::atomic::{AtomicU16, Ordering};
-use super::ecodes;
 
 use framebuffer::cgmath;
 use framebuffer::common::{DISPLAYHEIGHT, DISPLAYWIDTH, WACOMHEIGHT, WACOMWIDTH};
