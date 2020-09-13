@@ -41,21 +41,12 @@ extern crate log;
 #[macro_use]
 extern crate ioctl_gen;
 
-extern crate aabb_quadtree;
-extern crate atomic;
-extern crate fxhash;
-extern crate hlua;
-extern crate libc;
-extern crate mmap;
-extern crate rusttype;
-extern crate zstd;
-
-pub extern crate cgmath;
-pub extern crate epoll;
-pub extern crate evdev;
-pub extern crate image;
-pub extern crate line_drawing;
-pub extern crate stopwatch;
+pub use cgmath;
+pub use epoll;
+pub use evdev;
+pub use image;
+pub use line_drawing;
+pub use stopwatch;
 
 /// One of the core components, allowing output and refresh of the EInk display
 pub mod framebuffer;

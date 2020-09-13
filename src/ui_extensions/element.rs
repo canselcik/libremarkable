@@ -13,7 +13,7 @@ use crate::framebuffer::FramebufferRefresh;
 
 use crate::appctx;
 
-pub type ActiveRegionFunction = fn(&mut appctx::ApplicationContext, UIElementHandle);
+pub type ActiveRegionFunction = fn(&mut appctx::ApplicationContext<'_>, UIElementHandle);
 
 #[derive(Clone)]
 pub struct ActiveRegionHandler {
@@ -22,7 +22,7 @@ pub struct ActiveRegionHandler {
 }
 
 impl<'a> std::fmt::Debug for ActiveRegionHandler {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{0:p}", self)
     }
 }
@@ -99,11 +99,11 @@ pub enum UIElement {
 }
 
 impl UIElementHandle {
-    pub fn read(&self) -> RwLockReadGuard<UIElementWrapper> {
+    pub fn read(&self) -> RwLockReadGuard<'_, UIElementWrapper> {
         self.0.read().unwrap()
     }
 
-    pub fn write(&self) -> RwLockWriteGuard<UIElementWrapper> {
+    pub fn write(&self) -> RwLockWriteGuard<'_, UIElementWrapper> {
         self.0.write().unwrap()
     }
 
@@ -115,7 +115,7 @@ impl UIElementHandle {
 impl UIElementWrapper {
     pub fn draw(
         &mut self,
-        app: &mut appctx::ApplicationContext,
+        app: &mut appctx::ApplicationContext<'_>,
         handler: &Option<ActiveRegionHandler>,
     ) {
         let refresh = self.refresh;
