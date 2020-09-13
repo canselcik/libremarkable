@@ -1,7 +1,7 @@
 #![allow(dead_code)]
-use framebuffer;
-use framebuffer::cgmath;
-use framebuffer::common;
+use crate::framebuffer;
+use crate::framebuffer::cgmath;
+use crate::framebuffer::common;
 
 impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
     fn write_frame(&mut self, frame: &[u8]) {

@@ -3,10 +3,10 @@ use libc;
 use std::os::unix::io::AsRawFd;
 use std::sync::atomic::Ordering;
 
-use framebuffer;
-use framebuffer::common;
-use framebuffer::core;
-use framebuffer::mxcfb::*;
+use crate::framebuffer;
+use crate::framebuffer::common;
+use crate::framebuffer::core;
+use crate::framebuffer::mxcfb::*;
 
 pub enum PartialRefreshMode {
     DryRun,

@@ -1,10 +1,10 @@
-use framebuffer::cgmath;
-use framebuffer::common::{DISPLAYHEIGHT, DISPLAYWIDTH, MTHEIGHT, MTWIDTH};
+use crate::framebuffer::cgmath;
+use crate::framebuffer::common::{DISPLAYHEIGHT, DISPLAYWIDTH, MTHEIGHT, MTWIDTH};
 
 use super::ecodes;
+use crate::input::{InputDeviceState, InputEvent};
 use evdev::raw::input_event;
 use fxhash::FxHashMap;
-use input::{InputDeviceState, InputEvent};
 use std::sync::{
     atomic::{AtomicI32, Ordering},
     Mutex,

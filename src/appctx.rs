@@ -6,32 +6,32 @@ use std::sync::RwLock;
 
 use std::collections::HashMap;
 
+use crate::input::ev;
 use image;
-use input::ev;
 
-use framebuffer::common::*;
+use crate::framebuffer::common::*;
 
-use hlua;
-use hlua::Lua;
-use ui_extensions::element::{
+use crate::ui_extensions::element::{
     ActiveRegionFunction, ActiveRegionHandler, UIConstraintRefresh, UIElementHandle,
     UIElementWrapper,
 };
-use ui_extensions::luaext;
+use crate::ui_extensions::luaext;
+use hlua;
+use hlua::Lua;
 
 use aabb_quadtree::{geom, ItemId, QuadTree};
 
-use framebuffer::cgmath;
-use framebuffer::core;
-use framebuffer::refresh::PartialRefreshMode;
-use framebuffer::FramebufferBase;
-use framebuffer::FramebufferDraw;
-use framebuffer::FramebufferRefresh;
+use crate::framebuffer::cgmath;
+use crate::framebuffer::core;
+use crate::framebuffer::refresh::PartialRefreshMode;
+use crate::framebuffer::FramebufferBase;
+use crate::framebuffer::FramebufferDraw;
+use crate::framebuffer::FramebufferRefresh;
 
-use input::gpio::GPIOEvent;
-use input::multitouch::MultitouchEvent;
-use input::wacom::WacomEvent;
-use input::{InputDevice, InputEvent};
+use crate::input::gpio::GPIOEvent;
+use crate::input::multitouch::MultitouchEvent;
+use crate::input::wacom::WacomEvent;
+use crate::input::{InputDevice, InputEvent};
 
 #[cfg(feature = "enable-runtime-benchmarking")]
 use stopwatch;

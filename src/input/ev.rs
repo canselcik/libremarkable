@@ -1,6 +1,6 @@
+use crate::input;
 use epoll;
 use evdev;
-use input;
 use std;
 
 use std::sync::atomic::{AtomicBool, Ordering};

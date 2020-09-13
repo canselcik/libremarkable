@@ -1,7 +1,7 @@
 use std;
 
-use framebuffer::cgmath::*;
-use framebuffer::common::*;
+use crate::framebuffer::cgmath::*;
+use crate::framebuffer::common::*;
 
 macro_rules! min {
         ($x: expr) => ($x);

@@ -5,12 +5,12 @@ use libc;
 use line_drawing;
 use rusttype::{point, Scale};
 
-use framebuffer;
-use framebuffer::cgmath::*;
-use framebuffer::common::*;
-use framebuffer::core;
-use framebuffer::graphics;
-use framebuffer::FramebufferIO;
+use crate::framebuffer;
+use crate::framebuffer::cgmath::*;
+use crate::framebuffer::common::*;
+use crate::framebuffer::core;
+use crate::framebuffer::graphics;
+use crate::framebuffer::FramebufferIO;
 
 impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
     fn draw_image(&mut self, img: &RgbImage, pos: Point2<i32>) -> mxcfb_rect {

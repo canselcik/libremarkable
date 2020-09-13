@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 #![allow(non_camel_case_types)]
-use framebuffer::cgmath;
-use framebuffer::mxcfb::*;
+use crate::framebuffer::cgmath;
+use crate::framebuffer::mxcfb::*;
 use std;
 
 /// This is to allow tests to run on systems with 64bit pointer types.
