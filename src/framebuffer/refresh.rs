@@ -1,6 +1,8 @@
 use std::os::unix::io::AsRawFd;
 use std::sync::atomic::Ordering;
 
+use log::warn;
+
 use crate::framebuffer;
 use crate::framebuffer::common;
 use crate::framebuffer::core;

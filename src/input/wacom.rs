@@ -2,6 +2,7 @@ use super::ecodes;
 use crate::input::{InputDeviceState, InputEvent};
 use atomic::Atomic;
 use evdev::raw::input_event;
+use log::debug;
 use std::sync::atomic::{AtomicU16, Ordering};
 
 use crate::framebuffer::cgmath;

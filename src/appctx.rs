@@ -17,6 +17,7 @@ use crate::ui_extensions::luaext;
 use hlua::Lua;
 
 use aabb_quadtree::{geom, ItemId, QuadTree};
+use log::warn;
 
 use crate::framebuffer::cgmath;
 use crate::framebuffer::core;

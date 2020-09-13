@@ -1,4 +1,6 @@
 #![allow(dead_code)]
+use log::error;
+
 use crate::framebuffer;
 use crate::framebuffer::cgmath;
 use crate::framebuffer::common;
