@@ -6,7 +6,7 @@
 
 [![color](https://github.com/canselcik/libremarkable/raw/master/reference-material/color.jpg)](https://github.com/canselcik/libremarkable/raw/master/reference-material/color.jpg)
 
-Everything from low latency partial updates to the eInk display to at least minimal multitouch, physical button and Wacom Digitizer input is now understood and their minimal to complete implementations can be found in this repository.
+Everything from low latency partial updates to the eInk display to multitouch, physical button and Wacom Digitizer input is now understood and their minimal to complete implementations can be found in this repository.
 
 The focus of this repository is now going to be the Rust library for providing these features. Potentially a `piston` backend might be created for `Remarkable`, allowing the use of `conrod` to simplify UI creation.
 
@@ -41,7 +41,7 @@ rustflags = [
 
 If you have further questions, feel free to ask in Issues.
 
-You can also add this snipped to the above file to default to cross-compiling for this project:
+You can also add this snippet to the above file in order to default to cross-compiling for this project:
 
 ```
 [build]
