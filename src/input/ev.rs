@@ -85,7 +85,13 @@ impl EvDevContext {
                     while !exit_req.load(Ordering::Relaxed) {
                         // -1 indefinite wait but it is okay because our EPOLL FD
                         // is watching on ALL input devices at once.
-                        let res = epoll::wait(epfd, -1, &mut v[0..1]).unwrap();
+                        let res = match epoll::wait(epfd, -1, &mut v[0..1]) {
+                            Ok(res) => res,
+                            Err(err) => {
+                                warn!("epoll_wait failed: {}", err);
+                                continue;
+                            }
+                        };
                         if res != 1 {
                             warn!("epoll_wait returned {0}", res);
                         }
