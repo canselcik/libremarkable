@@ -4,7 +4,7 @@ use evdev::raw::input_event;
 use log::error;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub enum PhysicalButton {
     LEFT,
     MIDDLE,
@@ -13,7 +13,7 @@ pub enum PhysicalButton {
     WAKEUP,
 }
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub enum GPIOEvent {
     Press { button: PhysicalButton },
     Unpress { button: PhysicalButton },
