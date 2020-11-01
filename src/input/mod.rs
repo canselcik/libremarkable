@@ -14,7 +14,7 @@ pub mod multitouch;
 /// Contains the ev codes in use
 pub mod ecodes;
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Debug, Hash, Eq)]
 pub enum InputDevice {
     Wacom,
     Multitouch,
