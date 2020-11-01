@@ -49,37 +49,31 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
             None
         }
         ecodes::EV_KEY => {
-            let (p, before_state) = match ev.code {
-                ecodes::KEY_HOME => (
-                    PhysicalButton::MIDDLE,
-                    state.states[0].fetch_and(ev.value != 0, Ordering::Relaxed),
-                ),
-                ecodes::KEY_LEFT => (
-                    PhysicalButton::LEFT,
-                    state.states[1].fetch_and(ev.value != 0, Ordering::Relaxed),
-                ),
-                ecodes::KEY_RIGHT => (
-                    PhysicalButton::RIGHT,
-                    state.states[2].fetch_and(ev.value != 0, Ordering::Relaxed),
-                ),
-                ecodes::KEY_POWER => (
-                    PhysicalButton::POWER,
-                    state.states[3].fetch_and(ev.value != 0, Ordering::Relaxed),
-                ),
-                ecodes::KEY_WAKEUP => (
-                    PhysicalButton::WAKEUP,
-                    state.states[4].fetch_and(ev.value != 0, Ordering::Relaxed),
-                ),
+            let p = match ev.code {
+                ecodes::KEY_HOME => {
+                    state.states[0].store(ev.value != 0, Ordering::Relaxed);
+                    PhysicalButton::MIDDLE
+                }
+                ecodes::KEY_LEFT => {
+                    state.states[1].store(ev.value != 0, Ordering::Relaxed);
+                    PhysicalButton::LEFT
+                }
+                ecodes::KEY_RIGHT => {
+                    state.states[2].store(ev.value != 0, Ordering::Relaxed);
+                    PhysicalButton::RIGHT
+                }
+                ecodes::KEY_POWER => {
+                    state.states[3].store(ev.value != 0, Ordering::Relaxed);
+                    PhysicalButton::POWER
+                }
+                ecodes::KEY_WAKEUP => {
+                    state.states[4].store(ev.value != 0, Ordering::Relaxed);
+                    PhysicalButton::WAKEUP
+                }
                 _ => return None,
             };
 
-            // Edge trigger -- debouncing
-            let new_state = ev.value != 0;
-            if new_state == before_state {
-                return None;
-            }
-
-            let event = if new_state {
+            let event = if ev.value != 0 {
                 GPIOEvent::Press { button: p }
             } else {
                 GPIOEvent::Unpress { button: p }
