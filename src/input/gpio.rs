@@ -44,11 +44,11 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
         _ => unreachable!(),
     };
     match ev._type {
-        0 => {
+        ecodes::EV_SYN => {
             /* safely ignored. sync event*/
             None
         }
-        1 => {
+        ecodes::EV_KEY => {
             let (p, before_state) = match ev.code {
                 ecodes::KEY_HOME => (
                     PhysicalButton::MIDDLE,
