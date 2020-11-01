@@ -60,7 +60,7 @@ impl InputDeviceState {
     }
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum InputEvent {
     WacomEvent { event: wacom::WacomEvent },
     MultitouchEvent { event: multitouch::MultitouchEvent },

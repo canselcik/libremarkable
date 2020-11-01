@@ -51,7 +51,7 @@ pub enum WacomPen {
     Stylus2 = ecodes::BTN_STYLUS2,
 }
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub enum WacomEventType {
     InstrumentChange,
     Hover,
@@ -59,7 +59,7 @@ pub enum WacomEventType {
     Unknown,
 }
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub enum WacomEvent {
     InstrumentChange {
         pen: WacomPen,

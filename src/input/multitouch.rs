@@ -53,7 +53,7 @@ impl ::std::default::Default for MultitouchState {
     }
 }
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub enum MultitouchEvent {
     Press { finger: Finger },
     Release { finger: Finger },
