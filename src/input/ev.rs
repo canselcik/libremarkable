@@ -25,7 +25,7 @@ fn event_file_paths() -> FxHashMap<input::InputDevice, PathBuf> {
     let input_dir = Path::new("/dev/input");
     for entry in input_dir
         .read_dir()
-        .expect(&format!("Failed to list {:?}", input_dir))
+        .unwrap_or_else(|_| panic!("Failed to list {:?}", input_dir))
     {
         let entry = entry.unwrap();
         let file_name = entry.file_name().as_os_str().to_str().unwrap().to_owned();
@@ -39,8 +39,8 @@ fn event_file_paths() -> FxHashMap<input::InputDevice, PathBuf> {
 
     // Open and check capabilities of each event device
     for evdev_path in event_file_paths {
-        let dev =
-            evdev::Device::open(&evdev_path).expect(&format!("Failed to scan {:?}", &evdev_path));
+        let dev = evdev::Device::open(&evdev_path)
+            .unwrap_or_else(|_| panic!("Failed to scan {:?}", &evdev_path));
         if dev.events_supported().contains(evdev::KEY) {
             if dev.keys_supported().contains(evdev::BTN_STYLUS as usize)
                 && dev.events_supported().contains(evdev::ABSOLUTE)
@@ -56,11 +56,11 @@ fn event_file_paths() -> FxHashMap<input::InputDevice, PathBuf> {
             }
         }
 
-        if dev.events_supported().contains(evdev::RELATIVE) {
-            if dev.absolute_axes_supported().contains(evdev::ABS_MT_SLOT) {
-                // The touchscreen device has the ABS_MT_SLOT event and supports RELATIVE event types
-                input_device_paths.insert(input::InputDevice::Multitouch, evdev_path.clone());
-            }
+        if dev.events_supported().contains(evdev::RELATIVE)
+            && dev.absolute_axes_supported().contains(evdev::ABS_MT_SLOT)
+        {
+            // The touchscreen device has the ABS_MT_SLOT event and supports RELATIVE event types
+            input_device_paths.insert(input::InputDevice::Multitouch, evdev_path.clone());
         }
     }
 
