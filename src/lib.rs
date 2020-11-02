@@ -52,6 +52,9 @@ pub mod input;
 /// Simple battery and charging status provider
 pub mod battery;
 
+// TODO: Docs
+pub mod device;
+
 /// Contains the `ApplicationContext`, which is a general framework that can be used to either build
 /// your application or design your I/O code after. It uses rudimentary UI elements and adds them
 /// to a scene after wrapping them in `UIElementWrapper`. None of these are mandatory to be used.
