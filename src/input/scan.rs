@@ -35,7 +35,6 @@ impl EvDevsScan {
         let mut multitouch_path: Option<PathBuf> = None;
         let mut multitouch_dev: Option<evdev::Device> = None;
         let mut gpio_path: Option<PathBuf> = None;
-        let mut gpio_dev: Option<evdev::Device> = None;
 
         // Get all /dev/input/event* file paths
         let mut event_file_paths: Vec<PathBuf> = Vec::new();
@@ -72,7 +71,6 @@ impl EvDevsScan {
                 if dev.keys_supported().contains(evdev::KEY_POWER as usize) {
                     // The device for buttons has the KEY_POWER button and support KEY event types
                     gpio_path = Some(evdev_path.clone());
-                    gpio_dev = Some(dev);
                     continue;
                 }
             }
@@ -98,11 +96,10 @@ impl EvDevsScan {
         }
         let multitouch_path = multitouch_path.unwrap();
         let multitouch_dev = multitouch_dev.unwrap();
-        if gpio_path.is_none() || gpio_dev.is_none() {
+        if gpio_path.is_none() {
             panic!("Failed to find the gpio evdev!");
         }
         let gpio_path = gpio_path.unwrap();
-        let gpio_dev = gpio_dev.unwrap();
 
         // Figure out sizes
         let wacom_state = wacom_dev.state();
