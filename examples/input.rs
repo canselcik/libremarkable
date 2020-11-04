@@ -3,6 +3,9 @@ use libremarkable::input::{ev::EvDevContext, scan::SCAN, InputDevice, InputEvent
 use std::sync::mpsc::channel;
 
 fn main() {
+    // Measure start time
+    let start = std::time::SystemTime::now();
+
     // Display paths for InputDevices
     for device in [
         InputDevice::GPIO,
@@ -22,6 +25,9 @@ fn main() {
     EvDevContext::new(InputDevice::GPIO, input_tx.clone()).start();
     EvDevContext::new(InputDevice::Multitouch, input_tx.clone()).start();
     EvDevContext::new(InputDevice::Wacom, input_tx).start();
+
+    // Output measurement of start time
+    eprintln!("Opened input devices in {:?}", start.elapsed().unwrap());
 
     eprintln!("Waiting for input events...");
     while let Ok(event) = input_rx.recv() {
