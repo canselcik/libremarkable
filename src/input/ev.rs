@@ -1,71 +1,9 @@
 use crate::input;
 
+use input::scan::SCAN;
 use log::{error, info, warn};
-
-use fxhash::FxHashMap;
-use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-
-lazy_static! {
-    /// Map of what InputDevice has what event file path on the system.
-    /// The paths are different depending on the reMarkable model.
-    pub static ref INPUT_DEVICE_PATHS: FxHashMap<input::InputDevice, PathBuf> =
-        event_file_paths();
-}
-
-/// Returns a HashMap that contains the appropriate file paths for the InputDevices
-/// This way it'll always find the correct device no matter the device generation.
-/// Based on code by [@raisjn](https://github.com/raisjn): https://gist.github.com/raisjn/01b16286dcc4461a6643f40f8f553966
-fn event_file_paths() -> FxHashMap<input::InputDevice, PathBuf> {
-    let mut input_device_paths: FxHashMap<input::InputDevice, PathBuf> = FxHashMap::default();
-
-    // Get all /dev/input/event* file paths
-    let mut event_file_paths: Vec<PathBuf> = Vec::new();
-    let input_dir = Path::new("/dev/input");
-    for entry in input_dir
-        .read_dir()
-        .unwrap_or_else(|_| panic!("Failed to list {:?}", input_dir))
-    {
-        let entry = entry.unwrap();
-        let file_name = entry.file_name().as_os_str().to_str().unwrap().to_owned();
-        if !file_name.starts_with("event") {
-            continue;
-        }
-
-        let evdev_path = input_dir.join(&file_name);
-        event_file_paths.push(evdev_path);
-    }
-
-    // Open and check capabilities of each event device
-    for evdev_path in event_file_paths {
-        let dev = evdev::Device::open(&evdev_path)
-            .unwrap_or_else(|_| panic!("Failed to scan {:?}", &evdev_path));
-        if dev.events_supported().contains(evdev::KEY) {
-            if dev.keys_supported().contains(evdev::BTN_STYLUS as usize)
-                && dev.events_supported().contains(evdev::ABSOLUTE)
-            {
-                // The device with the wacom digitizer has the BTN_STYLUS event
-                // and support KEY as well as ABSOLUTE event types
-                input_device_paths.insert(input::InputDevice::Wacom, evdev_path.clone());
-            }
-
-            if dev.keys_supported().contains(evdev::KEY_POWER as usize) {
-                // The device for buttons has the KEY_POWER button and support KEY event types
-                input_device_paths.insert(input::InputDevice::GPIO, evdev_path.clone());
-            }
-        }
-
-        if dev.events_supported().contains(evdev::RELATIVE)
-            && dev.absolute_axes_supported().contains(evdev::ABS_MT_SLOT)
-        {
-            // The touchscreen device has the ABS_MT_SLOT event and supports RELATIVE event types
-            input_device_paths.insert(input::InputDevice::Multitouch, evdev_path.clone());
-        }
-    }
-
-    input_device_paths
-}
 
 pub struct EvDevContext {
     device: input::InputDevice,
@@ -111,16 +49,11 @@ impl EvDevContext {
 
     /// Non-blocking function that will open the provided path and wait for more data with epoll
     pub fn start(&mut self) {
-        if self.device == input::InputDevice::Unknown {
-            panic!("Invalid device (\"Unknown\")!");
-        }
-        let path = INPUT_DEVICE_PATHS[&self.device].clone();
-
         self.started.store(true, Ordering::Relaxed);
         self.exited.store(false, Ordering::Relaxed);
         self.exit_requested.store(false, Ordering::Relaxed);
 
-        match evdev::Device::open(&path) {
+        match SCAN.get_device(self.device) {
             Err(e) => error!("Error while reading events from epoll fd: {0}", e),
             Ok(mut dev) => {
                 let mut v = vec![epoll::Event {
@@ -134,7 +67,7 @@ impl EvDevContext {
                 epoll::ctl(epfd, epoll::ControlOptions::EPOLL_CTL_ADD, dev.fd(), v[0]).unwrap();
 
                 // init callback
-                info!("Init complete for {:?}", path);
+                info!("Init complete for {:?}", SCAN.get_path(self.device));
 
                 let exit_req = Arc::clone(&self.exit_requested);
                 let exited = Arc::clone(&self.exited);

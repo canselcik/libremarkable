@@ -14,6 +14,10 @@ pub mod multitouch;
 /// Contains the ev codes in use
 pub mod ecodes;
 
+/// Figures out where the input devices are as well as
+/// device dependant properties
+pub mod scan;
+
 #[derive(PartialEq, Copy, Clone, Debug, Hash, Eq)]
 pub enum InputDevice {
     Wacom,

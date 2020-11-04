@@ -1,4 +1,4 @@
-use libremarkable::input::{ev::EvDevContext, ev::INPUT_DEVICE_PATHS, InputDevice, InputEvent};
+use libremarkable::input::{ev::EvDevContext, scan::SCAN, InputDevice, InputEvent};
 use std::sync::mpsc::channel;
 
 fn main() {
@@ -10,7 +10,7 @@ fn main() {
     ]
     .iter()
     {
-        eprintln!("{:?} is {:?}", INPUT_DEVICE_PATHS[device], device);
+        eprintln!("{:?} is {:?}", SCAN.get_path(*device), device);
     }
 
     // Send all input events to input_rx
