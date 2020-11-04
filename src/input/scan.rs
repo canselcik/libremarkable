@@ -1,3 +1,4 @@
+use super::ecodes;
 use super::InputDevice;
 use std::path::{Path, PathBuf};
 
@@ -14,9 +15,14 @@ lazy_static! {
 /// for some time to increase performance.
 /// TODO: Call this `EvDevsScanOutcome` or EvScanOutcome instead ??
 pub struct EvDevsScan {
-    wacom_path: PathBuf,
-    multitouch_path: PathBuf,
-    gpio_path: PathBuf,
+    pub wacom_path: PathBuf,
+    pub multitouch_path: PathBuf,
+    pub gpio_path: PathBuf,
+
+    pub wacom_width: u16,
+    pub wacom_height: u16,
+    pub mt_width: u16,
+    pub mt_height: u16,
 }
 
 impl EvDevsScan {
@@ -25,8 +31,11 @@ impl EvDevsScan {
     fn new() -> Self {
         // All of these have to be found
         let mut wacom_path: Option<PathBuf> = None;
+        let mut wacom_dev: Option<evdev::Device> = None;
         let mut multitouch_path: Option<PathBuf> = None;
+        let mut multitouch_dev: Option<evdev::Device> = None;
         let mut gpio_path: Option<PathBuf> = None;
+        let mut gpio_dev: Option<evdev::Device> = None;
 
         // Get all /dev/input/event* file paths
         let mut event_file_paths: Vec<PathBuf> = Vec::new();
@@ -56,11 +65,15 @@ impl EvDevsScan {
                     // The device with the wacom digitizer has the BTN_STYLUS event
                     // and support KEY as well as ABSOLUTE event types
                     wacom_path = Some(evdev_path.clone());
+                    wacom_dev = Some(dev);
+                    continue;
                 }
 
                 if dev.keys_supported().contains(evdev::KEY_POWER as usize) {
                     // The device for buttons has the KEY_POWER button and support KEY event types
                     gpio_path = Some(evdev_path.clone());
+                    gpio_dev = Some(dev);
+                    continue;
                 }
             }
 
@@ -69,27 +82,50 @@ impl EvDevsScan {
             {
                 // The touchscreen device has the ABS_MT_SLOT event and supports RELATIVE event types
                 multitouch_path = Some(evdev_path.clone());
+                multitouch_dev = Some(dev);
+                continue;
             }
         }
 
         // Ensure that all devices were found
-        if wacom_path.is_none() {
+        if wacom_path.is_none() || wacom_dev.is_none() {
             panic!("Failed to find the wacom digitizer evdev!");
         }
         let wacom_path = wacom_path.unwrap();
-        if multitouch_path.is_none() {
+        let wacom_dev = wacom_dev.unwrap();
+        if multitouch_path.is_none() || multitouch_dev.is_none() {
             panic!("Failed to find the multitouch evdev!");
         }
         let multitouch_path = multitouch_path.unwrap();
-        if gpio_path.is_none() {
+        let multitouch_dev = multitouch_dev.unwrap();
+        if gpio_path.is_none() || gpio_dev.is_none() {
             panic!("Failed to find the gpio evdev!");
         }
         let gpio_path = gpio_path.unwrap();
+        let gpio_dev = gpio_dev.unwrap();
+
+        // Figure out sizes
+        let wacom_state = wacom_dev.state();
+        // X and Y are swapped for the wacom since rM1 and rM2 have it rotated
+        let wacom_width = wacom_state.abs_vals[ecodes::ABS_Y as usize].maximum as u16;
+        let wacom_height = wacom_state.abs_vals[ecodes::ABS_X as usize].maximum as u16;
+
+        let mt_state = multitouch_dev.state();
+        let mt_width = mt_state.abs_vals[ecodes::ABS_MT_POSITION_X as usize].maximum as u16;
+        let mt_height = mt_state.abs_vals[ecodes::ABS_MT_POSITION_Y as usize].maximum as u16;
+
+        // Get values always from portrait view
 
         Self {
             wacom_path,
             multitouch_path,
             gpio_path,
+
+            wacom_width,
+            wacom_height,
+
+            mt_width,
+            mt_height,
         }
     }
 

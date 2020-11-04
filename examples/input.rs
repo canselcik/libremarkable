@@ -1,3 +1,4 @@
+use libremarkable::framebuffer::common::{MTHEIGHT, MTWIDTH, WACOMHEIGHT, WACOMWIDTH};
 use libremarkable::input::{ev::EvDevContext, scan::SCAN, InputDevice, InputEvent};
 use std::sync::mpsc::channel;
 
@@ -12,6 +13,9 @@ fn main() {
     {
         eprintln!("{:?} is {:?}", SCAN.get_path(*device), device);
     }
+
+    eprintln!("Multitouch resolution: {}x{}", *MTWIDTH, *MTHEIGHT);
+    eprintln!("Wacom resolution: {}x{}", *WACOMWIDTH, *WACOMHEIGHT);
 
     // Send all input events to input_rx
     let (input_tx, input_rx) = channel::<InputEvent>();

@@ -8,8 +8,10 @@ use std::sync::atomic::{AtomicU16, Ordering};
 use crate::framebuffer::cgmath;
 use crate::framebuffer::common::{DISPLAYHEIGHT, DISPLAYWIDTH, WACOMHEIGHT, WACOMWIDTH};
 
-const WACOM_HSCALAR: f32 = (DISPLAYWIDTH as f32) / (WACOMWIDTH as f32);
-const WACOM_VSCALAR: f32 = (DISPLAYHEIGHT as f32) / (WACOMHEIGHT as f32);
+lazy_static! {
+    static ref WACOM_HSCALAR: f32 = (DISPLAYWIDTH as f32) / (*WACOMWIDTH as f32);
+    static ref WACOM_VSCALAR: f32 = (DISPLAYHEIGHT as f32) / (*WACOMHEIGHT as f32);
+}
 
 pub struct WacomState {
     last_x: AtomicU16,
@@ -88,8 +90,8 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
             Some(WacomPen::ToolPen) => Some(InputEvent::WacomEvent {
                 event: WacomEvent::Hover {
                     position: cgmath::Point2 {
-                        x: (f32::from(state.last_x.load(Ordering::Relaxed)) * WACOM_HSCALAR),
-                        y: (f32::from(state.last_y.load(Ordering::Relaxed)) * WACOM_VSCALAR),
+                        x: (f32::from(state.last_x.load(Ordering::Relaxed)) * *WACOM_HSCALAR),
+                        y: (f32::from(state.last_y.load(Ordering::Relaxed)) * *WACOM_VSCALAR),
                     },
                     distance: state.last_dist.load(Ordering::Relaxed) as u16,
                     tilt: cgmath::Vector2 {
@@ -101,8 +103,8 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
             Some(WacomPen::Touch) => Some(InputEvent::WacomEvent {
                 event: WacomEvent::Draw {
                     position: cgmath::Point2 {
-                        x: (f32::from(state.last_x.load(Ordering::Relaxed)) * WACOM_HSCALAR),
-                        y: (f32::from(state.last_y.load(Ordering::Relaxed)) * WACOM_VSCALAR),
+                        x: (f32::from(state.last_x.load(Ordering::Relaxed)) * *WACOM_HSCALAR),
+                        y: (f32::from(state.last_y.load(Ordering::Relaxed)) * *WACOM_VSCALAR),
                     },
                     pressure: state.last_pressure.load(Ordering::Relaxed),
                     tilt: cgmath::Vector2 {
@@ -168,7 +170,7 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
                 ecodes::ABS_X => {
                     // x and y are inverted due to remarkable
                     let val = ev.value as u16;
-                    state.last_y.store(WACOMHEIGHT - val, Ordering::Relaxed);
+                    state.last_y.store(*WACOMHEIGHT - val, Ordering::Relaxed);
                 }
                 ecodes::ABS_Y => {
                     state.last_x.store(ev.value as u16, Ordering::Relaxed);
