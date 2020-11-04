@@ -16,7 +16,7 @@ ioctl-gen = "0.1.1"
 libc = "0.2.69"
 mmap = "0.1.1"
 rusttype = "0.8.2"
-evdev = "0.10.1"
+evdev = { git = "https://github.com/LinusCDE/evdev.git", rev = "43fb0b33994dba667ab3f1c107b7393ac3166ffe" }
 epoll = "4.1.0"
 image = "0.21.3"
 line_drawing = "0.8.0"
