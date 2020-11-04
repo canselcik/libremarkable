@@ -11,8 +11,10 @@ use std::sync::{
     Mutex,
 };
 
-const MT_HSCALAR: f32 = (DISPLAYWIDTH as f32) / (MTWIDTH as f32);
-const MT_VSCALAR: f32 = (DISPLAYHEIGHT as f32) / (MTHEIGHT as f32);
+lazy_static! {
+    static ref MT_HSCALAR: f32 = (DISPLAYWIDTH as f32) / (*MTWIDTH as f32);
+    static ref MT_VSCALAR: f32 = (DISPLAYHEIGHT as f32) / (*MTHEIGHT as f32);
+}
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Finger {
@@ -129,13 +131,13 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Vec<InputEven
                     vec![]
                 }
                 ecodes::ABS_MT_POSITION_X => {
-                    let scaled_val = (f32::from(MTWIDTH - ev.value as u16) * MT_HSCALAR) as u16;
+                    let scaled_val = (f32::from(*MTWIDTH - ev.value as u16) * *MT_HSCALAR) as u16;
                     fingers.entry(current_slot).or_default().pos.x = scaled_val;
                     fingers.entry(current_slot).or_default().pos_updated = true;
                     vec![]
                 }
                 ecodes::ABS_MT_POSITION_Y => {
-                    let scaled_val = (f32::from(MTHEIGHT - ev.value as u16) * MT_VSCALAR) as u16;
+                    let scaled_val = (f32::from(*MTHEIGHT - ev.value as u16) * *MT_VSCALAR) as u16;
                     fingers.entry(current_slot).or_default().pos.y = scaled_val;
                     fingers.entry(current_slot).or_default().pos_updated = true;
                     vec![]
