@@ -49,11 +49,13 @@ impl EvDevContext {
 
     /// Non-blocking function that will open the provided path and wait for more data with epoll
     pub fn start(&mut self) {
+        let path = SCAN.get_path(self.device);
+
         self.started.store(true, Ordering::Relaxed);
         self.exited.store(false, Ordering::Relaxed);
         self.exit_requested.store(false, Ordering::Relaxed);
 
-        match SCAN.get_device(self.device) {
+        match evdev::Device::open(path) {
             Err(e) => error!("Error while reading events from epoll fd: {0}", e),
             Ok(mut dev) => {
                 let mut v = vec![epoll::Event {
@@ -67,7 +69,7 @@ impl EvDevContext {
                 epoll::ctl(epfd, epoll::ControlOptions::EPOLL_CTL_ADD, dev.fd(), v[0]).unwrap();
 
                 // init callback
-                info!("Init complete for {:?}", SCAN.get_path(self.device));
+                info!("Init complete for {:?}", path);
 
                 let exit_req = Arc::clone(&self.exit_requested);
                 let exited = Arc::clone(&self.exited);
