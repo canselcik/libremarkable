@@ -77,10 +77,6 @@ impl MultitouchEvent {
     }
 }
 
-/// Take a rotated part and update the position of the finger while scaling
-/// it properly to the framebuffer size as well.
-fn update_finger_with_part(finger: &mut Finger, rotated_part: CoordinatePart) {}
-
 pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Vec<InputEvent> {
     let state = match outer_state {
         InputDeviceState::MultitouchState(ref state_arc) => state_arc,

@@ -88,6 +88,7 @@ impl InputDeviceRotation {
     }
 }
 
+#[cfg(test)]
 mod test {
     use super::InputDeviceRotation::*;
     use cgmath::{Point2, Vector2};
