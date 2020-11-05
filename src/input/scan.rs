@@ -10,7 +10,7 @@ pub const INITIAL_DEVS_AVAILABLE_FOR: Duration = Duration::from_millis(1000);
 
 lazy_static! {
     /// A singleton of the EvDevsScan object
-    pub static ref SCANNED: EvDevsScan = EvDevsScan::new();
+    pub static ref SCANNED: EvDevs = EvDevs::new();
 }
 
 /// This struct contains the results of initially scaning all evdev devices,
@@ -20,7 +20,7 @@ lazy_static! {
 /// EvDevsScan has some internal mutability to allow resuing the opened devices
 /// for some time to increase performance.
 /// TODO: Call this `EvDevsScanOutcome` or EvScanOutcome instead ??
-pub struct EvDevsScan {
+pub struct EvDevs {
     pub wacom_path: PathBuf,
     pub multitouch_path: PathBuf,
     pub gpio_path: PathBuf,
@@ -42,7 +42,7 @@ pub struct EvDevsScan {
     gpio_initial_dev: Arc<Mutex<Option<evdev::Device>>>,
 }
 
-impl EvDevsScan {
+impl EvDevs {
     /// Scan all the evdev devices, figure out which is which
     /// and get some additional data for lazy constants.
     fn new() -> Self {
