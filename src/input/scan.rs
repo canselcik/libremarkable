@@ -1,5 +1,6 @@
 use super::ecodes;
 use super::InputDevice;
+use crate::cgmath::Vector2;
 use std::path::{Path, PathBuf};
 
 lazy_static! {
@@ -23,6 +24,10 @@ pub struct EvDevsScan {
     pub wacom_height: u16,
     pub mt_width: u16,
     pub mt_height: u16,
+
+    /// The resolution of the wacom no rotation applied
+    pub wacom_orig_size: Vector2<u16>,
+    pub multitouch_orig_size: Vector2<u16>,
 }
 
 impl EvDevsScan {
@@ -103,13 +108,26 @@ impl EvDevsScan {
 
         // Figure out sizes
         let wacom_state = wacom_dev.state();
-        // X and Y are swapped for the wacom since rM1 and rM2 have it rotated
-        let wacom_width = wacom_state.abs_vals[ecodes::ABS_Y as usize].maximum as u16;
-        let wacom_height = wacom_state.abs_vals[ecodes::ABS_X as usize].maximum as u16;
+        let wacom_orig_size = Vector2 {
+            x: wacom_state.abs_vals[ecodes::ABS_X as usize].maximum as u16,
+            y: wacom_state.abs_vals[ecodes::ABS_Y as usize].maximum as u16,
+        };
+        // X and Y are swapped for the wacom since rM1 and probably also rM2 have it rotated
+        let (wacom_width, wacom_height) = crate::device::CURRENT_DEVICE
+            .get_wacom_rotation()
+            .rotated_size(&wacom_orig_size)
+            .into();
 
         let mt_state = multitouch_dev.state();
-        let mt_width = mt_state.abs_vals[ecodes::ABS_MT_POSITION_X as usize].maximum as u16;
-        let mt_height = mt_state.abs_vals[ecodes::ABS_MT_POSITION_Y as usize].maximum as u16;
+        let multitouch_orig_size = Vector2 {
+            x: mt_state.abs_vals[ecodes::ABS_MT_POSITION_X as usize].maximum as u16,
+            y: mt_state.abs_vals[ecodes::ABS_MT_POSITION_Y as usize].maximum as u16,
+        };
+        // Axes are swapped on the rM2 (see InputDeviceRotation for more)
+        let (mt_width, mt_height) = crate::device::CURRENT_DEVICE
+            .get_multitouch_rotation()
+            .rotated_size(&multitouch_orig_size)
+            .into();
 
         Self {
             wacom_path,
@@ -121,6 +139,9 @@ impl EvDevsScan {
 
             mt_width,
             mt_height,
+
+            multitouch_orig_size,
+            wacom_orig_size,
         }
     }
 

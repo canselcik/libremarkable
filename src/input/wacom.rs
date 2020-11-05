@@ -1,4 +1,7 @@
 use super::ecodes;
+use crate::device::CURRENT_DEVICE;
+use crate::input::rotate::CoordinatePart;
+use crate::input::scan::SCAN;
 use crate::input::{InputDeviceState, InputEvent};
 use atomic::Atomic;
 use evdev::raw::input_event;
@@ -168,12 +171,30 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
                         .store(ev.value as u16, Ordering::Relaxed);
                 }
                 ecodes::ABS_X => {
-                    // x and y are inverted due to remarkable
-                    let val = ev.value as u16;
-                    state.last_y.store(*WACOMHEIGHT - val, Ordering::Relaxed);
+                    let rotated_part = CURRENT_DEVICE
+                        .get_wacom_rotation()
+                        .rotate_part(CoordinatePart::X(ev.value as u16), &SCAN.wacom_orig_size);
+                    match rotated_part {
+                        CoordinatePart::X(rotated_value) => {
+                            state.last_x.store(rotated_value, Ordering::Relaxed);
+                        }
+                        CoordinatePart::Y(rotated_value) => {
+                            state.last_y.store(rotated_value, Ordering::Relaxed);
+                        }
+                    }
                 }
                 ecodes::ABS_Y => {
-                    state.last_x.store(ev.value as u16, Ordering::Relaxed);
+                    let rotated_part = CURRENT_DEVICE
+                        .get_wacom_rotation()
+                        .rotate_part(CoordinatePart::Y(ev.value as u16), &SCAN.wacom_orig_size);
+                    match rotated_part {
+                        CoordinatePart::X(rotated_value) => {
+                            state.last_x.store(rotated_value, Ordering::Relaxed);
+                        }
+                        CoordinatePart::Y(rotated_value) => {
+                            state.last_y.store(rotated_value, Ordering::Relaxed);
+                        }
+                    }
                 }
                 _ => {
                     debug!(

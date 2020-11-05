@@ -1,5 +1,8 @@
+use crate::device::CURRENT_DEVICE;
 use crate::framebuffer::cgmath;
 use crate::framebuffer::common::{DISPLAYHEIGHT, DISPLAYWIDTH, MTHEIGHT, MTWIDTH};
+use crate::input::rotate::CoordinatePart;
+use crate::input::scan::SCAN;
 
 use super::ecodes;
 use crate::input::{InputDeviceState, InputEvent};
@@ -74,6 +77,10 @@ impl MultitouchEvent {
     }
 }
 
+/// Take a rotated part and update the position of the finger while scaling
+/// it properly to the framebuffer size as well.
+fn update_finger_with_part(finger: &mut Finger, rotated_part: CoordinatePart) {}
+
 pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Vec<InputEvent> {
     let state = match outer_state {
         InputDeviceState::MultitouchState(ref state_arc) => state_arc,
@@ -131,15 +138,37 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Vec<InputEven
                     vec![]
                 }
                 ecodes::ABS_MT_POSITION_X => {
-                    let scaled_val = (f32::from(*MTWIDTH - ev.value as u16) * *MT_HSCALAR) as u16;
-                    fingers.entry(current_slot).or_default().pos.x = scaled_val;
-                    fingers.entry(current_slot).or_default().pos_updated = true;
+                    let rotated_part = CURRENT_DEVICE.get_multitouch_rotation().rotate_part(
+                        CoordinatePart::X(ev.value as u16),
+                        &SCAN.multitouch_orig_size,
+                    );
+                    let finger: &mut Finger = fingers.entry(current_slot).or_default();
+                    match rotated_part {
+                        CoordinatePart::X(rotated_value) => {
+                            finger.pos.x = (f32::from(rotated_value) * *MT_HSCALAR) as u16;
+                        }
+                        CoordinatePart::Y(rotated_value) => {
+                            finger.pos.y = (f32::from(rotated_value) * *MT_VSCALAR) as u16;
+                        }
+                    }
+                    finger.pos_updated = true;
                     vec![]
                 }
                 ecodes::ABS_MT_POSITION_Y => {
-                    let scaled_val = (f32::from(*MTHEIGHT - ev.value as u16) * *MT_VSCALAR) as u16;
-                    fingers.entry(current_slot).or_default().pos.y = scaled_val;
-                    fingers.entry(current_slot).or_default().pos_updated = true;
+                    let rotated_part = CURRENT_DEVICE.get_multitouch_rotation().rotate_part(
+                        CoordinatePart::Y(ev.value as u16),
+                        &SCAN.multitouch_orig_size,
+                    );
+                    let finger: &mut Finger = fingers.entry(current_slot).or_default();
+                    match rotated_part {
+                        CoordinatePart::X(rotated_value) => {
+                            finger.pos.x = (f32::from(rotated_value) * *MT_HSCALAR) as u16;
+                        }
+                        CoordinatePart::Y(rotated_value) => {
+                            finger.pos.y = (f32::from(rotated_value) * *MT_VSCALAR) as u16;
+                        }
+                    }
+                    finger.pos_updated = true;
                     vec![]
                 }
                 ecodes::ABS_MT_PRESSURE => {
