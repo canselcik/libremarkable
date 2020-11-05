@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 lazy_static! {
     /// A singleton of the EvDevsScan object
-    pub static ref SCAN: EvDevsScan = EvDevsScan::new();
+    pub static ref SCANNED: EvDevsScan = EvDevsScan::new();
 }
 
 /// This struct contains the results of initially scaning all evdev devices,

@@ -2,7 +2,7 @@ use crate::device::CURRENT_DEVICE;
 use crate::framebuffer::cgmath;
 use crate::framebuffer::common::{DISPLAYHEIGHT, DISPLAYWIDTH, MTHEIGHT, MTWIDTH};
 use crate::input::rotate::CoordinatePart;
-use crate::input::scan::SCAN;
+use crate::input::scan::SCANNED;
 
 use super::ecodes;
 use crate::input::{InputDeviceState, InputEvent};
@@ -136,7 +136,7 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Vec<InputEven
                 ecodes::ABS_MT_POSITION_X => {
                     let rotated_part = CURRENT_DEVICE.get_multitouch_rotation().rotate_part(
                         CoordinatePart::X(ev.value as u16),
-                        &SCAN.multitouch_orig_size,
+                        &SCANNED.multitouch_orig_size,
                     );
                     let finger: &mut Finger = fingers.entry(current_slot).or_default();
                     match rotated_part {
@@ -153,7 +153,7 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Vec<InputEven
                 ecodes::ABS_MT_POSITION_Y => {
                     let rotated_part = CURRENT_DEVICE.get_multitouch_rotation().rotate_part(
                         CoordinatePart::Y(ev.value as u16),
-                        &SCAN.multitouch_orig_size,
+                        &SCANNED.multitouch_orig_size,
                     );
                     let finger: &mut Finger = fingers.entry(current_slot).or_default();
                     match rotated_part {

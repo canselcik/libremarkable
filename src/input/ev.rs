@@ -1,6 +1,6 @@
 use crate::input;
 
-use input::scan::SCAN;
+use input::scan::SCANNED;
 use log::{error, info, warn};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -49,7 +49,7 @@ impl EvDevContext {
 
     /// Non-blocking function that will open the provided path and wait for more data with epoll
     pub fn start(&mut self) {
-        let path = SCAN.get_path(self.device);
+        let path = SCANNED.get_path(self.device);
 
         self.started.store(true, Ordering::Relaxed);
         self.exited.store(false, Ordering::Relaxed);

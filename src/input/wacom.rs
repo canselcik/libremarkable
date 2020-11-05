@@ -1,7 +1,7 @@
 use super::ecodes;
 use crate::device::CURRENT_DEVICE;
 use crate::input::rotate::CoordinatePart;
-use crate::input::scan::SCAN;
+use crate::input::scan::SCANNED;
 use crate::input::{InputDeviceState, InputEvent};
 use atomic::Atomic;
 use evdev::raw::input_event;
@@ -173,7 +173,7 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
                 ecodes::ABS_X => {
                     let rotated_part = CURRENT_DEVICE
                         .get_wacom_rotation()
-                        .rotate_part(CoordinatePart::X(ev.value as u16), &SCAN.wacom_orig_size);
+                        .rotate_part(CoordinatePart::X(ev.value as u16), &SCANNED.wacom_orig_size);
                     match rotated_part {
                         CoordinatePart::X(rotated_value) => {
                             state.last_x.store(rotated_value, Ordering::Relaxed);
@@ -186,7 +186,7 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
                 ecodes::ABS_Y => {
                     let rotated_part = CURRENT_DEVICE
                         .get_wacom_rotation()
-                        .rotate_part(CoordinatePart::Y(ev.value as u16), &SCAN.wacom_orig_size);
+                        .rotate_part(CoordinatePart::Y(ev.value as u16), &SCANNED.wacom_orig_size);
                     match rotated_part {
                         CoordinatePart::X(rotated_value) => {
                             state.last_x.store(rotated_value, Ordering::Relaxed);
