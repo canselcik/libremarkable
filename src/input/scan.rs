@@ -1,7 +1,12 @@
 use super::ecodes;
 use super::InputDevice;
-use crate::cgmath::Vector2;
+use cgmath::Vector2;
+use log::debug;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+
+pub const INITIAL_DEVS_AVAILABLE_FOR: Duration = Duration::from_millis(1000);
 
 lazy_static! {
     /// A singleton of the EvDevsScan object
@@ -28,6 +33,13 @@ pub struct EvDevsScan {
     /// The resolution of the wacom no rotation applied
     pub wacom_orig_size: Vector2<u16>,
     pub multitouch_orig_size: Vector2<u16>,
+
+    // Those will be preserved in case they are needed fairly fast
+    // to prevent any additional delay of re-opening the fds.
+    // They will get removed fairly quickly though.
+    wacom_initial_dev: Arc<Mutex<Option<evdev::Device>>>,
+    multitouch_initial_dev: Arc<Mutex<Option<evdev::Device>>>,
+    gpio_initial_dev: Arc<Mutex<Option<evdev::Device>>>,
 }
 
 impl EvDevsScan {
@@ -40,6 +52,7 @@ impl EvDevsScan {
         let mut multitouch_path: Option<PathBuf> = None;
         let mut multitouch_dev: Option<evdev::Device> = None;
         let mut gpio_path: Option<PathBuf> = None;
+        let mut gpio_dev: Option<evdev::Device> = None;
 
         // Get all /dev/input/event* file paths
         let mut event_file_paths: Vec<PathBuf> = Vec::new();
@@ -76,6 +89,7 @@ impl EvDevsScan {
                 if dev.keys_supported().contains(evdev::KEY_POWER as usize) {
                     // The device for buttons has the KEY_POWER button and support KEY event types
                     gpio_path = Some(evdev_path.clone());
+                    gpio_dev = Some(dev);
                     continue;
                 }
             }
@@ -101,12 +115,13 @@ impl EvDevsScan {
         }
         let multitouch_path = multitouch_path.unwrap();
         let multitouch_dev = multitouch_dev.unwrap();
-        if gpio_path.is_none() {
+        if gpio_path.is_none() || gpio_dev.is_none() {
             panic!("Failed to find the gpio evdev!");
         }
         let gpio_path = gpio_path.unwrap();
+        let gpio_dev = gpio_dev.unwrap();
 
-        // Figure out sizes
+        // SIZES
         let wacom_state = wacom_dev.state();
         let wacom_orig_size = Vector2 {
             x: wacom_state.abs_vals[ecodes::ABS_X as usize].maximum as u16,
@@ -129,6 +144,24 @@ impl EvDevsScan {
             .rotated_size(&multitouch_orig_size)
             .into();
 
+        // DEVICES
+        let wacom_initial_dev = Arc::new(Mutex::new(Some(wacom_dev)));
+        let multitouch_initial_dev = Arc::new(Mutex::new(Some(multitouch_dev)));
+        let gpio_initial_dev = Arc::new(Mutex::new(Some(gpio_dev)));
+
+        // Spawn a thread to remove close the initial devices after some time
+        let wacom_initial_dev2 = wacom_initial_dev.clone();
+        let multitouch_initial_dev2 = multitouch_initial_dev.clone();
+        let gpio_initial_dev2 = gpio_initial_dev.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(150));
+            // Remove devices (and thereby closing them)
+            (*(*wacom_initial_dev2).lock().unwrap()) = None;
+            (*(*multitouch_initial_dev2).lock().unwrap()) = None;
+            (*(*gpio_initial_dev2).lock().unwrap()) = None;
+            debug!("Closed initially opened evdev fds (if not used by now).");
+        });
+
         Self {
             wacom_path,
             multitouch_path,
@@ -142,6 +175,10 @@ impl EvDevsScan {
 
             multitouch_orig_size,
             wacom_orig_size,
+
+            wacom_initial_dev,
+            multitouch_initial_dev,
+            gpio_initial_dev,
         }
     }
 
@@ -152,6 +189,25 @@ impl EvDevsScan {
             InputDevice::Multitouch => &self.multitouch_path,
             InputDevice::GPIO => &self.gpio_path,
             InputDevice::Unknown => panic!("\"InputDevice::Unkown\" is no device!"),
+        }
+    }
+
+    /// Get a ev device. If this is called early, it can get the device used for the initial scan.
+    pub fn get_device(&self, device: InputDevice) -> Result<evdev::Device, impl std::error::Error> {
+        let dev_arc = match device {
+            InputDevice::Wacom => self.wacom_initial_dev.clone(),
+            InputDevice::Multitouch => self.multitouch_initial_dev.clone(),
+            InputDevice::GPIO => self.gpio_initial_dev.clone(),
+            InputDevice::Unknown => panic!("\"InputDevice::Unkown\" is no device!"),
+        };
+
+        let mut resuable_device = dev_arc.lock().unwrap();
+        if resuable_device.is_some() {
+            let mut resuable_device = resuable_device.take().unwrap();
+            resuable_device.events_no_sync()?; // Clear events until now
+            return Ok(resuable_device);
+        } else {
+            evdev::Device::open(self.get_path(device))
         }
     }
 }
