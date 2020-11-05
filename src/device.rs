@@ -1,3 +1,4 @@
+use crate::input::rotate::InputDeviceRotation;
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Model {
     Gen1,
@@ -18,23 +19,27 @@ impl std::fmt::Display for Model {
 impl Model {
     fn current_model() -> std::io::Result<Model> {
         let content = std::fs::read_to_string("/sys/devices/soc0/machine")?;
-        if content.contains('1') && !content.contains(".1") {
-            return Ok(Model::Gen1);
-        } else if content.contains('2') && !content.contains(".2") {
-            return Ok(Model::Gen2);
+        let machine_name = content.trim();
+        // "reMarkable Prototype 1" was also seen for reMarkable 1 owners (and it didn't mean they preordered it).
+        // See https://github.com/Eeems/oxide/issues/48#issuecomment-698414093
+        if machine_name == "reMarkable 1.0" || machine_name == "reMarkable Prototype 1" {
+            Ok(Model::Gen1)
+        // https://github.com/Eeems/oxide/issues/48#issuecomment-698223552
+        } else if machine_name == "reMarkable 2.0" {
+            Ok(Model::Gen2)
         } else {
-            return Ok(Model::Unknown);
+            Ok(Model::Unknown)
         }
     }
 }
 
 lazy_static! {
-    pub static ref DEVICE: Device = Device::new();
+    pub static ref CURRENT_DEVICE: Device = Device::new();
 }
 
 /// Mainly information regarding both models
 pub struct Device {
-    model: Model,
+    pub model: Model,
 }
 
 impl Device {
@@ -48,7 +53,16 @@ impl Device {
         Self { model: model }
     }
 
-    pub fn get_model(&self) -> Model {
-        self.model
+    pub fn get_multitouch_rotation(&self) -> InputDeviceRotation {
+        match self.model {
+            Model::Gen1 => InputDeviceRotation::Rot180,
+            Model::Gen2 => InputDeviceRotation::Rot270,
+            Model::Unknown => InputDeviceRotation::Rot180, // Assumtion!
+        }
+    }
+
+    pub fn get_wacom_rotation(&self) -> InputDeviceRotation {
+        // Not sure if the rotation of Gen2 differs
+        InputDeviceRotation::Rot270
     }
 }
