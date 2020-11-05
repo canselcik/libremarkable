@@ -55,7 +55,7 @@ impl EvDevContext {
         self.exited.store(false, Ordering::Relaxed);
         self.exit_requested.store(false, Ordering::Relaxed);
 
-        match evdev::Device::open(path) {
+        match SCANNED.get_device(self.device) {
             Err(e) => error!("Error while reading events from epoll fd: {0}", e),
             Ok(mut dev) => {
                 let mut v = vec![epoll::Event {
