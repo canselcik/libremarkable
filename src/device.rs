@@ -57,7 +57,7 @@ impl Device {
         match self.model {
             Model::Gen1 => InputDeviceRotation::Rot180,
             Model::Gen2 => InputDeviceRotation::Rot270,
-            Model::Unknown => InputDeviceRotation::Rot180, // Assumtion!
+            Model::Unknown => unreachable!(),
         }
     }
 
