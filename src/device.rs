@@ -50,7 +50,7 @@ impl Device {
             panic!("Failed to determine model!");
         }
 
-        Self { model: model }
+        Self { model }
     }
 
     pub fn get_multitouch_rotation(&self) -> InputDeviceRotation {
