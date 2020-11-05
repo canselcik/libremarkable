@@ -83,7 +83,7 @@ impl InputDeviceRotation {
                 y: src_size.x,
             }
         } else {
-            src_size.clone()
+            *src_size
         }
     }
 }
