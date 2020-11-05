@@ -205,7 +205,7 @@ impl EvDevs {
         if resuable_device.is_some() {
             let mut resuable_device = resuable_device.take().unwrap();
             resuable_device.events_no_sync()?; // Clear events until now
-            return Ok(resuable_device);
+            Ok(resuable_device)
         } else {
             evdev::Device::open(self.get_path(device))
         }
