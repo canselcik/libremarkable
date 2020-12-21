@@ -129,7 +129,8 @@ impl EvDevs {
         };
         // X and Y are swapped for the wacom since rM1 and probably also rM2 have it rotated
         let (wacom_width, wacom_height) = crate::device::CURRENT_DEVICE
-            .get_wacom_rotation()
+            .get_wacom_placement()
+            .rotation
             .rotated_size(&wacom_orig_size)
             .into();
 
@@ -140,7 +141,8 @@ impl EvDevs {
         };
         // Axes are swapped on the rM2 (see InputDeviceRotation for more)
         let (mt_width, mt_height) = crate::device::CURRENT_DEVICE
-            .get_multitouch_rotation()
+            .get_multitouch_placement()
+            .rotation
             .rotated_size(&multitouch_orig_size)
             .into();
 
