@@ -134,10 +134,21 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Vec<InputEven
                     vec![]
                 }
                 ecodes::ABS_MT_POSITION_X => {
-                    let rotated_part = CURRENT_DEVICE.get_multitouch_rotation().rotate_part(
+                    let placement = CURRENT_DEVICE.get_multitouch_placement();
+                    let mut rotated_part = placement.rotation.rotate_part(
                         CoordinatePart::X(ev.value as u16),
                         &SCANNED.multitouch_orig_size,
                     );
+                    if placement.invert_x {
+                        if let CoordinatePart::X(ref mut x_value) = rotated_part {
+                            *x_value = *MTWIDTH - *x_value;
+                        }
+                    }
+                    if placement.invert_y {
+                        if let CoordinatePart::Y(ref mut y_value) = rotated_part {
+                            *y_value = *MTHEIGHT - *y_value;
+                        }
+                    }
                     let finger: &mut Finger = fingers.entry(current_slot).or_default();
                     match rotated_part {
                         CoordinatePart::X(rotated_value) => {
@@ -151,10 +162,21 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Vec<InputEven
                     vec![]
                 }
                 ecodes::ABS_MT_POSITION_Y => {
-                    let rotated_part = CURRENT_DEVICE.get_multitouch_rotation().rotate_part(
+                    let placement = CURRENT_DEVICE.get_multitouch_placement();
+                    let mut rotated_part = placement.rotation.rotate_part(
                         CoordinatePart::Y(ev.value as u16),
                         &SCANNED.multitouch_orig_size,
                     );
+                    if placement.invert_x {
+                        if let CoordinatePart::X(ref mut x_value) = rotated_part {
+                            *x_value = *MTWIDTH - *x_value;
+                        }
+                    }
+                    if placement.invert_y {
+                        if let CoordinatePart::Y(ref mut y_value) = rotated_part {
+                            *y_value = *MTHEIGHT - *y_value;
+                        }
+                    }
                     let finger: &mut Finger = fingers.entry(current_slot).or_default();
                     match rotated_part {
                         CoordinatePart::X(rotated_value) => {

@@ -171,9 +171,20 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
                         .store(ev.value as u16, Ordering::Relaxed);
                 }
                 ecodes::ABS_X => {
-                    let rotated_part = CURRENT_DEVICE
-                        .get_wacom_rotation()
+                    let placement = CURRENT_DEVICE.get_wacom_placement();
+                    let mut rotated_part = placement
+                        .rotation
                         .rotate_part(CoordinatePart::X(ev.value as u16), &SCANNED.wacom_orig_size);
+                    if placement.invert_x {
+                        if let CoordinatePart::X(ref mut x_value) = rotated_part {
+                            *x_value = *WACOMWIDTH - *x_value;
+                        }
+                    }
+                    if placement.invert_y {
+                        if let CoordinatePart::Y(ref mut y_value) = rotated_part {
+                            *y_value = *WACOMHEIGHT - *y_value;
+                        }
+                    }
                     match rotated_part {
                         CoordinatePart::X(rotated_value) => {
                             state.last_x.store(rotated_value, Ordering::Relaxed);
@@ -184,9 +195,20 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
                     }
                 }
                 ecodes::ABS_Y => {
-                    let rotated_part = CURRENT_DEVICE
-                        .get_wacom_rotation()
+                    let placement = CURRENT_DEVICE.get_wacom_placement();
+                    let mut rotated_part = placement
+                        .rotation
                         .rotate_part(CoordinatePart::Y(ev.value as u16), &SCANNED.wacom_orig_size);
+                    if placement.invert_x {
+                        if let CoordinatePart::X(ref mut x_value) = rotated_part {
+                            *x_value = *WACOMWIDTH - *x_value;
+                        }
+                    }
+                    if placement.invert_y {
+                        if let CoordinatePart::Y(ref mut y_value) = rotated_part {
+                            *y_value = *WACOMHEIGHT - *y_value;
+                        }
+                    }
                     match rotated_part {
                         CoordinatePart::X(rotated_value) => {
                             state.last_x.store(rotated_value, Ordering::Relaxed);
