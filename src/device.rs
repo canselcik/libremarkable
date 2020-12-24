@@ -90,4 +90,13 @@ impl Device {
             invert_y: false,
         }
     }
+
+    /// Name of the battery as found in /sys/class/power_supply
+    pub fn get_internal_battery_name(&self) -> &str {
+        match self.model {
+            Model::Gen1 => "bq27441-0",
+            Model::Gen2 => "max77818_battery",
+            Model::Unknown => unreachable!(),
+        }
+    }
 }

@@ -1,11 +1,19 @@
+use crate::device::CURRENT_DEVICE;
 use std::fs::File;
 use std::io::Read;
 
 // TODO: Implement API to allow callbacks backed via uevent / inotify
 
+// File tree containing the rM2 battery:
+// https://github.com/Eeems/oxide/issues/48#issue-698181952 (line 3166 of tree.txt)
+
 fn read_attribute(attr: &str) -> Result<String, String> {
     let mut data = String::new();
-    match File::open(format!("/sys/class/power_supply/bq27441-0/{0}", attr)) {
+    match File::open(format!(
+        "/sys/class/power_supply/{0}/{1}",
+        CURRENT_DEVICE.get_internal_battery_name(),
+        attr
+    )) {
         Err(e) => Err(format!("Unable to open file: {0}", e)),
         Ok(ref mut f) => match f.read_to_string(&mut data).unwrap_or(0) {
             0 => Err("Unable to read file".to_owned()),
