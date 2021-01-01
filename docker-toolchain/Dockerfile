@@ -11,7 +11,7 @@ ARG ostype=Linux
 RUN apt-get -qq update
 RUN apt-get -qq install curl build-essential gcc-arm-linux-gnueabihf vim
 
-RUN bash -c 'if [ ${ostype} == Linux ]; then groupadd -r --gid ${GID} ${UNAME}; fi'
+RUN bash -c 'if [ ${ostype} == Linux ]; then groupadd -f -r --gid ${GID} ${UNAME}; fi'
 RUN useradd -u $UID -g $GID -m $UNAME
 USER $UNAME
 
