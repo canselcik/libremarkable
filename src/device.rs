@@ -15,7 +15,7 @@ impl std::fmt::Display for Model {
 }
 
 impl Model {
-    fn current_model() -> Result<Model, ErrorKind> {
+    pub fn current_model() -> Result<Model, ErrorKind> {
         let content = std::fs::read_to_string("/sys/devices/soc0/machine")?;
         let machine_name = content.trim();
         // "reMarkable Prototype 1" was also seen for reMarkable 1 owners (and it didn't mean they preordered it).
