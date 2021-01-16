@@ -8,8 +8,8 @@ use evdev::raw::input_event;
 use log::debug;
 use std::sync::atomic::{AtomicU16, Ordering};
 
-use crate::framebuffer::cgmath;
-use crate::framebuffer::common::{DISPLAYHEIGHT, DISPLAYWIDTH, WACOMHEIGHT, WACOMWIDTH};
+use crate::cgmath;
+use crate::dimensions::{DISPLAYHEIGHT, DISPLAYWIDTH, WACOMHEIGHT, WACOMWIDTH};
 
 lazy_static! {
     static ref WACOM_HSCALAR: f32 = (DISPLAYWIDTH as f32) / (*WACOMWIDTH as f32);

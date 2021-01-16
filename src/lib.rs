@@ -31,6 +31,7 @@ macro_rules! end_bench {
     };
 }
 
+#[cfg(feature = "framebuffer")]
 #[macro_use]
 extern crate ioctl_gen;
 #[macro_use]
@@ -39,15 +40,22 @@ extern crate lazy_static;
 pub use cgmath;
 pub use epoll;
 pub use evdev;
+#[cfg(feature = "framebuffer")]
 pub use image;
+#[cfg(feature = "framebuffer")]
 pub use line_drawing;
+#[cfg(feature = "enable-runtime-benchmarking")]
 pub use stopwatch;
 
 /// One of the core components, allowing output and refresh of the EInk display
+#[cfg(feature = "framebuffer")]
 pub mod framebuffer;
 
 /// The other core component, allowing decoding of the three input devices present on the tablet
 pub mod input;
+
+/// Device dimensions.
+pub mod dimensions;
 
 /// Simple battery and charging status provider
 pub mod battery;
@@ -60,5 +68,7 @@ pub mod device;
 /// to a scene after wrapping them in `UIElementWrapper`. None of these are mandatory to be used.
 /// You can choose to entirely ignore the `ApplicationContext` and `ui_extensions` and interact
 /// with the `framebuffer` and `input` devices directly.
+#[cfg(all(feature = "framebuffer", feature = "appctx"))]
 pub mod appctx;
+#[cfg(all(feature = "framebuffer", feature = "appctx"))]
 pub mod ui_extensions;

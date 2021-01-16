@@ -12,25 +12,39 @@ edition = "2018"
 [dependencies]
 log = "0.4.8"
 env_logger = "0.7.1"
-ioctl-gen = "0.1.1"
+lazy_static = "1.4.0"
+atomic = "0.5.0"
+cgmath = "0.17.0"
 libc = "0.2.69"
-mmap = "0.1.1"
-rusttype = "0.8.2"
+
+# input
 evdev = "0.10.2"
 epoll = "4.1.0"
-image = "0.21.3"
-line_drawing = "0.8.0"
-hlua = "0.4.1"
-aabb-quadtree = "0.1.0"
-zstd = "0.5.1"
-stopwatch = "0.0.7"
-atomic = { version = "0.5.0" }
-cgmath = "0.17.0"
 fxhash = "0.2.1"
-lazy_static = "1.4.0"
+
+# framebuffer
+rusttype = { version = "0.8.2", optional = true }
+mmap = { version = "0.1.1", optional = true }
+image = { version = "0.21.3", optional = true }
+ioctl-gen = { version = "0.1.1", optional = true }
+line_drawing = { version = "0.8.0", optional = true }
+zstd = { version = "0.5.1", optional = true }
+
+# appctx
+aabb-quadtree = { version = "0.1.0", optional = true }
+hlua = { version = "0.4.1", optional = true }
+
+# runtime benchmarking
+stopwatch = { version = "0.0.7", optional = true }
+
 
 [features]
-enable-runtime-benchmarking = []
+default = ["framebuffer", "appctx"]
+
+framebuffer = ["rusttype", "mmap", "image", "ioctl-gen", "line_drawing", "zstd"]
+appctx = ["aabb-quadtree", "hlua"]
+
+enable-runtime-benchmarking = ["stopwatch"]
 
 [profile.release]
 debug = true

@@ -1,7 +1,7 @@
 use super::ecodes;
+use crate::cgmath;
 use crate::device::CURRENT_DEVICE;
-use crate::framebuffer::cgmath;
-use crate::framebuffer::common::{DISPLAYHEIGHT, DISPLAYWIDTH, MTHEIGHT, MTWIDTH};
+use crate::dimensions::{DISPLAYHEIGHT, DISPLAYWIDTH, MTHEIGHT, MTWIDTH};
 use crate::input::rotate::CoordinatePart;
 use crate::input::scan::SCANNED;
 use crate::input::{InputDeviceState, InputEvent};
