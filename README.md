@@ -19,7 +19,7 @@ For further documentation see the [wiki](https://github.com/canselcik/libremarka
 ### Build Instructions
 
 #### Setting up the toolchain
-In order to build `libremarkable` and the examples (`spy.so` and `demo`), you'll need the toolchain from Remarkable. Download the [installation script](https://remarkable.engineering/oecore-x86_64-cortexa9hf-neon-toolchain-zero-gravitas-1.8-23.9.2019.sh) from [remarkable.engineering](https://remarkable.engineering/) and install the toolchain.
+In order to build `libremarkable` and the examples (`spy.so` and `demo`), you'll need the toolchain from Remarkable. Download and install the toolchain using the [isntructions here](https://remarkablewiki.com/devel/toolchain).
 
 You can then set up your Rust toolchain for cross compilation with: `rustup target add armv7-unknown-linux-gnueabihf`.
 
