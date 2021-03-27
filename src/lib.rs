@@ -33,8 +33,6 @@ macro_rules! end_bench {
 
 #[macro_use]
 extern crate ioctl_gen;
-#[macro_use]
-extern crate lazy_static;
 
 pub use cgmath;
 pub use epoll;

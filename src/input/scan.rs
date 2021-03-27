@@ -2,16 +2,15 @@ use super::ecodes;
 use super::InputDevice;
 use cgmath::Vector2;
 use log::debug;
+use once_cell::sync::Lazy;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 pub const INITIAL_DEVS_AVAILABLE_FOR: Duration = Duration::from_millis(1000);
 
-lazy_static! {
-    /// A singleton of the EvDevsScan object
-    pub static ref SCANNED: EvDevs = EvDevs::new();
-}
+/// A singleton of the EvDevsScan object
+pub static SCANNED: Lazy<EvDevs> = Lazy::new(EvDevs::new);
 
 /// This struct contains the results of initially scaning all evdev devices,
 /// which allows for device model independancy.
