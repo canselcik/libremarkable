@@ -89,7 +89,7 @@ pub trait FramebufferDraw {
     fn draw_text(
         &mut self,
         pos: cgmath::Point2<f32>,
-        text: String,
+        text: &str,
         size: f32,
         col: common::color,
         dryrun: bool,
