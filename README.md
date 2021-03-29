@@ -74,11 +74,15 @@ If you choose to skip the `Makefile` and call `cargo` yourself, make sure to inc
 ```
 The `--release` argument is important as this enables optimizations and without optimizations you'll be looking at ~70% CPU utilization even when idle. With optimizations, the framework runs really light, 0% CPU utilization when idle and 1-2% at peak.
 
-#### Building demo with `musl`
-[`musl`](https://musl.libc.org/) is a minimal `libc` implementation that is linked into the binary before runtime.
-1. Install [`cross`](https://github.com/rust-embedded/cross) with `cargo install cross` (make sure the Remarkable toolchain is not in use first)
-1. Compile with `cross build --example demo --release --target=armv7-unknown-linux-musleabihf` (or `make demo-musl`)
-1. Run the demo: `TARGET=armv7-unknown-linux-musleabihf make deploy-demo`
-Note:
-* Building this way does not require Remarkable's toolchain nor building on Ubuntu 16.04 so setting up should be easier.
-* Make sure to build with `lto = true` otherwise `musl` symbols may be improperly resolved (call to `mmap` fails).
+#### Building with [`cross`](https://github.com/rust-embedded/cross)
+*Building this way does not require reMarkable's toolchain nor building on Ubuntu 16.04 with Docker so setting up should be easier.*
+To build, deploy and run the `demo`, simply:
+```shell
+make deploy-x-demo
+```
+##### Using [`musl`](https://musl.libc.org/)
+Make sure to build with `lto = true` otherwise `musl` symbols may be improperly resolved (call to `mmap` fails).
+Note: **only tested on reMarkable v1**.
+1. Install `cross` with `cargo install cross` (make sure the reMarkable toolchain is not in use first)
+1. Compile with `cross build --example demo --release --target=armv7-unknown-linux-musleabihf` (or `TARGET=armv7-unknown-linux-musleabihf make x-demo`)
+1. Run the demo: `TARGET=armv7-unknown-linux-musleabihf make deploy-x-demo`
