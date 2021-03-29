@@ -13,13 +13,13 @@ examples:
 demo:
 	cargo build --example demo --release --target=$(TARGET)
 
-x-%:
-	cross build --example $* --release --target=$(TARGET)
-deploy-x-%: x-%
-	du -sh ./target/$(TARGET)/release/examples/$*
-	ssh $(DEVICE_HOST) 'killall -q -9 $* || true; systemctl stop xochitl || true'
-	scp ./target/$(TARGET)/release/examples/$* $(DEVICE_HOST):
-	ssh $(DEVICE_HOST) 'RUST_BACKTRACE=1 RUST_LOG=debug ./$*'
+x-demo:
+	cross build --example demo --release --target=$(TARGET)
+deploy-x-demo: x-demo
+	du -sh ./target/$(TARGET)/release/examples/demo
+	ssh $(DEVICE_HOST) 'killall -q -9 demo || true; systemctl stop xochitl || true'
+	scp ./target/$(TARGET)/release/examples/demo $(DEVICE_HOST):
+	ssh $(DEVICE_HOST) 'RUST_BACKTRACE=1 RUST_LOG=debug ./demo'
 
 bench:
 	cargo build --examples --release --target=$(TARGET) --features "enable-runtime-benchmarking"
