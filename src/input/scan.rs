@@ -95,7 +95,9 @@ impl EvDevs {
             }
 
             if dev.events_supported().contains(evdev::Types::RELATIVE)
-                && dev.absolute_axes_supported().contains(evdev::AbsoluteAxis::ABS_MT_SLOT)
+                && dev
+                    .absolute_axes_supported()
+                    .contains(evdev::AbsoluteAxis::ABS_MT_SLOT)
             {
                 // The touchscreen device has the ABS_MT_SLOT event and supports RELATIVE event types
                 multitouch_path = Some(evdev_path.clone());
