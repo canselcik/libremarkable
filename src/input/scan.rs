@@ -75,9 +75,9 @@ impl EvDevs {
         for evdev_path in event_file_paths {
             let dev = evdev::Device::open(&evdev_path)
                 .unwrap_or_else(|_| panic!("Failed to scan {:?}", &evdev_path));
-            if dev.events_supported().contains(evdev::KEY) {
+            if dev.events_supported().contains(evdev::Types::KEY) {
                 if dev.keys_supported().contains(evdev::BTN_STYLUS as usize)
-                    && dev.events_supported().contains(evdev::ABSOLUTE)
+                    && dev.events_supported().contains(evdev::Types::ABSOLUTE)
                 {
                     // The device with the wacom digitizer has the BTN_STYLUS event
                     // and support KEY as well as ABSOLUTE event types
@@ -94,8 +94,8 @@ impl EvDevs {
                 }
             }
 
-            if dev.events_supported().contains(evdev::RELATIVE)
-                && dev.absolute_axes_supported().contains(evdev::ABS_MT_SLOT)
+            if dev.events_supported().contains(evdev::Types::RELATIVE)
+                && dev.absolute_axes_supported().contains(evdev::AbsoluteAxis::ABS_MT_SLOT)
             {
                 // The touchscreen device has the ABS_MT_SLOT event and supports RELATIVE event types
                 multitouch_path = Some(evdev_path.clone());
