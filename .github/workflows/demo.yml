@@ -5,23 +5,44 @@ jobs:
   demo:
     name: Demo
     runs-on: ubuntu-latest
+    env:
+      TARGET: armv7-unknown-linux-gnueabihf
     steps:
     - uses: actions/checkout@v2
     - uses: actions-rs/toolchain@v1
       with:
         toolchain: nightly
-        target: armv7-unknown-linux-gnueabihf
+        target: ${{ env.TARGET }}
         override: true
         components: rustfmt
     - uses: actions-rs/cargo@v1
       with:
         use-cross: true
         command: build
-        args: --target armv7-unknown-linux-gnueabihf --release --example demo
+        args: --target ${{ env.TARGET }} --release --example demo
     - uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
         files: |
-          ./target/armv7-unknown-linux-gnueabihf/release/demo
+          ./target/${{ env.TARGET }}/release/demo
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  demo-with-musl:
+    name: Demo with musl
+    runs-on: ubuntu-latest
+    env:
+      TARGET: armv7-unknown-linux-musleabihf
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        target: ${{ env.TARGET }}
+        override: true
+        components: rustfmt
+    - uses: actions-rs/cargo@v1
+      with:
+        use-cross: true
+        command: build
+        args: --target ${{ env.TARGET }} --release --example demo
