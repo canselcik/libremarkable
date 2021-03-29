@@ -76,12 +76,14 @@ The `--release` argument is important as this enables optimizations and without 
 
 #### Building with [`cross`](https://github.com/rust-embedded/cross)
 *Building this way does not require reMarkable's toolchain nor building on Ubuntu 16.04 with Docker so setting up should be easier.*
+
 To build, deploy and run the `demo`, simply:
 ```shell
 make deploy-x-demo
 ```
 ##### Using [`musl`](https://musl.libc.org/)
 Make sure to build with `lto = true` otherwise `musl` symbols may be improperly resolved (call to `mmap` fails).
+
 Note: **only tested on reMarkable v1**.
 1. Install `cross` with `cargo install cross` (make sure the reMarkable toolchain is not in use first)
 1. Compile with `cross build --example demo --release --target=armv7-unknown-linux-musleabihf` (or `TARGET=armv7-unknown-linux-musleabihf make x-demo`)
