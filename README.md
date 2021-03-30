@@ -80,11 +80,15 @@ The `--release` argument is important as this enables optimizations and without 
 To build, deploy and run the `demo`, simply:
 ```shell
 make deploy-x-demo
+# This builds with
+#   cross build --example demo --release --target=armv7-unknown-linux-gnueabihf
+# then deploys the demo
 ```
 ##### Using [`musl`](https://musl.libc.org/)
 Make sure to build with `lto = true` otherwise `musl` symbols may be improperly resolved (call to `mmap` fails).
 
-Note: **only tested on reMarkable v1**.
 1. Install `cross` with `cargo install cross` (make sure the reMarkable toolchain is not in use first)
 1. Compile with `cross build --example demo --release --target=armv7-unknown-linux-musleabihf` (or `TARGET=armv7-unknown-linux-musleabihf make x-demo`)
 1. Run the demo: `TARGET=armv7-unknown-linux-musleabihf make deploy-x-demo`
+
+**Regarding apps for the rM2**: `musl`-built apps do not write to the framebuffer of rM2 devices as some work is required regarding `LD_PRELOAD` to enable the use of [`rm2fb`](https://github.com/ddvk/remarkable2-framebuffer). In the meantime you should use the `gnueabihf` target.
