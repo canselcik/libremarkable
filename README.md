@@ -78,3 +78,17 @@ make sure to include `--release --target=armv7-unknown-linux-gnueabihf` in your 
     Finished dev [unoptimized + debuginfo] target(s) in 24.85 secs
 ```
 The `--release` argument is important as this enables optimizations and without optimizations you'll be looking at ~70% CPU utilization even when idle. With optimizations, the framework runs really light, 0% CPU utilization when idle and 1-2% at peak.
+
+#### Building demo with `cross`
+[`cross`](https://github.com/rust-embedded/cross) is a utility for cross compilation and “cross testing” of Rust crates.
+It allows building `libremarkable` apps without the official toolchain.
+1. Install `cross` with `cargo install cross` (make sure the Remarkable toolchain is not in use first)
+1. Compile with `cross build --example demo --release --target=armv7-unknown-linux-gnueabihf`
+
+Note:
+* Building this way does not require Remarkable's toolchain nor building on Ubuntu 16.04 so setting up should be easier.
+* It's also possible to build against [`musl`](https://musl.libc.org/) a minimal `libc` implementation:
+  just substitute `armv7-unknown-linux-musleabihf` in the instructions above.
+  However, **this will render the framebuffer unusable on reMarkable 2**:
+  [the framebuffer shim](https://github.com/ddvk/remarkable2-framebuffer) does not appear to work correctly with `musl`.
+  * Make sure to build with `lto = true` otherwise `musl` symbols may be improperly resolved (call to `mmap` fails).
