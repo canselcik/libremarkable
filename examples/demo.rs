@@ -106,8 +106,6 @@ static WACOM_RUBBER_SIDE: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false)
 static WACOM_HISTORY: Lazy<Mutex<VecDeque<(cgmath::Point2<f32>, i32)>>> =
     Lazy::new(|| Mutex::new(VecDeque::new()));
 static G_COUNTER: Lazy<Mutex<u32>> = Lazy::new(|| Mutex::new(0));
-static LAST_REFRESHED_CANVAS_RECT: Lazy<Atomic<mxcfb_rect>> =
-    Lazy::new(|| Atomic::new(mxcfb_rect::invalid()));
 static SAVED_CANVAS: Lazy<Mutex<Option<storage::CompressedCanvasState>>> =
     Lazy::new(|| Mutex::new(None));
 
