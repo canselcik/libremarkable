@@ -107,19 +107,13 @@ impl EvDevs {
         }
 
         // Ensure that all devices were found
-        if wacom_path.is_none() || wacom_dev.is_none() {
-            panic!("Failed to find the wacom digitizer evdev!");
-        }
+        assert!(!(wacom_path.is_none() || wacom_dev.is_none()), "Failed to find the wacom digitizer evdev!");
         let wacom_path = wacom_path.unwrap();
         let wacom_dev = wacom_dev.unwrap();
-        if multitouch_path.is_none() || multitouch_dev.is_none() {
-            panic!("Failed to find the multitouch evdev!");
-        }
+        assert!(!(multitouch_path.is_none() || multitouch_dev.is_none()), "Failed to find the multitouch evdev!");
         let multitouch_path = multitouch_path.unwrap();
         let multitouch_dev = multitouch_dev.unwrap();
-        if gpio_path.is_none() || gpio_dev.is_none() {
-            panic!("Failed to find the gpio evdev!");
-        }
+        assert!(!(gpio_path.is_none() || gpio_dev.is_none()), "Failed to find the gpio evdev!");
         let gpio_path = gpio_path.unwrap();
         let gpio_dev = gpio_dev.unwrap();
 
