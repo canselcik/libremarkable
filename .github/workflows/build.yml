@@ -64,7 +64,7 @@ jobs:
     - uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: nightly
+        toolchain: stable
         target: armv7-unknown-linux-gnueabihf
         override: true
         components: rustfmt, clippy
