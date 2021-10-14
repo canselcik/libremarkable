@@ -59,7 +59,7 @@ impl Device {
     fn new() -> Self {
         let model = Model::current_model()
             .unwrap_or_else(|e| panic!("Got IO Error when determining model: {}", e));
-        assert!(!(model == Model::Unknown), "Failed to determine model!");
+        assert!(model != Model::Unknown, "Failed to determine model!");
 
         Self { model }
     }

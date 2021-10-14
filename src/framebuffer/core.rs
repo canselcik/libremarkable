@@ -125,14 +125,14 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
     fn get_fix_screeninfo(device: &File) -> FixScreeninfo {
         let mut info: FixScreeninfo = Default::default();
         let result = unsafe { ioctl(device.as_raw_fd(), FBIOGET_FSCREENINFO, &mut info) };
-        assert!(!(result != 0), "FBIOGET_FSCREENINFO failed");
+        assert!(result == 0, "FBIOGET_FSCREENINFO failed");
         info
     }
 
     fn get_var_screeninfo(device: &File) -> VarScreeninfo {
         let mut info: VarScreeninfo = Default::default();
         let result = unsafe { ioctl(device.as_raw_fd(), FBIOGET_VSCREENINFO, &mut info) };
-        assert!(!(result != 0), "FBIOGET_VSCREENINFO failed");
+        assert!(result == 0, "FBIOGET_VSCREENINFO failed");
         info
     }
 
