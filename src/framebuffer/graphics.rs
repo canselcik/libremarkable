@@ -93,7 +93,7 @@ where
         dx: i32,
         dy: i32,
         sum: i32,
-    };
+    }
 
     // initialise our edge table
     let mut edge_table = Vec::new();

@@ -37,7 +37,7 @@ pub fn percentage() -> Result<i32, String> {
 /// $ cat /sys/class/power_supply/bq27441/capacity_level
 /// Normal
 pub fn human_readable_capacity_level() -> Result<String, String> {
-    Ok(read_attribute("capacity_level")?)
+    read_attribute("capacity_level")
 }
 
 /// $ cat /sys/class/power_supply/bq27441/charge_full
@@ -76,7 +76,7 @@ pub fn charge() -> Result<i32, String> {
 /// $ cat /sys/class/power_supply/bq27441/status
 /// Discharging
 pub fn human_readable_charging_status() -> Result<String, String> {
-    Ok(read_attribute("status")?)
+    read_attribute("status")
 }
 
 /// $ cat /sys/class/power_supply/bq27441/temp
