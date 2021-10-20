@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-pub const INITIAL_DEVS_AVAILABLE_FOR: Duration = Duration::from_millis(1000);
+pub const INITIAL_DEVS_AVAILABLE_FOR: Duration = Duration::from_millis(150);
 
 lazy_static! {
     /// A singleton of the EvDevsScan object
@@ -149,7 +149,7 @@ impl EvDevs {
         let multitouch_initial_dev2 = multitouch_initial_dev.clone();
         let gpio_initial_dev2 = gpio_initial_dev.clone();
         std::thread::spawn(move || {
-            std::thread::sleep(std::time::Duration::from_millis(150));
+            std::thread::sleep(INITIAL_DEVS_AVAILABLE_FOR);
             // Remove devices (and thereby closing them)
             (*(*wacom_initial_dev2).lock().unwrap()) = None;
             (*(*multitouch_initial_dev2).lock().unwrap()) = None;
