@@ -483,7 +483,7 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext<'_>, input: wacom::WacomE
         wacom::WacomEvent::InstrumentChange { pen, state } => {
             match pen {
                 // Whether the pen is in range
-                wacom::WacomPen::ToolPen => {
+                wacom::WacomPen::ToolPen | wacom::WacomPen::ToolRubber => {
                     WACOM_IN_RANGE.store(state, Ordering::Relaxed);
                 }
                 // Whether the pen is actually making contact
