@@ -1,5 +1,5 @@
 use libc::ioctl;
-use memmap2::{MmapOptions, MmapMut, MmapRaw};
+use memmap2::{MmapOptions, MmapRaw};
 
 use std::fs::{File, OpenOptions};
 use std::os::unix::io::AsRawFd;
@@ -61,8 +61,10 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
         let fix_screen_info = Framebuffer::get_fix_screeninfo(&device);
         let frame_length = (fix_screen_info.line_length * var_screen_info.yres) as usize;
 
-        let mem_map =
-            MmapOptions::new().len(frame_length).map_raw(&device).expect("Unable to map provided path");
+        let mem_map = MmapOptions::new()
+            .len(frame_length)
+            .map_raw(&device)
+            .expect("Unable to map provided path");
 
         // Load the font
         let font_data = include_bytes!("../../assets/Roboto-Regular.ttf");
