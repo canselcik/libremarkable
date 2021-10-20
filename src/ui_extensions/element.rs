@@ -163,7 +163,7 @@ impl UIElementWrapper {
                 refresh,
             ),
             UIElement::Image { ref img } => {
-                app.display_image(&img, self.position.cast().unwrap(), refresh)
+                app.display_image(img, self.position.cast().unwrap(), refresh)
             }
             UIElement::Region {
                 size,

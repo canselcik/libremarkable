@@ -1,8 +1,10 @@
 use std::sync::Arc;
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct CompressedCanvasState {
     data: Arc<[u8]>,
+    // FIXME: These fields are never read; we should either take advantage of or remove them.
     height: u32,
     width: u32,
 }

@@ -47,12 +47,9 @@ impl EvDevs {
     /// and get some additional data for lazy constants.
     fn new() -> Self {
         // All of these have to be found
-        let mut wacom_path: Option<PathBuf> = None;
-        let mut wacom_dev: Option<evdev::Device> = None;
-        let mut multitouch_path: Option<PathBuf> = None;
-        let mut multitouch_dev: Option<evdev::Device> = None;
-        let mut gpio_path: Option<PathBuf> = None;
-        let mut gpio_dev: Option<evdev::Device> = None;
+        let mut wacom = None;
+        let mut multitouch = None;
+        let mut gpio = None;
 
         // Get all /dev/input/event* file paths
         let mut event_file_paths: Vec<PathBuf> = Vec::new();
@@ -75,51 +72,39 @@ impl EvDevs {
         for evdev_path in event_file_paths {
             let dev = evdev::Device::open(&evdev_path)
                 .unwrap_or_else(|_| panic!("Failed to scan {:?}", &evdev_path));
-            if dev.events_supported().contains(evdev::KEY) {
+            if dev.events_supported().contains(evdev::Types::KEY) {
                 if dev.keys_supported().contains(evdev::BTN_STYLUS as usize)
-                    && dev.events_supported().contains(evdev::ABSOLUTE)
+                    && dev.events_supported().contains(evdev::Types::ABSOLUTE)
                 {
                     // The device with the wacom digitizer has the BTN_STYLUS event
                     // and support KEY as well as ABSOLUTE event types
-                    wacom_path = Some(evdev_path.clone());
-                    wacom_dev = Some(dev);
+                    wacom = Some((evdev_path.clone(), dev));
                     continue;
                 }
 
                 if dev.keys_supported().contains(evdev::KEY_POWER as usize) {
                     // The device for buttons has the KEY_POWER button and support KEY event types
-                    gpio_path = Some(evdev_path.clone());
-                    gpio_dev = Some(dev);
+                    gpio = Some((evdev_path.clone(), dev));
                     continue;
                 }
             }
 
-            if dev.events_supported().contains(evdev::RELATIVE)
-                && dev.absolute_axes_supported().contains(evdev::ABS_MT_SLOT)
+            if dev.events_supported().contains(evdev::Types::RELATIVE)
+                && dev
+                    .absolute_axes_supported()
+                    .contains(evdev::AbsoluteAxis::ABS_MT_SLOT)
             {
                 // The touchscreen device has the ABS_MT_SLOT event and supports RELATIVE event types
-                multitouch_path = Some(evdev_path.clone());
-                multitouch_dev = Some(dev);
+                multitouch = Some((evdev_path.clone(), dev));
                 continue;
             }
         }
 
         // Ensure that all devices were found
-        if wacom_path.is_none() || wacom_dev.is_none() {
-            panic!("Failed to find the wacom digitizer evdev!");
-        }
-        let wacom_path = wacom_path.unwrap();
-        let wacom_dev = wacom_dev.unwrap();
-        if multitouch_path.is_none() || multitouch_dev.is_none() {
-            panic!("Failed to find the multitouch evdev!");
-        }
-        let multitouch_path = multitouch_path.unwrap();
-        let multitouch_dev = multitouch_dev.unwrap();
-        if gpio_path.is_none() || gpio_dev.is_none() {
-            panic!("Failed to find the gpio evdev!");
-        }
-        let gpio_path = gpio_path.unwrap();
-        let gpio_dev = gpio_dev.unwrap();
+        let (wacom_path, wacom_dev) = wacom.expect("Failed to find the wacom digitizer evdev!");
+        let (multitouch_path, multitouch_dev) =
+            multitouch.expect("Failed to find the multitouch evdev!");
+        let (gpio_path, gpio_dev) = gpio.expect("Failed to find the gpio evdev!");
 
         // SIZES
         let wacom_state = wacom_dev.state();

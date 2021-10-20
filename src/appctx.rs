@@ -1,35 +1,30 @@
 use std::cell::UnsafeCell;
+use std::collections::HashMap;
 use std::ops::DerefMut;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::RwLock;
 
-use std::collections::HashMap;
-
-use crate::input::ev;
-
-use crate::framebuffer::common::*;
-
-use crate::ui_extensions::element::{
-    ActiveRegionFunction, ActiveRegionHandler, UIConstraintRefresh, UIElementHandle,
-    UIElementWrapper,
-};
-use crate::ui_extensions::luaext;
-use hlua::Lua;
-
 use aabb_quadtree::{geom, ItemId, QuadTree};
+use hlua::Lua;
 use log::warn;
 
 use crate::framebuffer::cgmath;
+use crate::framebuffer::common::*;
 use crate::framebuffer::core;
 use crate::framebuffer::refresh::PartialRefreshMode;
 use crate::framebuffer::FramebufferBase;
 use crate::framebuffer::FramebufferDraw;
 use crate::framebuffer::FramebufferRefresh;
-
+use crate::input::ev;
 use crate::input::gpio::GPIOEvent;
 use crate::input::multitouch::MultitouchEvent;
 use crate::input::wacom::WacomEvent;
 use crate::input::{InputDevice, InputEvent};
+use crate::ui_extensions::element::{
+    ActiveRegionFunction, ActiveRegionHandler, UIConstraintRefresh, UIElementHandle,
+    UIElementWrapper,
+};
+use crate::ui_extensions::luaext;
 
 unsafe impl<'a> Send for ApplicationContext<'a> {}
 unsafe impl<'a> Sync for ApplicationContext<'a> {}
@@ -147,7 +142,7 @@ impl<'a> ApplicationContext<'a> {
 
     pub fn execute_lua(&mut self, code: &str) {
         let lua = self.get_lua_ref();
-        if let Err(e) = lua.execute::<hlua::AnyLuaValue>(&code) {
+        if let Err(e) = lua.execute::<hlua::AnyLuaValue>(code) {
             warn!("Error in Lua Context: {:?}", e);
         }
     }
@@ -287,14 +282,10 @@ impl<'a> ApplicationContext<'a> {
         match self.ui_elements.get(name) {
             None => false,
             Some(element) => {
-                let h = element.read().onclick;
-                let handler = match h {
-                    Some(handler) => Some(ActiveRegionHandler {
-                        handler,
-                        element: element.clone(),
-                    }),
-                    _ => None,
-                };
+                let handler = element.read().onclick.map(|handler| ActiveRegionHandler {
+                    handler,
+                    element: element.clone(),
+                });
                 element.write().draw(appref, &handler);
                 true
             }
@@ -314,14 +305,10 @@ impl<'a> ApplicationContext<'a> {
             .collect();
 
         for element in &mut elems {
-            let h = element.read().onclick;
-            let handler = match h {
-                Some(handler) => Some(ActiveRegionHandler {
-                    handler,
-                    element: element.clone(),
-                }),
-                _ => None,
-            };
+            let handler = element.read().onclick.map(|handler| ActiveRegionHandler {
+                handler,
+                element: element.clone(),
+            });
             element.write().draw(self, &handler);
         }
         end_bench!(draw_elements);

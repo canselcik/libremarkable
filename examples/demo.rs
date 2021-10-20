@@ -160,7 +160,7 @@ fn on_zoom_out(app: &mut appctx::ApplicationContext<'_>, _element: UIElementHand
             new_image.copy_from(&resized, CANVAS_REGION.width / 8, CANVAS_REGION.height / 8);
 
             framebuffer.draw_image(
-                &new_image.as_rgb8().unwrap(),
+                new_image.as_rgb8().unwrap(),
                 CANVAS_REGION.top_left().cast().unwrap(),
             );
             framebuffer.partial_refresh(
@@ -194,7 +194,7 @@ fn on_blur_canvas(app: &mut appctx::ApplicationContext<'_>, _element: UIElementH
             .blur(0.6f32);
 
             framebuffer.draw_image(
-                &dynamic.as_rgb8().unwrap(),
+                dynamic.as_rgb8().unwrap(),
                 CANVAS_REGION.top_left().cast().unwrap(),
             );
             framebuffer.partial_refresh(
@@ -342,7 +342,7 @@ fn draw_color_test_rgb(app: &mut appctx::ApplicationContext<'_>, _element: UIEle
 
     let img_rgb565 = image::load_from_memory(include_bytes!("../assets/colorspace.png")).unwrap();
     fb.draw_image(
-        &img_rgb565.as_rgb8().unwrap(),
+        img_rgb565.as_rgb8().unwrap(),
         CANVAS_REGION.top_left().cast().unwrap(),
     );
     fb.partial_refresh(

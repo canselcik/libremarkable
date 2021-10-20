@@ -19,7 +19,7 @@ For further documentation see the [wiki](https://github.com/canselcik/libremarka
 ### Build Instructions
 
 #### Setting up the toolchain
-In order to build `libremarkable` and the examples (`spy.so` and `demo`), you'll need the toolchain from Remarkable. Download the [installation script](https://remarkable.engineering/oecore-x86_64-cortexa9hf-neon-toolchain-zero-gravitas-1.8-23.9.2019.sh) from [remarkable.engineering](https://remarkable.engineering/) and install the toolchain.
+In order to build `libremarkable` and the examples (`spy.so` and `demo`), you'll need the toolchain from Remarkable. Download the [installation script](https://storage.googleapis.com/remarkable-codex-toolchain/codex-x86_64-cortexa9hf-neon-rm10x-toolchain-3.1.2.sh) ([rM2](https://storage.googleapis.com/remarkable-codex-toolchain/codex-x86_64-cortexa7hf-neon-rm11x-toolchain-3.1.2.sh)) and install the toolchain. You can find more information on the [wiki](https://remarkablewiki.com/devel/toolchain).
 
 You can then set up your Rust toolchain for cross compilation with: `rustup target add armv7-unknown-linux-gnueabihf`.
 
@@ -74,11 +74,21 @@ If you choose to skip the `Makefile` and call `cargo` yourself, make sure to inc
 ```
 The `--release` argument is important as this enables optimizations and without optimizations you'll be looking at ~70% CPU utilization even when idle. With optimizations, the framework runs really light, 0% CPU utilization when idle and 1-2% at peak.
 
-#### Building demo with `musl`
-[`musl`](https://musl.libc.org/) is a minimal `libc` implementation that is linked into the binary before runtime.
-1. Install [`cross`](https://github.com/rust-embedded/cross) with `cargo install cross` (make sure the Remarkable toolchain is not in use first)
-1. Compile with `cross build --example demo --release --target=armv7-unknown-linux-musleabihf` (or `make demo-musl`)
-1. Run the demo: `TARGET=armv7-unknown-linux-musleabihf make deploy-demo`
-Note:
-* Building this way does not require Remarkable's toolchain nor building on Ubuntu 16.04 so setting up should be easier.
-* Make sure to build with `lto = true` otherwise `musl` symbols may be improperly resolved (call to `mmap` fails).
+#### Building with [`cross`](https://github.com/rust-embedded/cross)
+*Building this way does not require reMarkable's toolchain nor building on Ubuntu 16.04 with Docker so setting up should be easier.*
+
+To build, deploy and run the `demo`, simply:
+```shell
+make deploy-x-demo
+# This builds with
+#   cross build --example demo --release --target=armv7-unknown-linux-gnueabihf
+# then deploys the demo
+```
+##### Using [`musl`](https://musl.libc.org/)
+Make sure to build with `lto = true` otherwise `musl` symbols may be improperly resolved (call to `mmap` fails).
+
+1. Install `cross` with `cargo install cross` (make sure the reMarkable toolchain is not in use first)
+1. Compile with `cross build --example demo --release --target=armv7-unknown-linux-musleabihf` (or `TARGET=armv7-unknown-linux-musleabihf make x-demo`)
+1. Run the demo: `TARGET=armv7-unknown-linux-musleabihf make deploy-x-demo`
+
+**Regarding apps for the rM2**: `musl`-built apps do not write to the framebuffer of rM2 devices as some work is required regarding `LD_PRELOAD` to enable the use of [`rm2fb`](https://github.com/ddvk/remarkable2-framebuffer). In the meantime you should use the `gnueabihf` target.
