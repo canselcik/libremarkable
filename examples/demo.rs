@@ -103,6 +103,7 @@ lazy_static! {
     static ref G_DRAW_MODE: Atomic<DrawMode> = Atomic::new(DrawMode::Draw(2));
     static ref UNPRESS_OBSERVED: AtomicBool = AtomicBool::new(false);
     static ref WACOM_IN_RANGE: AtomicBool = AtomicBool::new(false);
+    static ref WACOM_RUBBER_SIDE: AtomicBool = AtomicBool::new(false);
     static ref WACOM_HISTORY: Mutex<VecDeque<(cgmath::Point2<f32>, i32)>> =
         Mutex::new(VecDeque::new());
     static ref G_COUNTER: Mutex<u32> = Mutex::new(0);
@@ -435,10 +436,17 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext<'_>, input: wacom::WacomE
                 return;
             }
 
-            let (col, mult) = match G_DRAW_MODE.load(Ordering::Relaxed) {
+            let (mut col, mut mult) = match G_DRAW_MODE.load(Ordering::Relaxed) {
                 DrawMode::Draw(s) => (color::BLACK, s),
                 DrawMode::Erase(s) => (color::WHITE, s * 3),
             };
+            if WACOM_RUBBER_SIDE.load(Ordering::Relaxed) {
+                col = match col {
+                    color::WHITE => color::BLACK,
+                    _ => color::WHITE,
+                };
+                mult = 50; // Rough size of the rubber end
+            }
 
             wacom_stack.push_back((position.cast().unwrap(), pressure as i32));
 
@@ -483,8 +491,13 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext<'_>, input: wacom::WacomE
         wacom::WacomEvent::InstrumentChange { pen, state } => {
             match pen {
                 // Whether the pen is in range
-                wacom::WacomPen::ToolPen | wacom::WacomPen::ToolRubber => {
+                wacom::WacomPen::ToolPen => {
                     WACOM_IN_RANGE.store(state, Ordering::Relaxed);
+                    WACOM_RUBBER_SIDE.store(false, Ordering::Relaxed);
+                }
+                wacom::WacomPen::ToolRubber => {
+                    WACOM_IN_RANGE.store(state, Ordering::Relaxed);
+                    WACOM_RUBBER_SIDE.store(true, Ordering::Relaxed);
                 }
                 // Whether the pen is actually making contact
                 wacom::WacomPen::Touch => {
