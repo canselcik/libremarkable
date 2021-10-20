@@ -242,7 +242,7 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         let line_length = self.fix_screen_info.line_length as usize;
         unsafe {
             libc::memset(
-                self.frame.data() as *mut libc::c_void,
+                self.frame.as_mut_ptr() as *mut libc::c_void,
                 std::i32::MAX,
                 line_length * h,
             );

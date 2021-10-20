@@ -14,7 +14,7 @@ log = "0.4.8"
 env_logger = "0.7.1"
 ioctl-gen = "0.1.1"
 libc = "0.2.69"
-mmap = "0.1.1"
+memmap2 = "0.5.0"
 rusttype = "0.8.2"
 evdev = { git = "https://github.com/emberian/evdev", rev = "fe3d0e9ab098f7e94bc4ab8d876eeba9fc958c6b" } # is 0.11.0-alpha.1 which is https://github.com/emberian/evdev/pull/24 which re-fixes https://github.com/emberian/evdev/pull/23 which solves https://github.com/emberian/evdev/pull/22
 epoll = "4.1.0"

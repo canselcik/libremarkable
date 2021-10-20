@@ -6,8 +6,8 @@ use crate::framebuffer::common;
 
 impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
     fn write_frame(&mut self, frame: &[u8]) {
+        let begin = self.frame.as_mut_ptr();
         unsafe {
-            let begin = self.frame.data() as *mut u8;
             for (i, elem) in frame.iter().enumerate() {
                 begin.add(i).write_volatile(*elem);
             }
@@ -28,7 +28,7 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         let bytespp = (self.var_screen_info.bits_per_pixel / 8) as isize;
         let curr_index = pos.y as isize * line_length + pos.x as isize * bytespp;
 
-        let begin = self.frame.data() as *mut u8;
+        let begin = self.frame.as_mut_ptr();
         let components = col.as_native();
         unsafe {
             begin.offset(curr_index).write_volatile(components[0]);
@@ -47,7 +47,7 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
         let bytespp = (self.var_screen_info.bits_per_pixel / 8) as usize;
         let curr_index = pos.y as usize * line_length + pos.x as usize * bytespp;
 
-        let begin = self.frame.data() as *mut u8;
+        let begin = self.frame.as_mut_ptr();
         let (c1, c2) = unsafe {
             (
                 begin.add(curr_index).read_volatile(),
@@ -59,7 +59,7 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
 
     fn read_offset(&self, ofst: isize) -> u8 {
         unsafe {
-            let begin = self.frame.data() as *mut u8;
+            let begin = self.frame.as_mut_ptr();
             begin.offset(ofst).read_volatile()
         }
     }
@@ -77,7 +77,7 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
 
         let line_length = self.fix_screen_info.line_length as u32;
         let bytespp = (self.var_screen_info.bits_per_pixel / 8) as usize;
-        let inbuffer = self.frame.data();
+        let inbuffer = self.frame.as_ptr();
         let mut outbuffer: Vec<u8> =
             Vec::with_capacity(rect.height as usize * rect.width as usize * bytespp);
         let outbuffer_ptr = outbuffer.as_mut_ptr();
@@ -122,7 +122,7 @@ impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer<'a> {
 
         let line_length = self.fix_screen_info.line_length as u32;
         let chunk_size = bytespp * rect.width as usize;
-        let outbuffer = self.frame.data();
+        let outbuffer = self.frame.as_mut_ptr();
         let inbuffer = data.as_ptr();
         let mut written: u32 = 0;
         for y in 0..rect.height {
