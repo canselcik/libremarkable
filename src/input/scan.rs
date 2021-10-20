@@ -72,9 +72,12 @@ impl EvDevs {
         for evdev_path in event_file_paths {
             let dev = evdev::Device::open(&evdev_path)
                 .unwrap_or_else(|_| panic!("Failed to scan {:?}", &evdev_path));
-            if dev.events_supported().contains(evdev::Types::KEY) {
-                if dev.keys_supported().contains(evdev::BTN_STYLUS as usize)
-                    && dev.events_supported().contains(evdev::Types::ABSOLUTE)
+            if dev.supported_events().contains(evdev::EventType::KEY) {
+                if dev
+                    .supported_keys()
+                    .map(|s| s.contains(evdev::Key::BTN_STYLUS))
+                    .unwrap_or(false)
+                    && dev.supported_events().contains(evdev::EventType::ABSOLUTE)
                 {
                     // The device with the wacom digitizer has the BTN_STYLUS event
                     // and support KEY as well as ABSOLUTE event types
@@ -82,17 +85,22 @@ impl EvDevs {
                     continue;
                 }
 
-                if dev.keys_supported().contains(evdev::KEY_POWER as usize) {
+                if dev
+                    .supported_keys()
+                    .map(|s| s.contains(evdev::Key::KEY_POWER))
+                    .unwrap_or(false)
+                {
                     // The device for buttons has the KEY_POWER button and support KEY event types
                     gpio = Some((evdev_path.clone(), dev));
                     continue;
                 }
             }
 
-            if dev.events_supported().contains(evdev::Types::RELATIVE)
+            if dev.supported_events().contains(evdev::EventType::RELATIVE)
                 && dev
-                    .absolute_axes_supported()
-                    .contains(evdev::AbsoluteAxis::ABS_MT_SLOT)
+                    .supported_absolute_axes()
+                    .map(|s| s.contains(evdev::AbsoluteAxisType::ABS_MT_SLOT))
+                    .unwrap_or(false)
             {
                 // The touchscreen device has the ABS_MT_SLOT event and supports RELATIVE event types
                 multitouch = Some((evdev_path.clone(), dev));
@@ -107,10 +115,10 @@ impl EvDevs {
         let (gpio_path, gpio_dev) = gpio.expect("Failed to find the gpio evdev!");
 
         // SIZES
-        let wacom_state = wacom_dev.state();
+        let wacom_state = wacom_dev.get_abs_state().unwrap();
         let wacom_orig_size = Vector2 {
-            x: wacom_state.abs_vals[ecodes::ABS_X as usize].maximum as u16,
-            y: wacom_state.abs_vals[ecodes::ABS_Y as usize].maximum as u16,
+            x: wacom_state[ecodes::ABS_X as usize].maximum as u16,
+            y: wacom_state[ecodes::ABS_Y as usize].maximum as u16,
         };
         // X and Y are swapped for the wacom since rM1 and probably also rM2 have it rotated
         let (wacom_width, wacom_height) = crate::device::CURRENT_DEVICE
@@ -119,10 +127,10 @@ impl EvDevs {
             .rotated_size(&wacom_orig_size)
             .into();
 
-        let mt_state = multitouch_dev.state();
+        let mt_state = multitouch_dev.get_abs_state().unwrap();
         let multitouch_orig_size = Vector2 {
-            x: mt_state.abs_vals[ecodes::ABS_MT_POSITION_X as usize].maximum as u16,
-            y: mt_state.abs_vals[ecodes::ABS_MT_POSITION_Y as usize].maximum as u16,
+            x: mt_state[ecodes::ABS_MT_POSITION_X as usize].maximum as u16,
+            y: mt_state[ecodes::ABS_MT_POSITION_Y as usize].maximum as u16,
         };
         // Axes are swapped on the rM2 (see InputDeviceRotation for more)
         let (mt_width, mt_height) = crate::device::CURRENT_DEVICE
@@ -180,6 +188,7 @@ impl EvDevs {
     }
 
     /// Get a ev device. If this is called early, it can get the device used for the initial scan.
+    /// If an early device is returned, it might contain a few events from the past!
     pub fn get_device(&self, device: InputDevice) -> Result<evdev::Device, impl std::error::Error> {
         let dev_arc = match device {
             InputDevice::Wacom => self.wacom_initial_dev.clone(),
@@ -190,9 +199,7 @@ impl EvDevs {
 
         let mut resuable_device = dev_arc.lock().unwrap();
         if resuable_device.is_some() {
-            let mut resuable_device = resuable_device.take().unwrap();
-            resuable_device.events_no_sync()?; // Clear events until now
-            Ok(resuable_device)
+            Ok(resuable_device.take().unwrap())
         } else {
             evdev::Device::open(self.get_path(device))
         }

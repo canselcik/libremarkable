@@ -2,6 +2,7 @@ use crate::input;
 
 use input::scan::SCANNED;
 use log::{error, info, warn};
+use std::os::unix::prelude::AsRawFd;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
@@ -66,7 +67,13 @@ impl EvDevContext {
                     data: 0,
                 }];
                 let epfd = epoll::create(false).unwrap();
-                epoll::ctl(epfd, epoll::ControlOptions::EPOLL_CTL_ADD, dev.fd(), v[0]).unwrap();
+                epoll::ctl(
+                    epfd,
+                    epoll::ControlOptions::EPOLL_CTL_ADD,
+                    dev.as_raw_fd(),
+                    v[0],
+                )
+                .unwrap();
 
                 // init callback
                 info!("Init complete for {:?}", path);
@@ -91,7 +98,7 @@ impl EvDevContext {
                             warn!("epoll_wait returned {0}", res);
                         }
 
-                        for ev in dev.events_no_sync().unwrap() {
+                        for ev in dev.fetch_events().unwrap() {
                             // event callback
                             match device_type {
                                 input::InputDevice::Multitouch => {
