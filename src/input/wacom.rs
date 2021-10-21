@@ -6,15 +6,14 @@ use crate::input::{InputDeviceState, InputEvent};
 use atomic::Atomic;
 use evdev::raw::input_event;
 use log::debug;
+use once_cell::sync::Lazy;
 use std::sync::atomic::{AtomicU16, Ordering};
 
 use crate::framebuffer::cgmath;
 use crate::framebuffer::common::{DISPLAYHEIGHT, DISPLAYWIDTH, WACOMHEIGHT, WACOMWIDTH};
 
-lazy_static! {
-    static ref WACOM_HSCALAR: f32 = (DISPLAYWIDTH as f32) / (*WACOMWIDTH as f32);
-    static ref WACOM_VSCALAR: f32 = (DISPLAYHEIGHT as f32) / (*WACOMHEIGHT as f32);
-}
+static WACOM_HSCALAR: Lazy<f32> = Lazy::new(|| (DISPLAYWIDTH as f32) / (*WACOMWIDTH as f32));
+static WACOM_VSCALAR: Lazy<f32> = Lazy::new(|| (DISPLAYHEIGHT as f32) / (*WACOMHEIGHT as f32));
 
 pub struct WacomState {
     last_x: AtomicU16,

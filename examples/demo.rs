@@ -17,8 +17,8 @@ use libremarkable::stopwatch;
 
 use atomic::Atomic;
 use chrono::{DateTime, Local};
-use lazy_static::lazy_static;
 use log::info;
+use once_cell::sync::Lazy;
 
 use std::collections::VecDeque;
 use std::fmt;
@@ -98,18 +98,16 @@ const CANVAS_REGION: mxcfb_rect = mxcfb_rect {
     width: 1404,
 };
 
-lazy_static! {
-    static ref G_TOUCH_MODE: Atomic<TouchMode> = Atomic::new(TouchMode::OnlyUI);
-    static ref G_DRAW_MODE: Atomic<DrawMode> = Atomic::new(DrawMode::Draw(2));
-    static ref UNPRESS_OBSERVED: AtomicBool = AtomicBool::new(false);
-    static ref WACOM_IN_RANGE: AtomicBool = AtomicBool::new(false);
-    static ref WACOM_RUBBER_SIDE: AtomicBool = AtomicBool::new(false);
-    static ref WACOM_HISTORY: Mutex<VecDeque<(cgmath::Point2<f32>, i32)>> =
-        Mutex::new(VecDeque::new());
-    static ref G_COUNTER: Mutex<u32> = Mutex::new(0);
-    static ref LAST_REFRESHED_CANVAS_RECT: Atomic<mxcfb_rect> = Atomic::new(mxcfb_rect::invalid());
-    static ref SAVED_CANVAS: Mutex<Option<storage::CompressedCanvasState>> = Mutex::new(None);
-}
+static G_TOUCH_MODE: Lazy<Atomic<TouchMode>> = Lazy::new(|| Atomic::new(TouchMode::OnlyUI));
+static G_DRAW_MODE: Lazy<Atomic<DrawMode>> = Lazy::new(|| Atomic::new(DrawMode::Draw(2)));
+static UNPRESS_OBSERVED: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
+static WACOM_IN_RANGE: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
+static WACOM_RUBBER_SIDE: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
+static WACOM_HISTORY: Lazy<Mutex<VecDeque<(cgmath::Point2<f32>, i32)>>> =
+    Lazy::new(|| Mutex::new(VecDeque::new()));
+static G_COUNTER: Lazy<Mutex<u32>> = Lazy::new(|| Mutex::new(0));
+static SAVED_CANVAS: Lazy<Mutex<Option<storage::CompressedCanvasState>>> =
+    Lazy::new(|| Mutex::new(None));
 
 // ####################
 // ## Button Handlers

@@ -5,6 +5,7 @@ use crate::framebuffer::common::{DISPLAYHEIGHT, DISPLAYWIDTH, MTHEIGHT, MTWIDTH}
 use crate::input::rotate::CoordinatePart;
 use crate::input::scan::SCANNED;
 use crate::input::{InputDeviceState, InputEvent};
+use once_cell::sync::Lazy;
 
 use evdev::raw::input_event;
 use fxhash::FxHashMap;
@@ -14,10 +15,8 @@ use std::sync::{
     Mutex,
 };
 
-lazy_static! {
-    static ref MT_HSCALAR: f32 = (DISPLAYWIDTH as f32) / (*MTWIDTH as f32);
-    static ref MT_VSCALAR: f32 = (DISPLAYHEIGHT as f32) / (*MTHEIGHT as f32);
-}
+static MT_HSCALAR: Lazy<f32> = Lazy::new(|| (DISPLAYWIDTH as f32) / (*MTWIDTH as f32));
+static MT_VSCALAR: Lazy<f32> = Lazy::new(|| (DISPLAYHEIGHT as f32) / (*MTHEIGHT as f32));
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Finger {

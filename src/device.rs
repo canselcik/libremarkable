@@ -1,4 +1,6 @@
 use crate::input::rotate::InputDeviceRotation;
+use once_cell::sync::Lazy;
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Model {
     Gen1,
@@ -33,9 +35,7 @@ impl Model {
     }
 }
 
-lazy_static! {
-    pub static ref CURRENT_DEVICE: Device = Device::new();
-}
+pub static CURRENT_DEVICE: Lazy<Device> = Lazy::new(Device::new);
 
 /// Mainly information regarding both models
 pub struct Device {
