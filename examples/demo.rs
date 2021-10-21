@@ -103,6 +103,7 @@ lazy_static! {
     static ref G_DRAW_MODE: Atomic<DrawMode> = Atomic::new(DrawMode::Draw(2));
     static ref UNPRESS_OBSERVED: AtomicBool = AtomicBool::new(false);
     static ref WACOM_IN_RANGE: AtomicBool = AtomicBool::new(false);
+    static ref WACOM_RUBBER_SIDE: AtomicBool = AtomicBool::new(false);
     static ref WACOM_HISTORY: Mutex<VecDeque<(cgmath::Point2<f32>, i32)>> =
         Mutex::new(VecDeque::new());
     static ref G_COUNTER: Mutex<u32> = Mutex::new(0);
@@ -337,6 +338,45 @@ fn on_change_touchdraw_mode(app: &mut appctx::ApplicationContext<'_>, _: UIEleme
 // ## Miscellaneous
 // ####################
 
+/// Called on button press on rm2 or left gpio on rm1
+fn quick_redraw(app: &mut appctx::ApplicationContext<'_>) {
+    app.clear(false);
+    app.draw_elements();
+}
+
+/// Called on button press on rm2 or middle gpio on rm1
+fn full_redraw(app: &mut appctx::ApplicationContext<'_>) {
+    app.clear(true);
+    app.draw_elements();
+}
+
+/// Called on button press (pen can press, too) on rm2 or right gpio on rm1
+fn toggle_touch(app: &mut appctx::ApplicationContext<'_>) {
+    let new_state = match app.is_input_device_active(InputDevice::Multitouch) {
+        true => {
+            app.deactivate_input_device(InputDevice::Multitouch);
+            "Enable Touch"
+        }
+        false => {
+            app.activate_input_device(InputDevice::Multitouch);
+            "Disable Touch"
+        }
+    };
+
+    if let Some(ref elem) = app.get_element_by_name("toggleTouch") {
+        if let UIElement::Text {
+            ref mut text,
+            scale: _,
+            foreground: _,
+            border_px: _,
+        } = elem.write().inner
+        {
+            *text = new_state.to_string();
+        }
+    }
+    app.draw_element("toggleTouch");
+}
+
 fn draw_color_test_rgb(app: &mut appctx::ApplicationContext<'_>, _element: UIElementHandle) {
     let fb = app.get_framebuffer_ref();
 
@@ -435,10 +475,17 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext<'_>, input: wacom::WacomE
                 return;
             }
 
-            let (col, mult) = match G_DRAW_MODE.load(Ordering::Relaxed) {
+            let (mut col, mut mult) = match G_DRAW_MODE.load(Ordering::Relaxed) {
                 DrawMode::Draw(s) => (color::BLACK, s),
                 DrawMode::Erase(s) => (color::WHITE, s * 3),
             };
+            if WACOM_RUBBER_SIDE.load(Ordering::Relaxed) {
+                col = match col {
+                    color::WHITE => color::BLACK,
+                    _ => color::WHITE,
+                };
+                mult = 50; // Rough size of the rubber end
+            }
 
             wacom_stack.push_back((position.cast().unwrap(), pressure as i32));
 
@@ -485,6 +532,11 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext<'_>, input: wacom::WacomE
                 // Whether the pen is in range
                 wacom::WacomPen::ToolPen => {
                     WACOM_IN_RANGE.store(state, Ordering::Relaxed);
+                    WACOM_RUBBER_SIDE.store(false, Ordering::Relaxed);
+                }
+                wacom::WacomPen::ToolRubber => {
+                    WACOM_IN_RANGE.store(state, Ordering::Relaxed);
+                    WACOM_RUBBER_SIDE.store(true, Ordering::Relaxed);
                 }
                 // Whether the pen is actually making contact
                 wacom::WacomPen::Touch => {
@@ -602,35 +654,10 @@ fn on_button_press(app: &mut appctx::ApplicationContext<'_>, input: gpio::GPIOEv
     }
 
     match btn {
-        gpio::PhysicalButton::RIGHT => {
-            let new_state = match app.is_input_device_active(InputDevice::Multitouch) {
-                true => {
-                    app.deactivate_input_device(InputDevice::Multitouch);
-                    "Enable Touch"
-                }
-                false => {
-                    app.activate_input_device(InputDevice::Multitouch);
-                    "Disable Touch"
-                }
-            };
+        gpio::PhysicalButton::LEFT => quick_redraw(app),
+        gpio::PhysicalButton::MIDDLE => full_redraw(app),
+        gpio::PhysicalButton::RIGHT => toggle_touch(app),
 
-            if let Some(ref elem) = app.get_element_by_name("tooltipRight") {
-                if let UIElement::Text {
-                    ref mut text,
-                    scale: _,
-                    foreground: _,
-                    border_px: _,
-                } = elem.write().inner
-                {
-                    *text = new_state.to_string();
-                }
-            }
-            app.draw_element("tooltipRight");
-        }
-        gpio::PhysicalButton::MIDDLE | gpio::PhysicalButton::LEFT => {
-            app.clear(btn == gpio::PhysicalButton::MIDDLE);
-            app.draw_elements();
-        }
         gpio::PhysicalButton::POWER => {
             Command::new("systemctl")
                 .arg("start")
@@ -1049,50 +1076,65 @@ fn main() {
         },
     );
 
+    let is_rm_2 = libremarkable::device::CURRENT_DEVICE.model == libremarkable::device::Model::Gen2;
+
     app.add_element(
-        "tooltipLeft",
+        "quickRedraw",
         UIElementWrapper {
             position: cgmath::Point2 { x: 15, y: 1850 },
             refresh: UIConstraintRefresh::Refresh,
-            onclick: None,
+            onclick: if is_rm_2 {
+                Some(|app, _| quick_redraw(app))
+            } else {
+                None
+            },
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "Quick Redraw".to_owned(), // maybe quick redraw for the demo or waveform change?
                 scale: 50.0,
-                border_px: 0,
+                border_px: if is_rm_2 { 5 } else { 0 },
             },
             ..Default::default()
         },
     );
     app.add_element(
-        "tooltipMiddle",
+        "fullRedraw",
         UIElementWrapper {
             position: cgmath::Point2 { x: 565, y: 1850 },
             refresh: UIConstraintRefresh::Refresh,
+            onclick: if is_rm_2 {
+                Some(|app, _| full_redraw(app))
+            } else {
+                None
+            },
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "Full Redraw".to_owned(),
                 scale: 50.0,
-                border_px: 0,
+                border_px: if is_rm_2 { 5 } else { 0 },
             },
             ..Default::default()
         },
     );
     app.add_element(
-        "tooltipRight",
+        "toggleTouch",
         UIElementWrapper {
             position: cgmath::Point2 { x: 1112, y: 1850 },
             refresh: UIConstraintRefresh::Refresh,
+            onclick: if is_rm_2 {
+                Some(|app, _| toggle_touch(app))
+            } else {
+                None
+            },
             inner: UIElement::Text {
                 foreground: color::BLACK,
                 text: "Disable Touch".to_owned(),
                 scale: 50.0,
-                border_px: 0,
+                border_px: if is_rm_2 { 5 } else { 0 },
             },
             ..Default::default()
         },
     );
-
     // Create the top bar's time and battery labels. We can mutate these later.
     let dt: DateTime<Local> = Local::now();
     app.add_element(
