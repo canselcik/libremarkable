@@ -1,5 +1,5 @@
 use libc::ioctl;
-use mmap::MemoryMap;
+use memmap2::{MmapOptions, MmapRaw};
 
 use std::fs::{File, OpenOptions};
 use std::os::unix::io::AsRawFd;
@@ -18,7 +18,7 @@ use rusttype::{Font, FontCollection};
 /// along with the var/fix screeninfo structs.
 pub struct Framebuffer<'a> {
     pub device: File,
-    pub frame: MemoryMap,
+    pub frame: MmapRaw,
     pub marker: AtomicU32,
     pub default_font: Font<'a>,
     /// Not updated as a result of calling `Framebuffer::put_var_screeninfo(..)`.
@@ -60,17 +60,11 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
 
         let fix_screen_info = Framebuffer::get_fix_screeninfo(&device);
         let frame_length = (fix_screen_info.line_length * var_screen_info.yres) as usize;
-        let mem_map = MemoryMap::new(
-            frame_length,
-            &[
-                mmap::MapOption::MapReadable,
-                mmap::MapOption::MapWritable,
-                mmap::MapOption::MapFd(device.as_raw_fd()),
-                mmap::MapOption::MapOffset(0),
-                mmap::MapOption::MapNonStandardFlags(libc::MAP_SHARED),
-            ],
-        )
-        .unwrap();
+
+        let mem_map = MmapOptions::new()
+            .len(frame_length)
+            .map_raw(&device)
+            .expect("Unable to map provided path");
 
         // Load the font
         let font_data = include_bytes!("../../assets/Roboto-Regular.ttf");
