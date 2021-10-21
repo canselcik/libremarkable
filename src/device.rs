@@ -5,7 +5,6 @@ use once_cell::sync::Lazy;
 pub enum Model {
     Gen1,
     Gen2,
-    Unknown,
 }
 
 impl std::fmt::Display for Model {
@@ -13,13 +12,12 @@ impl std::fmt::Display for Model {
         match *self {
             Model::Gen1 => write!(f, "reMarkable 1"),
             Model::Gen2 => write!(f, "reMarkable 2"),
-            Model::Unknown => write!(f, "Unknown reMarkable"),
         }
     }
 }
 
 impl Model {
-    fn current_model() -> std::io::Result<Model> {
+    pub fn current_model() -> Result<Model, ErrorKind> {
         let content = std::fs::read_to_string("/sys/devices/soc0/machine")?;
         let machine_name = content.trim();
         // "reMarkable Prototype 1" was also seen for reMarkable 1 owners (and it didn't mean they preordered it).
@@ -30,12 +28,38 @@ impl Model {
         } else if machine_name == "reMarkable 2.0" {
             Ok(Model::Gen2)
         } else {
-            Ok(Model::Unknown)
+            Err(ErrorKind::UnknownVersion(machine_name.to_owned()))
         }
     }
 }
 
 pub static CURRENT_DEVICE: Lazy<Device> = Lazy::new(Device::new);
+
+/// Differentiate between the reasons why the determination of the current device model can fail.
+#[derive(Debug)]
+pub enum ErrorKind {
+    /// An IO error occured when reading /sys/devices/soc0/machine
+    IOError(std::io::Error),
+    /// The version string in /sys/devices/soc0/machine does not match any of the known versions.
+    UnknownVersion(String),
+}
+
+impl From<std::io::Error> for ErrorKind {
+    fn from(err: std::io::Error) -> Self {
+        ErrorKind::IOError(err)
+    }
+}
+
+impl std::fmt::Display for ErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorKind::IOError(err) => err.fmt(f),
+            ErrorKind::UnknownVersion(version) => {
+                write!(f, "Unknown reMarkable version '{}'", version)
+            }
+        }
+    }
+}
 
 /// Mainly information regarding both models
 pub struct Device {
@@ -58,8 +82,7 @@ pub struct InputDevicePlacement {
 impl Device {
     fn new() -> Self {
         let model = Model::current_model()
-            .unwrap_or_else(|e| panic!("Got IO Error when determining model: {}", e));
-        assert!(model != Model::Unknown, "Failed to determine model!");
+            .unwrap_or_else(|e| panic!("Got an error when determining model: {}", e));
 
         Self { model }
     }
@@ -76,7 +99,6 @@ impl Device {
                 invert_x: true,
                 invert_y: false,
             },
-            Model::Unknown => unreachable!(),
         }
     }
 
@@ -94,7 +116,6 @@ impl Device {
         match self.model {
             Model::Gen1 => "bq27441-0",
             Model::Gen2 => "max77818_battery",
-            Model::Unknown => unreachable!(),
         }
     }
 }
