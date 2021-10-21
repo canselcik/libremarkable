@@ -98,7 +98,7 @@ pub fn lua_draw_text(
                 x: nx as f32,
                 y: ny as f32,
             },
-            stext,
+            &stext,
             nsize as f32,
             color::GRAY(ncolor as u8),
             false,

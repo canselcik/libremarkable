@@ -132,7 +132,7 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
     fn draw_text(
         &mut self,
         pos: Point2<f32>,
-        text: String,
+        text: &str,
         size: f32,
         col: color,
         dryrun: bool,
@@ -158,7 +158,7 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         let c3 = f32::from(255 - components[2]);
 
         // Loop through the glyphs in the text, positing each one on a line
-        for glyph in dfont.layout(&text, scale, start) {
+        for glyph in dfont.layout(text, scale, start) {
             if let Some(bounding_box) = glyph.pixel_bounding_box() {
                 // Draw the glyph into the image per-pixel by using the draw closure
                 let bbmax_y = bounding_box.max.y as u32;

@@ -155,7 +155,7 @@ impl<'a> ApplicationContext<'a> {
         scale: f32,
         border_px: u32,
         border_padding: u32,
-        text: String,
+        text: &str,
         refresh: UIConstraintRefresh,
     ) -> mxcfb_rect {
         let framebuffer = self.get_framebuffer_ref();

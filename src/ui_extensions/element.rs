@@ -159,7 +159,7 @@ impl UIElementWrapper {
                 scale,
                 border_px as u32,
                 8,
-                text.to_string(),
+                text,
                 refresh,
             ),
             UIElement::Image { ref img } => {

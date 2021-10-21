@@ -290,7 +290,7 @@ fn on_touch_rustlogo(app: &mut appctx::ApplicationContext<'_>, _element: UIEleme
             x: 1140.0,
             y: 240.0,
         },
-        format!("{0}", new_press_count),
+        &format!("{0}", new_press_count),
         65.0,
         color::BLACK,
         false,
