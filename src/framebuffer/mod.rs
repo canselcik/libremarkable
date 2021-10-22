@@ -192,6 +192,7 @@ pub trait FramebufferRefresh {
     fn wait_refresh_complete(&self, marker: u32) -> u32;
 }
 
+use super::framebuffer::common::NativeWidthType;
 use once_cell::sync::Lazy;
 
 type Rm2fbOpenFn = unsafe extern "C" fn(
@@ -202,12 +203,12 @@ type Rm2fbOpenFn = unsafe extern "C" fn(
 
 type Rm2fbIoctl2Fn = unsafe extern "C" fn(
     fd: libc::c_int,
-    request: libc::c_ulong,
+    request: NativeWidthType,
     ptr: *const libc::c_char,
 ) -> libc::c_int;
 
 type Rm2fbIoctl3Fn =
-    unsafe extern "C" fn(fd: libc::c_int, request: libc::c_ulong, ...) -> libc::c_int;
+    unsafe extern "C" fn(fd: libc::c_int, request: NativeWidthType, ...) -> libc::c_int;
 
 static LIBRM2FB_CLIENT: Lazy<Option<(Rm2fbOpenFn, Rm2fbIoctl2Fn, Rm2fbIoctl3Fn)>> =
     Lazy::new(|| unsafe {

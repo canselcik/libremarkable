@@ -42,7 +42,7 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
                 let fd = open_func(
                     c_str.as_ptr() as *const libc::c_char,
                     libc::O_RDWR,
-                    0 as libc::mode_t,
+                    0_u32, /*as libc::mode_t*/
                 );
                 debug!("[rm2fb] open: using client, FD is {}", fd);
                 std::fs::File::from_raw_fd(fd)
@@ -77,6 +77,7 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
 
         let fix_screen_info = Framebuffer::get_fix_screeninfo(&device);
         let frame_length = (fix_screen_info.line_length * var_screen_info.yres) as usize;
+
         let mem_map = MmapOptions::new()
             .len(frame_length)
             .map_raw(&device)
