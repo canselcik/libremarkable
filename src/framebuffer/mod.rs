@@ -193,42 +193,55 @@ pub trait FramebufferRefresh {
 }
 
 use once_cell::sync::Lazy;
-static LIBRM2FB_CLIENT: Lazy<Option<libloading::Library>> = Lazy::new(|| unsafe {
-    if let Ok(lib) = libloading::Library::new("/opt/lib/librm2fb_client.so.1") {
-        let init_func: libloading::Symbol<unsafe extern "C" fn()> = lib.get(b"init").unwrap();
-        init_func();
-        Some(lib)
-    } else {
-        None
-    }
-});
+
+type Rm2fbOpenFn = unsafe extern "C" fn(
+    fd: *const libc::c_char,
+    flags: libc::c_int,
+    mode: libc::mode_t,
+) -> libc::c_int;
+
+type Rm2fbIoctl2Fn = unsafe extern "C" fn(
+    fd: libc::c_int,
+    request: libc::c_ulong,
+    ptr: *const libc::c_char,
+) -> libc::c_int;
+
+type Rm2fbIoctl3Fn =
+    unsafe extern "C" fn(fd: libc::c_int, request: libc::c_ulong, ...) -> libc::c_int;
+
+static LIBRM2FB_CLIENT: Lazy<Option<(Rm2fbOpenFn, Rm2fbIoctl2Fn, Rm2fbIoctl3Fn)>> =
+    Lazy::new(|| unsafe {
+        if let Ok(lib) = libloading::Library::new("/opt/lib/librm2fb_client.so.1") {
+            let init_func: libloading::Symbol<unsafe extern "C" fn()> = lib.get(b"init\0").unwrap();
+            init_func();
+
+            let open_func: libloading::Symbol<Rm2fbOpenFn> = lib.get(b"open\0").unwrap();
+            let ioctl2_func: libloading::Symbol<Rm2fbIoctl2Fn> = lib.get(b"ioctl\0").unwrap();
+            let ioctl3_func: libloading::Symbol<Rm2fbIoctl3Fn> = lib.get(b"ioctl\0").unwrap();
+
+            Some((*open_func, *ioctl2_func, *ioctl3_func))
+        } else {
+            None
+        }
+    });
 
 #[macro_export]
 macro_rules! auto_ioctl {
     ($fd:expr, $reason:expr, $data:expr) => {{
-        if let Some(lib) = &*LIBRM2FB_CLIENT {
-            //let ioctl_func: libloading::Symbol<unsafe extern "C" fn(fd: libc::c_int, request: libc::c_ulong, ptr: *mut libc::c_char) -> libc::c_int> = lib.get(b"ioctl").unwrap();
-            let ioctl_func: libloading::Symbol<unsafe extern "C" fn(fd: libc::c_int, request: libc::c_ulong, ...) -> libc::c_int> = lib.get(b"ioctl").unwrap();
-            //let ptr = [$data].as_mut_ptr() as *mut u8;
-            //let ptr = [$data].as_mut_ptr().add(0) as *mut u8;
-            //let ptr = std::ptr::NonNull::new($data as *mut u8).unwrap().as_ptr() as *mut u8;
-            //let ptr = std::ptr::NonNull::new_unchecked($data as *mut _).as_ptr() as *mut u8;
-            //let c = $data.as_ref() as *mut u8;
-            println!("Redirecting ioctl to rm2fb");
-            ioctl_func($fd, $reason, $data)
-        }else {
-            println!("Plain ioctl");
+        if let Some((_, _, ioctl3_func)) = &*LIBRM2FB_CLIENT {
+            debug!("[rm2fb] ioctl3: using client");
+            ioctl3_func($fd, $reason, $data)
+        } else {
+            debug!("[rm2fb] ioctl3: using libc");
             libc::ioctl($fd, $reason, $data)
         }
     }};
     ($fd:expr, $reason:expr) => {{
-        if let Some(lib) = &*LIBRM2FB_CLIENT {
-            let ioctl_func: libloading::Symbol<unsafe extern "C" fn(fd: libc::c_int, request: libc::c_ulong, ptr: *const libc::c_char) -> libc::c_int> = lib.get(b"ioctl").unwrap();
-            let ptr  = std::ptr::null();
-            println!("Redirecting ioctl to rm2fb");
-            ioctl_func($fd, $reason, ptr)
-        }else {
-            println!("Plain ioctl");
+        if let Some((_, ioctl2_func, _)) = &*LIBRM2FB_CLIENT {
+            debug!("[rm2fb] ioctl2: using client");
+            ioctl2_func($fd, $reason, std::ptr::null())
+        } else {
+            debug!("[rm2fb] ioctl2: using libc");
             libc::ioctl($fd, $reason)
         }
     }};

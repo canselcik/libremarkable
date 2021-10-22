@@ -1,7 +1,7 @@
 use std::os::unix::io::AsRawFd;
 use std::sync::atomic::Ordering;
 
-use log::warn;
+use log::{debug, warn};
 
 use super::LIBRM2FB_CLIENT;
 use crate::auto_ioctl;

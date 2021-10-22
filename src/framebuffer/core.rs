@@ -1,3 +1,4 @@
+use log::debug;
 use memmap2::{MmapOptions, MmapRaw};
 
 use std::fs::{File, OpenOptions};
@@ -35,26 +36,19 @@ unsafe impl<'a> Sync for Framebuffer<'a> {}
 
 impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
     fn from_path(path_to_device: &str) -> Framebuffer<'_> {
-        let device = if true {
-            if let Some(lib) = &*LIBRM2FB_CLIENT {
-                unsafe {
-                    let c_str = std::ffi::CString::new(path_to_device).unwrap();
-                    let c_world: *const libc::c_char = c_str.as_ptr() as *const libc::c_char;
-                    let open_func: libloading::Symbol<
-                        unsafe extern "C" fn(
-                            fd: *const libc::c_char,
-                            flags: libc::c_int,
-                            mode: libc::mode_t,
-                        ) -> libc::c_int,
-                    > = lib.get(b"open").unwrap();
-                    let fd = open_func(c_world, libc::O_RDWR, 0 as libc::mode_t);
-                    println!("FD is {}", fd);
-                    std::fs::File::from_raw_fd(fd)
-                }
-            } else {
-                panic!("Failed to open file with shim lib!");
+        let device = if let Some((open_func, _, _)) = &*LIBRM2FB_CLIENT {
+            unsafe {
+                let c_str = std::ffi::CString::new(path_to_device).expect("CString::new failed");
+                let fd = open_func(
+                    c_str.as_ptr() as *const libc::c_char,
+                    libc::O_RDWR,
+                    0 as libc::mode_t,
+                );
+                debug!("[rm2fb] open: using client, FD is {}", fd);
+                std::fs::File::from_raw_fd(fd)
             }
         } else {
+            debug!("[rm2fb] open: using libc");
             OpenOptions::new()
                 .read(true)
                 .write(true)
@@ -83,7 +77,6 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
 
         let fix_screen_info = Framebuffer::get_fix_screeninfo(&device);
         let frame_length = (fix_screen_info.line_length * var_screen_info.yres) as usize;
-        println!("FIX: {:#?}\nVAR: {:#?}", fix_screen_info, var_screen_info);
         let mem_map = MmapOptions::new()
             .len(frame_length)
             .map_raw(&device)
