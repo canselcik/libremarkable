@@ -195,7 +195,7 @@ pub trait FramebufferRefresh {
 use once_cell::sync::Lazy;
 static LIBRM2FB_CLIENT: Lazy<Option<libloading::Library>> = Lazy::new(|| unsafe {
     if let Ok(lib) = libloading::Library::new("/opt/lib/librm2fb_client.so.1") {
-        let init_func: libloading::Symbol<unsafe extern "C" fn()> = lib.get(b"_init").unwrap();
+        let init_func: libloading::Symbol<unsafe extern "C" fn()> = lib.get(b"init").unwrap();
         init_func();
         Some(lib)
     } else {
