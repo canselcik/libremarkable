@@ -3,6 +3,8 @@ use std::sync::atomic::Ordering;
 
 use log::warn;
 
+use super::LIBRM2FB_CLIENT;
+use crate::auto_ioctl;
 use crate::framebuffer;
 use crate::framebuffer::common;
 use crate::framebuffer::core;
@@ -44,7 +46,7 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
 
         let pt: *const mxcfb_update_data = &whole;
         unsafe {
-            libc::ioctl(self.device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt);
+            auto_ioctl!(self.device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt);
         }
 
         if wait_completion {
@@ -53,10 +55,10 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
                 collision_test: 0,
             };
             unsafe {
-                if libc::ioctl(
+                if auto_ioctl!(
                     self.device.as_raw_fd(),
                     common::MXCFB_WAIT_FOR_UPDATE_COMPLETE,
-                    &mut markerdata,
+                    &mut markerdata
                 ) < 0
                 {
                     warn!("WAIT_FOR_UPDATE_COMPLETE failed after a full_refresh(..)");
@@ -128,7 +130,7 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
 
         let pt: *const mxcfb_update_data = &whole;
         unsafe {
-            libc::ioctl(self.device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt);
+            auto_ioctl!(self.device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt);
         }
 
         match mode {
@@ -138,10 +140,10 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
                     collision_test: 0,
                 };
                 unsafe {
-                    if libc::ioctl(
+                    if auto_ioctl!(
                         self.device.as_raw_fd(),
                         common::MXCFB_WAIT_FOR_UPDATE_COMPLETE,
-                        &mut markerdata,
+                        &mut markerdata
                     ) < 0
                     {
                         warn!("WAIT_FOR_UPDATE_COMPLETE failed after a partial_refresh(..)");
@@ -159,10 +161,10 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
             collision_test: 0,
         };
         unsafe {
-            if libc::ioctl(
+            if auto_ioctl!(
                 self.device.as_raw_fd(),
                 common::MXCFB_WAIT_FOR_UPDATE_COMPLETE,
-                &mut markerdata,
+                &mut markerdata
             ) < 0
             {
                 warn!("WAIT_FOR_UPDATE_COMPLETE failed");

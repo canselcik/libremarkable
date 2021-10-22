@@ -1,10 +1,12 @@
-use libc::ioctl;
 use memmap2::{MmapOptions, MmapRaw};
 
 use std::fs::{File, OpenOptions};
 use std::os::unix::io::AsRawFd;
+use std::os::unix::prelude::FromRawFd;
 use std::sync::atomic::AtomicU32;
 
+use super::LIBRM2FB_CLIENT;
+use crate::auto_ioctl;
 use crate::framebuffer;
 use crate::framebuffer::common::{
     FBIOGET_FSCREENINFO, FBIOGET_VSCREENINFO, FBIOPUT_VSCREENINFO, MXCFB_DISABLE_EPDC_ACCESS,
@@ -33,11 +35,32 @@ unsafe impl<'a> Sync for Framebuffer<'a> {}
 
 impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
     fn from_path(path_to_device: &str) -> Framebuffer<'_> {
-        let device = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .open(path_to_device)
-            .unwrap();
+        let device = if true {
+            if let Some(lib) = &*LIBRM2FB_CLIENT {
+                unsafe {
+                    let c_str = std::ffi::CString::new(path_to_device).unwrap();
+                    let c_world: *const libc::c_char = c_str.as_ptr() as *const libc::c_char;
+                    let open_func: libloading::Symbol<
+                        unsafe extern "C" fn(
+                            fd: *const libc::c_char,
+                            flags: libc::c_int,
+                            mode: libc::mode_t,
+                        ) -> libc::c_int,
+                    > = lib.get(b"open").unwrap();
+                    let fd = open_func(c_world, libc::O_RDWR, 0 as libc::mode_t);
+                    println!("FD is {}", fd);
+                    std::fs::File::from_raw_fd(fd)
+                }
+            } else {
+                panic!("Failed to open file with shim lib!");
+            }
+        } else {
+            OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(path_to_device)
+                .unwrap()
+        };
 
         let mut var_screen_info = Framebuffer::get_var_screeninfo(&device);
         var_screen_info.xres = 1404;
@@ -60,7 +83,7 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
 
         let fix_screen_info = Framebuffer::get_fix_screeninfo(&device);
         let frame_length = (fix_screen_info.line_length * var_screen_info.yres) as usize;
-
+        println!("FIX: {:#?}\nVAR: {:#?}", fix_screen_info, var_screen_info);
         let mem_map = MmapOptions::new()
             .len(frame_length)
             .map_raw(&device)
@@ -83,13 +106,13 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
 
     fn set_epdc_access(&mut self, state: bool) {
         unsafe {
-            libc::ioctl(
+            auto_ioctl!(
                 self.device.as_raw_fd(),
                 if state {
                     MXCFB_ENABLE_EPDC_ACCESS
                 } else {
                     MXCFB_DISABLE_EPDC_ACCESS
-                },
+                }
             );
         };
     }
@@ -97,10 +120,10 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
     fn set_autoupdate_mode(&mut self, mode: u32) {
         let m = mode.to_owned();
         unsafe {
-            libc::ioctl(
+            auto_ioctl!(
                 self.device.as_raw_fd(),
                 MXCFB_SET_AUTO_UPDATE_MODE,
-                &m as *const u32,
+                &m as *const u32
             );
         };
     }
@@ -108,30 +131,31 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
     fn set_update_scheme(&mut self, scheme: u32) {
         let s = scheme.to_owned();
         unsafe {
-            libc::ioctl(
+            auto_ioctl!(
                 self.device.as_raw_fd(),
                 MXCFB_SET_UPDATE_SCHEME,
-                &s as *const u32,
+                &s as *const u32
             );
         };
     }
 
     fn get_fix_screeninfo(device: &File) -> FixScreeninfo {
         let mut info: FixScreeninfo = Default::default();
-        let result = unsafe { ioctl(device.as_raw_fd(), FBIOGET_FSCREENINFO, &mut info) };
+        let result = unsafe { auto_ioctl!(device.as_raw_fd(), FBIOGET_FSCREENINFO, &mut info) };
         assert!(result == 0, "FBIOGET_FSCREENINFO failed");
         info
     }
 
     fn get_var_screeninfo(device: &File) -> VarScreeninfo {
         let mut info: VarScreeninfo = Default::default();
-        let result = unsafe { ioctl(device.as_raw_fd(), FBIOGET_VSCREENINFO, &mut info) };
+        let result = unsafe { auto_ioctl!(device.as_raw_fd(), FBIOGET_VSCREENINFO, &mut info) };
         assert!(result == 0, "FBIOGET_VSCREENINFO failed");
         info
     }
 
     fn put_var_screeninfo(device: &File, var_screen_info: &mut VarScreeninfo) -> bool {
-        let result = unsafe { ioctl(device.as_raw_fd(), FBIOPUT_VSCREENINFO, var_screen_info) };
+        let result =
+            unsafe { auto_ioctl!(device.as_raw_fd(), FBIOPUT_VSCREENINFO, var_screen_info) };
         result == 0
     }
 

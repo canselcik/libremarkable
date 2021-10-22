@@ -191,3 +191,45 @@ pub trait FramebufferRefresh {
     /// related to the collusion information.
     fn wait_refresh_complete(&self, marker: u32) -> u32;
 }
+
+use once_cell::sync::Lazy;
+static LIBRM2FB_CLIENT: Lazy<Option<libloading::Library>> = Lazy::new(|| unsafe {
+    if let Ok(lib) = libloading::Library::new("/opt/lib/librm2fb_client.so.1") {
+        let init_func: libloading::Symbol<unsafe extern "C" fn()> = lib.get(b"_init").unwrap();
+        init_func();
+        Some(lib)
+    } else {
+        None
+    }
+});
+
+#[macro_export]
+macro_rules! auto_ioctl {
+    ($fd:expr, $reason:expr, $data:expr) => {{
+        if let Some(lib) = &*LIBRM2FB_CLIENT {
+            //let ioctl_func: libloading::Symbol<unsafe extern "C" fn(fd: libc::c_int, request: libc::c_ulong, ptr: *mut libc::c_char) -> libc::c_int> = lib.get(b"ioctl").unwrap();
+            let ioctl_func: libloading::Symbol<unsafe extern "C" fn(fd: libc::c_int, request: libc::c_ulong, ...) -> libc::c_int> = lib.get(b"ioctl").unwrap();
+            //let ptr = [$data].as_mut_ptr() as *mut u8;
+            //let ptr = [$data].as_mut_ptr().add(0) as *mut u8;
+            //let ptr = std::ptr::NonNull::new($data as *mut u8).unwrap().as_ptr() as *mut u8;
+            //let ptr = std::ptr::NonNull::new_unchecked($data as *mut _).as_ptr() as *mut u8;
+            //let c = $data.as_ref() as *mut u8;
+            println!("Redirecting ioctl to rm2fb");
+            ioctl_func($fd, $reason, $data)
+        }else {
+            println!("Plain ioctl");
+            libc::ioctl($fd, $reason, $data)
+        }
+    }};
+    ($fd:expr, $reason:expr) => {{
+        if let Some(lib) = &*LIBRM2FB_CLIENT {
+            let ioctl_func: libloading::Symbol<unsafe extern "C" fn(fd: libc::c_int, request: libc::c_ulong, ptr: *const libc::c_char) -> libc::c_int> = lib.get(b"ioctl").unwrap();
+            let ptr  = std::ptr::null();
+            println!("Redirecting ioctl to rm2fb");
+            ioctl_func($fd, $reason, ptr)
+        }else {
+            println!("Plain ioctl");
+            libc::ioctl($fd, $reason)
+        }
+    }};
+}
