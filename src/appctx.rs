@@ -233,7 +233,7 @@ impl<'a> ApplicationContext<'a> {
         let framebuffer = self.get_framebuffer_ref();
         let draw_area = match img {
             image::DynamicImage::ImageRgb8(ref rgb) => framebuffer.draw_image(rgb, position),
-            other => framebuffer.draw_image(&other.to_rgb(), position),
+            other => framebuffer.draw_image(&other.to_rgb8(), position),
         };
         let marker = match refresh {
             UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer
