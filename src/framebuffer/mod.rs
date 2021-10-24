@@ -210,9 +210,12 @@ type Rm2fbIoctl2Fn = unsafe extern "C" fn(
 type Rm2fbIoctl3Fn =
     unsafe extern "C" fn(fd: libc::c_int, request: NativeWidthType, ...) -> libc::c_int;
 
+use log::debug;
 static LIBRM2FB_CLIENT: Lazy<Option<(Rm2fbOpenFn, Rm2fbIoctl2Fn, Rm2fbIoctl3Fn)>> =
     Lazy::new(|| unsafe {
-        if let Ok(lib) = libloading::Library::new("/opt/lib/librm2fb_client.so.1") {
+        let loading = libloading::Library::new("/opt/lib/librm2fb_client.so.1");
+        if let Ok(lib) = loading {
+            debug!("[rm2fb] >>> Ok(lib)Ok(lib)");
             let init_func: libloading::Symbol<unsafe extern "C" fn()> = lib.get(b"init\0").unwrap();
             init_func();
 
@@ -222,6 +225,7 @@ static LIBRM2FB_CLIENT: Lazy<Option<(Rm2fbOpenFn, Rm2fbIoctl2Fn, Rm2fbIoctl3Fn)>
 
             Some((*open_func, *ioctl2_func, *ioctl3_func))
         } else {
+            debug!("[rm2fb] >>> {:?}", loading);
             None
         }
     });
@@ -229,6 +233,7 @@ static LIBRM2FB_CLIENT: Lazy<Option<(Rm2fbOpenFn, Rm2fbIoctl2Fn, Rm2fbIoctl3Fn)>
 #[macro_export]
 macro_rules! auto_ioctl {
     ($fd:expr, $reason:expr, $data:expr) => {{
+        // if cfg!(target_env = "musl") {
         if let Some((_, _, ioctl3_func)) = &*LIBRM2FB_CLIENT {
             debug!("[rm2fb] ioctl3: using client");
             ioctl3_func($fd, $reason, $data)
@@ -236,8 +241,12 @@ macro_rules! auto_ioctl {
             debug!("[rm2fb] ioctl3: using libc");
             libc::ioctl($fd, $reason, $data)
         }
+        // } else {
+        //     libc::ioctl($fd, $reason, $data)
+        // }
     }};
     ($fd:expr, $reason:expr) => {{
+        // if cfg!(target_env = "musl") {
         if let Some((_, ioctl2_func, _)) = &*LIBRM2FB_CLIENT {
             debug!("[rm2fb] ioctl2: using client");
             ioctl2_func($fd, $reason, std::ptr::null())
@@ -245,5 +254,8 @@ macro_rules! auto_ioctl {
             debug!("[rm2fb] ioctl2: using libc");
             libc::ioctl($fd, $reason)
         }
+        // } else {
+        //     libc::ioctl($fd, $reason)
+        // }
     }};
 }

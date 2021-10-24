@@ -36,24 +36,33 @@ unsafe impl<'a> Sync for Framebuffer<'a> {}
 
 impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
     fn from_path(path_to_device: &str) -> Framebuffer<'_> {
-        let device = if let Some((open_func, _, _)) = &*LIBRM2FB_CLIENT {
-            unsafe {
-                let c_str = std::ffi::CString::new(path_to_device).expect("CString::new failed");
-                let fd = open_func(
-                    c_str.as_ptr() as *const libc::c_char,
-                    libc::O_RDWR,
-                    0_u32, /*as libc::mode_t*/
-                );
-                debug!("[rm2fb] open: using client, FD is {}", fd);
-                std::fs::File::from_raw_fd(fd)
-            }
-        } else {
-            debug!("[rm2fb] open: using libc");
-            OpenOptions::new()
-                .read(true)
-                .write(true)
-                .open(path_to_device)
-                .unwrap()
+        let device = // if cfg!(target_env = "musl") {
+            if let Some((open_func, _, _)) = &*LIBRM2FB_CLIENT {
+                unsafe {
+                    let c_str =
+                        std::ffi::CString::new(path_to_device).expect("CString::new failed");
+                    let fd = open_func(
+                        c_str.as_ptr() as *const libc::c_char,
+                        libc::O_RDWR,
+                        0_u32, /*as libc::mode_t*/
+                    );
+                    debug!("[rm2fb] open: using client, FD is {}", fd);
+                    std::fs::File::from_raw_fd(fd)
+                }
+            } else {
+                debug!("[rm2fb] open: using libc");
+                OpenOptions::new()
+                    .read(true)
+                    .write(true)
+                    .open(path_to_device)
+                    .unwrap()
+        //     }
+        // } else {
+        //     OpenOptions::new()
+        //         .read(true)
+        //         .write(true)
+        //         .open(path_to_device)
+        //         .unwrap()
         };
 
         let mut var_screen_info = Framebuffer::get_var_screeninfo(&device);
