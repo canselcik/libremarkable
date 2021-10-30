@@ -1,5 +1,6 @@
 use libc::ioctl;
 use memmap2::{MmapOptions, MmapRaw};
+use rusttype::Font;
 
 use std::fs::{File, OpenOptions};
 use std::os::unix::io::AsRawFd;
@@ -11,8 +12,6 @@ use crate::framebuffer::common::{
     MXCFB_ENABLE_EPDC_ACCESS, MXCFB_SET_AUTO_UPDATE_MODE, MXCFB_SET_UPDATE_SCHEME,
 };
 use crate::framebuffer::screeninfo::{FixScreeninfo, VarScreeninfo};
-
-use rusttype::{Font, FontCollection};
 
 /// Framebuffer struct containing the state (latest update marker etc.)
 /// along with the var/fix screeninfo structs.
@@ -68,14 +67,12 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
 
         // Load the font
         let font_data = include_bytes!("../../assets/Roboto-Regular.ttf");
-        let collection = FontCollection::from_bytes(font_data as &[u8]);
+        let default_font = Font::try_from_bytes(font_data as &[u8]).expect("corrupted font data");
         Framebuffer {
             marker: AtomicU32::new(1),
             device,
             frame: mem_map,
-            default_font: collection
-                .and_then(|ft| ft.into_fonts().next().unwrap())
-                .unwrap(),
+            default_font,
             var_screen_info,
             fix_screen_info,
         }
