@@ -86,7 +86,11 @@ impl<'a> ApplicationContext<'a> {
         on_wacom: fn(&mut ApplicationContext<'_>, WacomEvent),
         on_touch: fn(&mut ApplicationContext<'_>, MultitouchEvent),
     ) -> ApplicationContext<'static> {
-        let framebuffer = Box::new(core::Framebuffer::from_path("/dev/fb0"));
+        let fb_path = match crate::device::CURRENT_DEVICE.model {
+            crate::device::Model::Gen1 => "/dev/fb0",
+            crate::device::Model::Gen2 => "/dev/shm/swtfb.01",
+        };
+        let framebuffer = Box::new(core::Framebuffer::from_path(fb_path));
         let yres = framebuffer.var_screen_info.yres;
         let xres = framebuffer.var_screen_info.xres;
 

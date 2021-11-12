@@ -42,12 +42,18 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
             ..Default::default()
         };
 
-        let pt: *const mxcfb_update_data = &whole;
-        unsafe {
-            libc::ioctl(self.device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt);
+        if let Some(ref queue) = self.swtfb_ipc_queue {
+            // TODO: Error checking
+            queue.send_mxcfb_update(&whole);
+        } else {
+            let pt: *const mxcfb_update_data = &whole;
+            unsafe {
+                libc::ioctl(self.device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt);
+            }
         }
 
-        if wait_completion {
+        // TOOD: Check whether wait_complete now actually supported on rm2fb
+        if wait_completion && self.swtfb_ipc_queue.is_none() {
             let mut markerdata = mxcfb_update_marker_data {
                 update_marker: whole.update_marker,
                 collision_test: 0,
@@ -126,9 +132,14 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
             ..Default::default()
         };
 
-        let pt: *const mxcfb_update_data = &whole;
-        unsafe {
-            libc::ioctl(self.device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt);
+        if let Some(ref queue) = self.swtfb_ipc_queue {
+            // TODO: Error checking
+            queue.send_mxcfb_update(&whole);
+        } else {
+            let pt: *const mxcfb_update_data = &whole;
+            unsafe {
+                libc::ioctl(self.device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt);
+            }
         }
 
         match mode {
@@ -137,14 +148,17 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
                     update_marker: whole.update_marker,
                     collision_test: 0,
                 };
-                unsafe {
-                    if libc::ioctl(
-                        self.device.as_raw_fd(),
-                        common::MXCFB_WAIT_FOR_UPDATE_COMPLETE,
-                        &mut markerdata,
-                    ) < 0
-                    {
-                        warn!("WAIT_FOR_UPDATE_COMPLETE failed after a partial_refresh(..)");
+                // TOOD: Check whether wait_complete now actually supported on rm2fb
+                if self.swtfb_ipc_queue.is_none() {
+                    unsafe {
+                        if libc::ioctl(
+                            self.device.as_raw_fd(),
+                            common::MXCFB_WAIT_FOR_UPDATE_COMPLETE,
+                            &mut markerdata,
+                        ) < 0
+                        {
+                            warn!("WAIT_FOR_UPDATE_COMPLETE failed after a partial_refresh(..)");
+                        }
                     }
                 }
                 markerdata.collision_test
@@ -158,16 +172,19 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
             update_marker: marker,
             collision_test: 0,
         };
-        unsafe {
-            if libc::ioctl(
-                self.device.as_raw_fd(),
-                common::MXCFB_WAIT_FOR_UPDATE_COMPLETE,
-                &mut markerdata,
-            ) < 0
-            {
-                warn!("WAIT_FOR_UPDATE_COMPLETE failed");
-            }
-        };
+        // TOOD: Check whether wait_complete now actually supported on rm2fb
+        if self.swtfb_ipc_queue.is_none() {
+            unsafe {
+                if libc::ioctl(
+                    self.device.as_raw_fd(),
+                    common::MXCFB_WAIT_FOR_UPDATE_COMPLETE,
+                    &mut markerdata,
+                ) < 0
+                {
+                    warn!("WAIT_FOR_UPDATE_COMPLETE failed");
+                }
+            };
+        }
         markerdata.collision_test
     }
 }
