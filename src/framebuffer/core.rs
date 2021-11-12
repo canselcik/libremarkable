@@ -37,11 +37,7 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
         let device = OpenOptions::new()
             .read(true)
             .write(true)
-            .open(if path_to_device == "/dev/shm/swtfb.01" {
-                "/dev/fb0"
-            } else {
-                path_to_device
-            })
+            .open(path_to_device)
             .unwrap();
 
         let swtfb_ipc_queue = if path_to_device == "/dev/shm/swtfb.01" {
