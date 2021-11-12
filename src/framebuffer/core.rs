@@ -34,18 +34,27 @@ unsafe impl<'a> Sync for Framebuffer<'a> {}
 
 impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
     fn from_path(path_to_device: &str) -> Framebuffer<'_> {
-        let device = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .open(path_to_device)
-            .unwrap();
-
-        let swtfb_ipc_queue = if path_to_device == "/dev/shm/swtfb.01" {
-            Some(SwtfbIpcQueue::new())
+        let (swtfb_ipc_queue, device) = if path_to_device == "/dev/shm/swtfb.01" {
+            (
+                Some(SwtfbIpcQueue::new()),
+                OpenOptions::new()
+                    .read(true)
+                    .write(true)
+                    .truncate(true)
+                    .create(true)
+                    .open(path_to_device)
+                    .unwrap(),
+            )
         } else {
-            None
+            (
+                None,
+                OpenOptions::new()
+                    .read(true)
+                    .write(true)
+                    .open(path_to_device)
+                    .unwrap(),
+            )
         };
-
         println!("Queue: {:?}", swtfb_ipc_queue.is_some());
 
         let mut var_screen_info =
@@ -142,6 +151,8 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
     }
 
     fn get_fix_screeninfo(device: &File, swtfb_ipc_queue: Option<&SwtfbIpcQueue>) -> FixScreeninfo {
+        println!("get_fix_screeninfo");
+
         if swtfb_ipc_queue.is_some() {
             // https://github.com/ddvk/remarkable2-framebuffer/blob/e594fc44/src/shared/ipc.cpp#L96
             /*unsafe {
@@ -150,13 +161,13 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
                     super::swtfb_ipc::BUF_SIZE as libc::off_t,
                 );
             }*/
-            let mem_map = MmapOptions::new()
-                .len(super::swtfb_ipc::BUF_SIZE as usize)
-                .map_raw(device)
-                .expect("Unable to map provided path");
+            /*let mem_map = MmapOptions::new()
+            .len(super::swtfb_ipc::BUF_SIZE as usize)
+            .map_raw(device)
+            .expect("Unable to map provided path");*/
             // https://github.com/ddvk/remarkable2-framebuffer/blob/1e288aa9/src/client/main.cpp#L217
             let mut screeninfo: FixScreeninfo = unsafe { std::mem::zeroed() };
-            screeninfo.smem_start = mem_map.as_ptr() as u32;
+            //screeninfo.smem_start = mem_map.as_ptr() as u32; // Not used anyway. TODO: Consider adding properly
             screeninfo.smem_len = super::swtfb_ipc::BUF_SIZE as u32;
             screeninfo.line_length =
                 super::swtfb_ipc::WIDTH as u32 * std::mem::size_of::<u16>() as u32;
@@ -169,6 +180,8 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
     }
 
     fn get_var_screeninfo(device: &File, swtfb_ipc_queue: Option<&SwtfbIpcQueue>) -> VarScreeninfo {
+        println!("get_var_screeninfo");
+
         if swtfb_ipc_queue.is_some() {
             // https://github.com/ddvk/remarkable2-framebuffer/blob/1e288aa9/src/client/main.cpp#L194
             let mut screeninfo: VarScreeninfo = unsafe { std::mem::zeroed() };
@@ -199,6 +212,8 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
         swtfb_ipc_queue: Option<&SwtfbIpcQueue>,
         var_screen_info: &mut VarScreeninfo,
     ) -> bool {
+        println!("put_var_screeninfo");
+
         if swtfb_ipc_queue.is_some() {
             // https://github.com/ddvk/remarkable2-framebuffer/blob/1e288aa9/src/client/main.cpp#L214
             // Is a noop in rm2fb
@@ -210,6 +225,8 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
     }
 
     fn update_var_screeninfo(&mut self) -> bool {
+        println!("update_var_screeninfo");
+
         Self::put_var_screeninfo(
             &self.device,
             self.swtfb_ipc_queue.as_ref(),

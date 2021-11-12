@@ -8,7 +8,6 @@ const SWTFB_MESSAGE_QUEUE_ID: i32 = 0x2257c;
 
 use super::mxcfb::mxcfb_update_data;
 use std::ffi::CString;
-use std::os::raw::c_char;
 
 pub const WIDTH: i32 = 1404;
 pub const HEIGHT: i32 = 1872;
