@@ -17,8 +17,9 @@ pub const maxWidth: i32 = 1404;
 pub const maxHeight: i32 = 1872;
 pub const BUF_SIZE: i32 = maxWidth * maxHeight * std::mem::size_of::<u16>() as i32; // hardcoded size of display mem for rM2
 
+/// long on 32 bit is 4 bytes as well!!
 #[derive(Debug, Clone, Copy)]
-#[repr(i64)]
+#[repr(i32)]
 #[allow(non_camel_case_types)]
 #[allow(dead_code)]
 pub enum MSG_TYPE {
@@ -53,6 +54,7 @@ pub struct wait_sem_data {
 pub struct swtfb_update {
     mtype: MSG_TYPE,
     data: swtfb_update_data,
+    //ms: u64,
 }
 
 #[derive(Clone, Copy)]
