@@ -11,7 +11,6 @@ use std::ffi::{c_void, CString};
 use std::fs::{File, OpenOptions};
 use std::io::Error as IoError;
 use std::os::unix::prelude::AsRawFd;
-use std::time::Instant;
 use std::{env, mem, ptr};
 
 const SWTFB_MESSAGE_QUEUE_ID: i32 = 0x2257c;
@@ -147,10 +146,8 @@ impl SwtfbClient {
             return;
         }
 
-        // UNTESTED!
         // https://github.com/ddvk/remarkable2-framebuffer/blob/1e288aa9/src/client/main.cpp#L149
 
-        let start = Instant::now();
         let sem_name_str = format!("/rm2fb.wait.{}", unsafe { libc::getpid() });
         let mut sem_name = [0u8; 512];
         for (i, byte) in sem_name_str.as_bytes().into_iter().enumerate() {
@@ -177,8 +174,6 @@ impl SwtfbClient {
             libc::sem_timedwait(sem, &timeout);
             libc::sem_unlink(sem_name_c.as_ptr() as *const u8);
         }
-
-        eprintln!("Waited {:?} for update to complete", start.elapsed());
     }
 
     pub fn send_wait_update(&self, wait_update: &wait_sem_data) -> bool {
