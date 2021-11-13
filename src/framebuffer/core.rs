@@ -45,7 +45,6 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
         } else {
             None
         };
-        println!("Queue: {:?}", swtfb_ipc_queue.is_some());
 
         let mut var_screen_info =
             Framebuffer::get_var_screeninfo(&device, swtfb_ipc_queue.as_ref());
@@ -65,23 +64,15 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
         var_screen_info.vmode = 0; // FB_VMODE_NONINTERLACED
         var_screen_info.accel_flags = 0;
 
-        println!("FB from_path: 1");
-
         Framebuffer::put_var_screeninfo(&device, swtfb_ipc_queue.as_ref(), &mut var_screen_info);
-
-        println!("FB from_path: 2");
 
         let fix_screen_info = Framebuffer::get_fix_screeninfo(&device, swtfb_ipc_queue.as_ref());
         let frame_length = (fix_screen_info.line_length * var_screen_info.yres) as usize;
-
-        println!("FB from_path: 3");
 
         let mem_map = MmapOptions::new()
             .len(frame_length)
             .map_raw(&device)
             .expect("Unable to map provided path");
-
-        println!("FB from_path: 4");
 
         // Load the font
         let font_data = include_bytes!("../../assets/Roboto-Regular.ttf");

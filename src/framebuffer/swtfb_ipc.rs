@@ -104,19 +104,15 @@ impl SwtfbIpcQueue {
     pub fn send(&self, update: &swtfb_update) -> bool {
         unsafe {
             let ptr = std::ptr::addr_of!(*update) as *const std::ffi::c_void;
-            println!("Ptr: {:?}", ptr);
-            println!("Size: {}", std::mem::size_of::<swtfb_update>());
             libc::msgsnd(self.msqid, ptr, std::mem::size_of::<swtfb_update>(), 0) == 0
         }
     }
 
     pub fn send_mxcfb_update(&self, update: &mxcfb_update_data) -> bool {
-        println!("Sending update...");
         let ret = self.send(&swtfb_update {
             mtype: MSG_TYPE::UPDATE_t,
             data: swtfb_update_data { update: *update },
         });
-        println!("Update sent: {}", ret);
         ret
     }
 
