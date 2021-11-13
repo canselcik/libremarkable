@@ -35,7 +35,7 @@ unsafe impl<'a> Sync for Framebuffer<'a> {}
 impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
     fn from_path(path_to_device: &str) -> Framebuffer<'_> {
         let swtfb_client = if path_to_device == "/dev/shm/swtfb.01" {
-            Some(SwtfbClient::new())
+            Some(SwtfbClient::default())
         } else {
             None
         };
@@ -153,7 +153,7 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
     }
 
     fn get_fix_screeninfo(device: &File, swtfb_client: Option<&SwtfbClient>) -> FixScreeninfo {
-        if let Some(ref swtfb_client) = swtfb_client {
+        if let Some(swtfb_client) = swtfb_client {
             return swtfb_client.get_fix_screeninfo();
         }
 
@@ -164,7 +164,7 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
     }
 
     fn get_var_screeninfo(device: &File, swtfb_client: Option<&SwtfbClient>) -> VarScreeninfo {
-        if let Some(ref swtfb_client) = swtfb_client {
+        if let Some(swtfb_client) = swtfb_client {
             return swtfb_client.get_var_screeninfo();
         }
 

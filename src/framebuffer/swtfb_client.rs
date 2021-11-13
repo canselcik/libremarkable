@@ -78,18 +78,15 @@ pub struct SwtfbClient {
     do_wait_ioctl: bool,
 }
 
-impl SwtfbClient {
-    pub fn new() -> Self {
+impl Default for SwtfbClient {
+    fn default() -> Self {
         let msqid = unsafe {
             libc::msgget(
                 SWTFB_MESSAGE_QUEUE_ID,
                 libc::IPC_CREAT | libc::SHM_R | libc::SHM_W,
             )
         };
-        if msqid < 0 {
-            // TODO: Make proper error
-            panic!("Got an error when initializing/creating ipc queue!");
-        }
+        assert!(msqid >= 0);
 
         // Does nested need special handling?
         // This may not be needed at all.
@@ -104,7 +101,9 @@ impl SwtfbClient {
             do_wait_ioctl: env::var("RM2FB_NO_WAIT_IOCTL").is_err(),
         }
     }
+}
 
+impl SwtfbClient {
     pub fn open_buffer(&self) -> Result<(File, MmapRaw), IoError> {
         let device = OpenOptions::new()
             .read(true)
@@ -126,11 +125,10 @@ impl SwtfbClient {
     }
 
     pub fn send_mxcfb_update(&self, update: &mxcfb_update_data) -> bool {
-        let ret = self.send(&swtfb_update {
+        self.send(&swtfb_update {
             mtype: MSG_TYPE::UPDATE_t,
             data: swtfb_update_data { update: *update },
-        });
-        ret
+        })
     }
 
     pub fn send_xochitl_update(&self, data: &xochitl_data) -> bool {
@@ -151,7 +149,7 @@ impl SwtfbClient {
 
         let sem_name_str = format!("/rm2fb.wait.{}", unsafe { libc::getpid() });
         let mut sem_name = [0u8; 512];
-        for (i, byte) in sem_name_str.as_bytes().into_iter().enumerate() {
+        for (i, byte) in sem_name_str.as_bytes().iter().enumerate() {
             sem_name[i] = *byte;
         }
         self.send_wait_update(&wait_sem_data { sem_name });
@@ -193,7 +191,7 @@ impl SwtfbClient {
         screeninfo.smem_len = super::swtfb_client::BUF_SIZE as u32;
         screeninfo.line_length =
             super::swtfb_client::WIDTH as u32 * std::mem::size_of::<u16>() as u32;
-        return screeninfo;
+        screeninfo
     }
 
     pub fn get_var_screeninfo(&self) -> VarScreeninfo {
@@ -213,7 +211,7 @@ impl SwtfbClient {
         screeninfo.green.length = 6;
         screeninfo.blue.offset = 0;
         screeninfo.blue.length = 5;
-        return screeninfo;
+        screeninfo
     }
 }
 
