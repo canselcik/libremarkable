@@ -42,6 +42,11 @@ path = "examples/spy.rs"
 crate-type = ["dylib"]
 
 [[example]]
+name = "swtfb_sysv_spy"
+path = "examples/swtfb_sysv_spy.rs"
+crate-type = ["dylib"]
+
+[[example]]
 name = "demo"
 path = "examples/demo.rs"
 crate-type = ["bin"]

@@ -34,42 +34,42 @@ pub enum MSG_TYPE {
 #[derive(Debug, Clone, Copy)]
 #[allow(non_camel_case_types, dead_code)]
 pub struct xochitl_data {
-    x1: i32,
-    y1: i32,
-    x2: i32,
-    y2: i32,
+    pub x1: i32,
+    pub y1: i32,
+    pub x2: i32,
+    pub y2: i32,
 
-    waveform: i32,
-    flags: i32,
+    pub waveform: i32,
+    pub flags: i32,
 }
 
 #[derive(Debug, Clone, Copy)]
 #[allow(non_camel_case_types, dead_code)]
 pub struct wait_sem_data {
     /// C string
-    sem_name: [u8; 512],
+    pub sem_name: [u8; 512],
 }
 
 /// MSG_TYPE has to match swtfb_update_data !!!
 #[derive(Clone, Copy)]
 #[allow(non_camel_case_types, dead_code)]
 pub struct swtfb_update {
-    mtype: MSG_TYPE,
-    data: swtfb_update_data,
+    pub mtype: MSG_TYPE,
+    pub data: swtfb_update_data,
     //ms: u64,
 }
 
 #[derive(Clone, Copy)]
 #[allow(non_camel_case_types, dead_code)]
 pub union swtfb_update_data {
-    xochitl_update: xochitl_data,
-    update: mxcfb_update_data,
-    wait_update: wait_sem_data,
+    pub xochitl_update: xochitl_data,
+    pub update: mxcfb_update_data,
+    pub wait_update: wait_sem_data,
 }
 
 pub struct SwtfbIpcQueue {
-    msqid: i32,
-    do_wait_ioctl: bool,
+    pub msqid: i32,
+    pub do_wait_ioctl: bool,
 }
 
 impl SwtfbIpcQueue {
