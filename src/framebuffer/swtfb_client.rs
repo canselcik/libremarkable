@@ -4,10 +4,17 @@
 //! The client is developed according to the spec here:
 //! https://github.com/ddvk/remarkable2-framebuffer/issues/11
 
-const SWTFB_MESSAGE_QUEUE_ID: i32 = 0x2257c;
-
 use super::mxcfb::mxcfb_update_data;
-use std::ffi::CString;
+use crate::framebuffer::screeninfo::{FixScreeninfo, VarScreeninfo};
+use memmap2::{MmapOptions, MmapRaw};
+use std::ffi::{c_void, CString};
+use std::fs::{File, OpenOptions};
+use std::io::Error as IoError;
+use std::os::unix::prelude::AsRawFd;
+use std::time::Instant;
+use std::{env, mem, ptr};
+
+const SWTFB_MESSAGE_QUEUE_ID: i32 = 0x2257c;
 
 pub const WIDTH: i32 = 1404;
 pub const HEIGHT: i32 = 1872;
@@ -67,12 +74,12 @@ pub union swtfb_update_data {
     pub wait_update: wait_sem_data,
 }
 
-pub struct SwtfbIpcQueue {
-    pub msqid: i32,
-    pub do_wait_ioctl: bool,
+pub struct SwtfbClient {
+    msqid: i32,
+    do_wait_ioctl: bool,
 }
 
-impl SwtfbIpcQueue {
+impl SwtfbClient {
     pub fn new() -> Self {
         let msqid = unsafe {
             libc::msgget(
@@ -85,26 +92,36 @@ impl SwtfbIpcQueue {
             panic!("Got an error when initializing/creating ipc queue!");
         }
 
-        // Not sure if actually needed
-        std::env::set_var("RM2FB_SHIM", "0.1");
-
         // TODO: Nested not yet handled!
-        if std::env::var("RM2FB_ACTIVE").is_ok() {
-            std::env::set_var("RM2FB_NESTED", "1");
+        if env::var("RM2FB_ACTIVE").is_ok() {
+            env::set_var("RM2FB_NESTED", "1");
         } else {
-            std::env::set_var("RM2FB_ACTIVE", "1");
+            env::set_var("RM2FB_ACTIVE", "1");
         }
 
         Self {
             msqid,
-            do_wait_ioctl: std::env::var("RM2FB_NO_WAIT_IOCTL").is_err(),
+            do_wait_ioctl: env::var("RM2FB_NO_WAIT_IOCTL").is_err(),
         }
+    }
+
+    pub fn open_buffer(&self) -> Result<(File, MmapRaw), IoError> {
+        let device = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open("/dev/shm/swtfb.01")?;
+        let ret = unsafe { libc::ftruncate(device.as_raw_fd(), BUF_SIZE as libc::off_t) };
+        if ret < 0 {
+            return Err(IoError::last_os_error());
+        }
+        let mem_map = MmapOptions::new().len(BUF_SIZE as usize).map_raw(&device)?;
+        Ok((device, mem_map))
     }
 
     pub fn send(&self, update: &swtfb_update) -> bool {
         unsafe {
-            let ptr = std::ptr::addr_of!(*update) as *const std::ffi::c_void;
-            libc::msgsnd(self.msqid, ptr, std::mem::size_of::<swtfb_update>(), 0) == 0
+            let ptr = ptr::addr_of!(*update) as *const c_void;
+            libc::msgsnd(self.msqid, ptr, mem::size_of::<swtfb_update>(), 0) == 0
         }
     }
 
@@ -133,6 +150,7 @@ impl SwtfbIpcQueue {
         // UNTESTED!
         // https://github.com/ddvk/remarkable2-framebuffer/blob/1e288aa9/src/client/main.cpp#L149
 
+        let start = Instant::now();
         let sem_name_str = format!("/rm2fb.wait.{}", unsafe { libc::getpid() });
         let mut sem_name = [0u8; 512];
         for (i, byte) in sem_name_str.as_bytes().into_iter().enumerate() {
@@ -159,6 +177,8 @@ impl SwtfbIpcQueue {
             libc::sem_timedwait(sem, &timeout);
             libc::sem_unlink(sem_name_c.as_ptr() as *const u8);
         }
+
+        eprintln!("Waited {:?} for update to complete", start.elapsed());
     }
 
     pub fn send_wait_update(&self, wait_update: &wait_sem_data) -> bool {
@@ -169,11 +189,41 @@ impl SwtfbIpcQueue {
             },
         })
     }
+
+    pub fn get_fix_screeninfo(&self) -> FixScreeninfo {
+        // https://github.com/ddvk/remarkable2-framebuffer/blob/1e288aa9/src/client/main.cpp#L217
+        let mut screeninfo: FixScreeninfo = unsafe { std::mem::zeroed() };
+        //screeninfo.smem_start = mem_map.as_ptr() as u32; // Not used anyway. TODO: Consider adding properly
+        screeninfo.smem_len = super::swtfb_client::BUF_SIZE as u32;
+        screeninfo.line_length =
+            super::swtfb_client::WIDTH as u32 * std::mem::size_of::<u16>() as u32;
+        return screeninfo;
+    }
+
+    pub fn get_var_screeninfo(&self) -> VarScreeninfo {
+        // https://github.com/ddvk/remarkable2-framebuffer/blob/1e288aa9/src/client/main.cpp#L194
+        let mut screeninfo: VarScreeninfo = unsafe { std::mem::zeroed() };
+        screeninfo.xres = super::swtfb_client::WIDTH as u32;
+        screeninfo.yres = super::swtfb_client::HEIGHT as u32;
+        screeninfo.grayscale = 0;
+        screeninfo.bits_per_pixel = 8 * std::mem::size_of::<u16>() as u32;
+        screeninfo.xres_virtual = super::swtfb_client::WIDTH as u32;
+        screeninfo.yres_virtual = super::swtfb_client::HEIGHT as u32;
+
+        //set to RGB565
+        screeninfo.red.offset = 11;
+        screeninfo.red.length = 5;
+        screeninfo.green.offset = 5;
+        screeninfo.green.length = 6;
+        screeninfo.blue.offset = 0;
+        screeninfo.blue.length = 5;
+        return screeninfo;
+    }
 }
 
-impl Drop for SwtfbIpcQueue {
+impl Drop for SwtfbClient {
     fn drop(&mut self) {
-        if unsafe { libc::msgctl(self.msqid, libc::IPC_RMID, std::ptr::null_mut()) } != 0 {
+        if unsafe { libc::msgctl(self.msqid, libc::IPC_RMID, ptr::null_mut()) } != 0 {
             panic!("Got an error when closing ipc queue!")
         }
     }

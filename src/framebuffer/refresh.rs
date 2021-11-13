@@ -42,34 +42,22 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
             ..Default::default()
         };
 
-        if let Some(ref queue) = self.swtfb_ipc_queue {
-            // TODO: Error checking
-            queue.send_mxcfb_update(&whole);
+        let update_succeeded = if let Some(ref swtfb_client) = self.swtfb_client {
+            swtfb_client.send_mxcfb_update(&whole)
         } else {
             let pt: *const mxcfb_update_data = &whole;
-            unsafe {
-                libc::ioctl(self.device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt);
-            }
+            (unsafe { libc::ioctl(self.device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt) }) > 0
+        };
+
+        if !update_succeeded {
+            warn!("Sending full_refresh update failed!")
         }
 
-        // TOOD: Check whether wait_complete now actually supported on rm2fb
-        if wait_completion && self.swtfb_ipc_queue.is_none() {
-            let mut markerdata = mxcfb_update_marker_data {
-                update_marker: whole.update_marker,
-                collision_test: 0,
-            };
-            unsafe {
-                if libc::ioctl(
-                    self.device.as_raw_fd(),
-                    common::MXCFB_WAIT_FOR_UPDATE_COMPLETE,
-                    &mut markerdata,
-                ) < 0
-                {
-                    warn!("WAIT_FOR_UPDATE_COMPLETE failed after a full_refresh(..)");
-                }
-            }
+        if wait_completion {
+            self.wait_refresh_complete(whole.update_marker)
+        } else {
+            whole.update_marker
         }
-        whole.update_marker
     }
 
     fn partial_refresh(
@@ -132,58 +120,45 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
             ..Default::default()
         };
 
-        if let Some(ref queue) = self.swtfb_ipc_queue {
-            // TODO: Error checking
-            queue.send_mxcfb_update(&whole);
+        let update_succeeded = if let Some(ref swtfb_client) = self.swtfb_client {
+            swtfb_client.send_mxcfb_update(&whole)
         } else {
             let pt: *const mxcfb_update_data = &whole;
-            unsafe {
-                libc::ioctl(self.device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt);
-            }
+            (unsafe { libc::ioctl(self.device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt) }) > 0
+        };
+
+        if !update_succeeded {
+            warn!("Sending full_refresh update failed!")
         }
 
         match mode {
             PartialRefreshMode::Wait | PartialRefreshMode::DryRun => {
-                let mut markerdata = mxcfb_update_marker_data {
-                    update_marker: whole.update_marker,
-                    collision_test: 0,
-                };
-                // TOOD: Check whether wait_complete now actually supported on rm2fb
-                if self.swtfb_ipc_queue.is_none() {
-                    unsafe {
-                        if libc::ioctl(
-                            self.device.as_raw_fd(),
-                            common::MXCFB_WAIT_FOR_UPDATE_COMPLETE,
-                            &mut markerdata,
-                        ) < 0
-                        {
-                            warn!("WAIT_FOR_UPDATE_COMPLETE failed after a partial_refresh(..)");
-                        }
-                    }
-                }
-                markerdata.collision_test
+                self.wait_refresh_complete(whole.update_marker)
             }
             PartialRefreshMode::Async => whole.update_marker,
         }
     }
 
     fn wait_refresh_complete(&self, marker: u32) -> u32 {
+        if let Some(ref swtfb_client) = self.swtfb_client {
+            swtfb_client.wait_for_update_complete();
+            // Assume success
+            return 0;
+        }
+
         let mut markerdata = mxcfb_update_marker_data {
             update_marker: marker,
             collision_test: 0,
         };
-        // TOOD: Check whether wait_complete now actually supported on rm2fb
-        if self.swtfb_ipc_queue.is_none() {
-            unsafe {
-                if libc::ioctl(
-                    self.device.as_raw_fd(),
-                    common::MXCFB_WAIT_FOR_UPDATE_COMPLETE,
-                    &mut markerdata,
-                ) < 0
-                {
-                    warn!("WAIT_FOR_UPDATE_COMPLETE failed");
-                }
-            };
+        unsafe {
+            if libc::ioctl(
+                self.device.as_raw_fd(),
+                common::MXCFB_WAIT_FOR_UPDATE_COMPLETE,
+                &mut markerdata,
+            ) < 0
+            {
+                warn!("WAIT_FOR_UPDATE_COMPLETE failed after a full_refresh(..)");
+            }
         }
         markerdata.collision_test
     }
