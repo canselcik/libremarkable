@@ -19,11 +19,7 @@ const SWTFB_MESSAGE_QUEUE_ID: i32 = 0x2257c;
 pub const WIDTH: i32 = 1404;
 pub const HEIGHT: i32 = 1872;
 
-#[allow(non_upper_case_globals)]
-pub const maxWidth: i32 = 1404;
-#[allow(non_upper_case_globals)]
-pub const maxHeight: i32 = 1872;
-pub const BUF_SIZE: i32 = maxWidth * maxHeight * std::mem::size_of::<u16>() as i32; // hardcoded size of display mem for rM2
+pub const BUF_SIZE: i32 = WIDTH * HEIGHT * std::mem::size_of::<u16>() as i32; // hardcoded size of display mem for rM2
 const SEM_WAIT_TIMEOUT: i32 = 200000000; /* 200 * 1000 * 1000, e.g. 200ms */
 
 /// long on 32 bit is 4 bytes as well!!
