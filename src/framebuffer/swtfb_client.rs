@@ -6,6 +6,7 @@
 
 use super::mxcfb::mxcfb_update_data;
 use crate::framebuffer::screeninfo::{FixScreeninfo, VarScreeninfo};
+use log::warn;
 use memmap2::{MmapOptions, MmapRaw};
 use std::ffi::{c_void, CString};
 use std::fs::{File, OpenOptions};
@@ -218,7 +219,7 @@ impl SwtfbClient {
 impl Drop for SwtfbClient {
     fn drop(&mut self) {
         if unsafe { libc::msgctl(self.msqid, libc::IPC_RMID, ptr::null_mut()) } != 0 {
-            panic!("Got an error when closing ipc queue!")
+            warn!("Got an error when attempting to close an ipc queue!")
         }
     }
 }
