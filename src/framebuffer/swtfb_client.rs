@@ -35,6 +35,7 @@ pub enum MSG_TYPE {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[repr(C)]
 #[allow(non_camel_case_types, dead_code)]
 pub struct xochitl_data {
     pub x1: i32,
@@ -47,6 +48,7 @@ pub struct xochitl_data {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[repr(C)]
 #[allow(non_camel_case_types, dead_code)]
 pub struct wait_sem_data {
     /// C string
@@ -55,6 +57,7 @@ pub struct wait_sem_data {
 
 /// MSG_TYPE has to match swtfb_update_data !!!
 #[derive(Clone, Copy)]
+#[repr(C)]
 #[allow(non_camel_case_types, dead_code)]
 pub struct swtfb_update {
     pub mtype: MSG_TYPE,
@@ -63,6 +66,7 @@ pub struct swtfb_update {
 }
 
 #[derive(Clone, Copy)]
+#[repr(C)]
 #[allow(non_camel_case_types, dead_code)]
 pub union swtfb_update_data {
     pub xochitl_update: xochitl_data,
