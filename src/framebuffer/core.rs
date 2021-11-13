@@ -34,26 +34,16 @@ unsafe impl<'a> Sync for Framebuffer<'a> {}
 
 impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
     fn from_path(path_to_device: &str) -> Framebuffer<'_> {
-        let (swtfb_ipc_queue, device) = if path_to_device == "/dev/shm/swtfb.01" {
-            (
-                Some(SwtfbIpcQueue::new()),
-                OpenOptions::new()
-                    .read(true)
-                    .write(true)
-                    .truncate(true)
-                    .create(true)
-                    .open(path_to_device)
-                    .unwrap(),
-            )
+        let device = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(path_to_device)
+            .unwrap();
+
+        let swtfb_ipc_queue = if path_to_device == "/dev/shm/swtfb.01" {
+            Some(SwtfbIpcQueue::new())
         } else {
-            (
-                None,
-                OpenOptions::new()
-                    .read(true)
-                    .write(true)
-                    .open(path_to_device)
-                    .unwrap(),
-            )
+            None
         };
         println!("Queue: {:?}", swtfb_ipc_queue.is_some());
 
@@ -155,12 +145,12 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
 
         if swtfb_ipc_queue.is_some() {
             // https://github.com/ddvk/remarkable2-framebuffer/blob/e594fc44/src/shared/ipc.cpp#L96
-            /*unsafe {
+            unsafe {
                 libc::ftruncate(
                     device.as_raw_fd(),
                     super::swtfb_ipc::BUF_SIZE as libc::off_t,
                 );
-            }*/
+            }
             /*let mem_map = MmapOptions::new()
             .len(super::swtfb_ipc::BUF_SIZE as usize)
             .map_raw(device)
