@@ -91,7 +91,8 @@ impl SwtfbClient {
             panic!("Got an error when initializing/creating ipc queue!");
         }
 
-        // TODO: Nested not yet handled!
+        // Does nested need special handling?
+        // This may not be needed at all.
         if env::var("RM2FB_ACTIVE").is_ok() {
             env::set_var("RM2FB_NESTED", "1");
         } else {
