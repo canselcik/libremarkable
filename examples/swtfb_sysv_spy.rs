@@ -40,7 +40,7 @@ hook! {
                         format!("{:?}", msg.data.wait_update)
                     }
                 };
-                eprintln!("Spy: msgsnd: Message: swt_update.data: {} }}", data_str_formatted);
+                eprintln!("Spy: msgsnd: Message: swt_update.data: {}", data_str_formatted);
         }else {
             eprintln!("Spy: msgsnd: Error: Message is not sizeof(swtfb_update) (expected {}, got {})", std::mem::size_of::<swtfb_client::swtfb_update>(), msgsz)
         }
