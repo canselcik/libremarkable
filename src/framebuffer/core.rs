@@ -46,14 +46,12 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
                 .expect("Failed to open swtfb shared buffer");
             (device, Some(mem_map))
         } else {
-            (
-                OpenOptions::new()
-                    .read(true)
-                    .write(true)
-                    .open(path_to_device)
-                    .unwrap(),
-                None,
-            )
+            let device = OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(path_to_device)
+                .unwrap();
+            (device, None)
         };
 
         let mut var_screen_info = Framebuffer::get_var_screeninfo(&device, swtfb_client.as_ref());
