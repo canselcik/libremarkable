@@ -166,7 +166,7 @@ impl SwtfbClient {
         unsafe {
             libc::clock_gettime(libc::CLOCK_REALTIME, &mut timeout);
         }
-        timeout.tv_nsec += SEM_WAIT_TIMEOUT;
+        timeout.tv_nsec += SEM_WAIT_TIMEOUT_NS;
 
         if timeout.tv_nsec >= 1_000_000_000 {
             timeout.tv_nsec -= 1_000_000_000;
