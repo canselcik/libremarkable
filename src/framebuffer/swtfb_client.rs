@@ -20,7 +20,7 @@ pub const WIDTH: i32 = 1404;
 pub const HEIGHT: i32 = 1872;
 
 pub const BUF_SIZE: i32 = WIDTH * HEIGHT * std::mem::size_of::<u16>() as i32; // hardcoded size of display mem for rM2
-const SEM_WAIT_TIMEOUT: i32 = 200000000; /* 200 * 1000 * 1000, e.g. 200ms */
+const SEM_WAIT_TIMEOUT_NS: i32 = 200_000_000;
 
 /// long on 32 bit is 4 bytes as well!!
 #[derive(Debug, Clone, Copy)]
