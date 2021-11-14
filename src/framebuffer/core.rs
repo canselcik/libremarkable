@@ -34,7 +34,7 @@ unsafe impl<'a> Sync for Framebuffer<'a> {}
 
 impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
     fn from_path(path_to_device: &str) -> Framebuffer<'_> {
-        let swtfb_client = if path_to_device == "/dev/shm/swtfb.01" {
+        let swtfb_client = if path_to_device == crate::device::Model::Gen2.framebuffer_path() {
             Some(SwtfbClient::default())
         } else {
             None

@@ -31,6 +31,22 @@ impl Model {
             Err(ErrorKind::UnknownVersion(machine_name.to_owned()))
         }
     }
+
+    /// Path for gen 1 can be used as long as the rm2fb shim is active:
+    /// LD_PRELOAD="/opt/lib/librm2fb_client.so.1" <YOUR_BINARY> or
+    /// rm2fb-client YOUR_BINARY
+    /// https://github.com/ddvk/remarkable2-framebuffer/
+    /// If `/dev/shm/swtfb.01` is used for the framebuffer, the
+    /// internal swtfb_client will be used. This enables the use
+    /// of musl builds. But the rm2fb server must still be installed.
+    ///
+    /// TODO: Use proper path (needs breaking change for FramebufferBase::from_path() !)
+    pub fn framebuffer_path(&self) -> &'static str {
+        match self {
+            Model::Gen1 => "/dev/fb0",
+            Model::Gen2 => "/dev/shm/swtfb.01",
+        }
+    }
 }
 
 pub static CURRENT_DEVICE: Lazy<Device> = Lazy::new(Device::new);
@@ -119,19 +135,7 @@ impl Device {
         }
     }
 
-    /// Path for gen 1 can be used as long as the rm2fb shim is active:
-    /// LD_PRELOAD="/opt/lib/librm2fb_client.so.1" <YOUR_BINARY> or
-    /// rm2fb-client YOUR_BINARY
-    /// https://github.com/ddvk/remarkable2-framebuffer/
-    /// If `/dev/shm/swtfb.01` is used for the framebuffer, the
-    /// internal swtfb_client will be used. This enables the use
-    /// of musl builds. But the rm2fb server must still be installed.
-    ///
-    /// TODO: Use proper path (needs breaking change for FramebufferBase::from_path() !)
     pub fn get_framebuffer_path(&self) -> &'static str {
-        match self.model {
-            Model::Gen1 => "/dev/fb0",
-            Model::Gen2 => "/dev/shm/swtfb.01",
-        }
+        self.model.framebuffer_path()
     }
 }
