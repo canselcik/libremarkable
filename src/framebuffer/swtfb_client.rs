@@ -132,7 +132,9 @@ impl SwtfbClient {
         })
     }
 
-    pub fn send_xochitl_update(&self, data: &xochitl_data) -> bool {
+    /// This function seems to be meant for internal use only.
+    #[allow(dead_code)]
+    fn send_xochitl_update(&self, data: &xochitl_data) -> bool {
         self.send(&swtfb_update {
             mtype: MSG_TYPE::XO_t,
             data: swtfb_update_data {
