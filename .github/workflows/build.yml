@@ -39,7 +39,7 @@ jobs:
         command: test
         use-cross: true
         args: --target ${{ env.TARGET }}
- test-local:
+  test-local:
     name: Test Suite
     runs-on: ubuntu-latest
     steps:
