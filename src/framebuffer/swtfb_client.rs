@@ -16,8 +16,8 @@ use std::{env, mem, ptr};
 
 const SWTFB_MESSAGE_QUEUE_ID: i32 = 0x2257c;
 
-pub const WIDTH: i32 = crate::framebuffer::common::DISPLAYWIDTH;
-pub const HEIGHT: i32 = crate::framebuffer::common::DISPLAYHEIGHT;
+pub const WIDTH: i32 = crate::framebuffer::common::DISPLAYWIDTH as i32;
+pub const HEIGHT: i32 = crate::framebuffer::common::DISPLAYHEIGHT as i32;
 
 pub const BUF_SIZE: i32 = WIDTH * HEIGHT * std::mem::size_of::<u16>() as i32; // hardcoded size of display mem for rM2
 const SEM_WAIT_TIMEOUT_NS: i32 = 200_000_000;
