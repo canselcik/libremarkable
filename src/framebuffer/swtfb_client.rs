@@ -21,7 +21,7 @@ pub const WIDTH: i32 = crate::framebuffer::common::DISPLAYWIDTH as i32;
 pub const HEIGHT: i32 = crate::framebuffer::common::DISPLAYHEIGHT as i32;
 
 pub const BUF_SIZE: i32 = WIDTH * HEIGHT * std::mem::size_of::<u16>() as i32; // hardcoded size of display mem for rM2
-const SEM_WAIT_TIMEOUT_NS: i32 = 200_000_000;
+const SEM_WAIT_TIMEOUT_NS: libc::c_long = 200_000_000;
 
 /// long on 32 bit is 4 bytes as well!!
 #[derive(Debug, Clone, Copy)]
@@ -163,7 +163,7 @@ impl SwtfbClient {
         }
         self.send_wait_update(&wait_sem_data { sem_name });
         let sem_name_c = CString::new(sem_name_str.as_str()).unwrap();
-        let sem = unsafe { libc::sem_open(sem_name_c.as_ptr() as *const u8, libc::O_CREAT) };
+        let sem = unsafe { libc::sem_open(sem_name_c.as_ptr() as *const libc::c_char, libc::O_CREAT) };
 
         let mut timeout = libc::timespec {
             tv_nsec: 0,
@@ -180,7 +180,7 @@ impl SwtfbClient {
         }
         unsafe {
             libc::sem_timedwait(sem, &timeout);
-            libc::sem_unlink(sem_name_c.as_ptr() as *const u8);
+            libc::sem_unlink(sem_name_c.as_ptr() as *const libc::c_char);
         }
     }
 

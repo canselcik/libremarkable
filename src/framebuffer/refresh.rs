@@ -46,7 +46,7 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
             swtfb_client.send_mxcfb_update(&whole)
         } else {
             let pt: *const mxcfb_update_data = &whole;
-            (unsafe { libc::ioctl(self.device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt) }) > 0
+            (unsafe { libc::ioctl(self.device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt) }) >= 0
         };
 
         if !update_succeeded {
@@ -124,11 +124,11 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
             swtfb_client.send_mxcfb_update(&whole)
         } else {
             let pt: *const mxcfb_update_data = &whole;
-            (unsafe { libc::ioctl(self.device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt) }) > 0
+            (unsafe { libc::ioctl(self.device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt) }) >= 0
         };
 
         if !update_succeeded {
-            warn!("Sending full_refresh update failed!")
+            warn!("Sending partial_refresh update failed!")
         }
 
         match mode {
@@ -139,7 +139,7 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
         }
     }
 
-    fn wait_refresh_complete(&self, marker: u32) -> u32 {
+    fn wait_refresh_complete(&self, update_marker: u32) -> u32 {
         if let Some(ref swtfb_client) = self.swtfb_client {
             swtfb_client.wait_for_update_complete();
             // Assume success
@@ -147,18 +147,18 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
         }
 
         let mut markerdata = mxcfb_update_marker_data {
-            update_marker: marker,
+            update_marker,
             collision_test: 0,
         };
-        unsafe {
-            if libc::ioctl(
+        if (unsafe {
+            libc::ioctl(
                 self.device.as_raw_fd(),
                 common::MXCFB_WAIT_FOR_UPDATE_COMPLETE,
                 &mut markerdata,
-            ) < 0
-            {
-                warn!("WAIT_FOR_UPDATE_COMPLETE failed after a full_refresh(..)");
-            }
+            )
+        }) < 0
+        {
+            warn!("WAIT_FOR_UPDATE_COMPLETE failed");
         }
         markerdata.collision_test
     }
