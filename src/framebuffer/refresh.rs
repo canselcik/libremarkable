@@ -46,10 +46,7 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
             swtfb_client.send_mxcfb_update(&whole)
         } else {
             let pt: *const mxcfb_update_data = &whole;
-            let _ =
-                (unsafe { libc::ioctl(self.device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt) })
-                    < 0;
-            true // it fails too often to log
+            (unsafe { libc::ioctl(self.device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt) }) >= 0
         };
 
         if !update_succeeded {
@@ -127,10 +124,7 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
             swtfb_client.send_mxcfb_update(&whole)
         } else {
             let pt: *const mxcfb_update_data = &whole;
-            let _ =
-                (unsafe { libc::ioctl(self.device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt) })
-                    < 0;
-            true // it fails too often to log
+            (unsafe { libc::ioctl(self.device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt) }) >= 0
         };
 
         if !update_succeeded {
