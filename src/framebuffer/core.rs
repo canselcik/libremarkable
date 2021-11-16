@@ -101,7 +101,7 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
 
     fn set_epdc_access(&mut self, state: bool) {
         if self.swtfb_client.is_some() {
-            // Not catched in rm2fb => noop
+            // Not caught/handled in rm2fb => noop
             return;
         }
 
@@ -136,7 +136,7 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
 
     fn set_update_scheme(&mut self, scheme: u32) {
         if self.swtfb_client.is_some() {
-            // Not catched in rm2fb => noop
+            // Not caught/handled in rm2fb => noop
             return;
         }
 
