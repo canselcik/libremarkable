@@ -5,6 +5,7 @@
 //! https://github.com/ddvk/remarkable2-framebuffer/issues/11
 
 use super::mxcfb::mxcfb_update_data;
+use crate::device;
 use crate::framebuffer::screeninfo::{FixScreeninfo, VarScreeninfo};
 use log::warn;
 use memmap2::{MmapOptions, MmapRaw};
@@ -81,6 +82,11 @@ pub struct SwtfbClient {
 
 impl Default for SwtfbClient {
     fn default() -> Self {
+        assert!(
+            device::CURRENT_DEVICE.model == device::Model::Gen2,
+            "SWTFB is not supported on devices other than rM 2"
+        );
+
         let msqid = unsafe {
             libc::msgget(
                 SWTFB_MESSAGE_QUEUE_ID,
