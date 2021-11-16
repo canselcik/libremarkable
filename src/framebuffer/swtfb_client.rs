@@ -109,7 +109,7 @@ impl SwtfbClient {
         let device = OpenOptions::new()
             .read(true)
             .write(true)
-            .open("/dev/shm/swtfb.01")?;
+            .open(crate::device::Model::Gen2.framebuffer_path())?;
         let ret = unsafe { libc::ftruncate(device.as_raw_fd(), BUF_SIZE as libc::off_t) };
         if ret < 0 {
             return Err(IoError::last_os_error());
