@@ -21,7 +21,7 @@ jobs:
         args: --target ${{ env.TARGET }}
 
   test:
-    name: Test Suite on ${{ env.TARGET }}
+    name: Test Suite on gnueabihf
     runs-on: ubuntu-latest
     env:
       TARGET: armv7-unknown-linux-gnueabihf
