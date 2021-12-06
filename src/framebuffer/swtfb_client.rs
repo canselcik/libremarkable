@@ -167,8 +167,8 @@ impl SwtfbClient {
         }
         timeout.tv_nsec += SEM_WAIT_TIMEOUT_NS;
         // Move overflow ns to secs
-        timeout.tv_sec += timeout.tv_nsec / 1e9;
-        timeout.tv_nsec %= 1e9;
+        timeout.tv_sec += timeout.tv_nsec / 1_000_000_000;
+        timeout.tv_nsec %= 1_000_000_000;
 
         unsafe {
             libc::sem_timedwait(sem, &timeout);
