@@ -95,14 +95,6 @@ impl Default for SwtfbClient {
         };
         assert!(msqid >= 0);
 
-        // Does nested need special handling?
-        // This may not be needed at all.
-        if env::var("RM2FB_ACTIVE").is_ok() {
-            env::set_var("RM2FB_NESTED", "1");
-        } else {
-            env::set_var("RM2FB_ACTIVE", "1");
-        }
-
         Self {
             msqid,
             do_wait_ioctl: env::var("RM2FB_NO_WAIT_IOCTL").is_err(),
