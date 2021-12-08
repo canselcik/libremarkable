@@ -33,7 +33,7 @@ impl ::std::default::Default for mxcfb_update_marker_data {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct mxcfb_alt_buffer_data {
     pub phys_addr: u32,
@@ -48,7 +48,7 @@ impl ::std::default::Default for mxcfb_alt_buffer_data {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct mxcfb_update_data {
     pub update_region: mxcfb_rect,
