@@ -1,6 +1,6 @@
 use super::ecodes;
 use crate::input::{InputDeviceState, InputEvent};
-use evdev::raw::input_event;
+use evdev::InputEvent as EvInputEvent;
 use log::error;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -38,42 +38,42 @@ impl ::std::default::Default for GPIOState {
     }
 }
 
-pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputEvent> {
+pub fn decode(ev: &EvInputEvent, outer_state: &InputDeviceState) -> Option<InputEvent> {
     let state = match outer_state {
         InputDeviceState::GPIOState(ref state_arc) => state_arc,
         _ => unreachable!(),
     };
-    match ev._type {
+    match ev.event_type().0 {
         ecodes::EV_SYN => {
             /* safely ignored. sync event*/
             None
         }
         ecodes::EV_KEY => {
-            let p = match ev.code {
+            let p = match ev.code() {
                 ecodes::KEY_HOME => {
-                    state.states[0].store(ev.value != 0, Ordering::Relaxed);
+                    state.states[0].store(ev.value() != 0, Ordering::Relaxed);
                     PhysicalButton::MIDDLE
                 }
                 ecodes::KEY_LEFT => {
-                    state.states[1].store(ev.value != 0, Ordering::Relaxed);
+                    state.states[1].store(ev.value() != 0, Ordering::Relaxed);
                     PhysicalButton::LEFT
                 }
                 ecodes::KEY_RIGHT => {
-                    state.states[2].store(ev.value != 0, Ordering::Relaxed);
+                    state.states[2].store(ev.value() != 0, Ordering::Relaxed);
                     PhysicalButton::RIGHT
                 }
                 ecodes::KEY_POWER => {
-                    state.states[3].store(ev.value != 0, Ordering::Relaxed);
+                    state.states[3].store(ev.value() != 0, Ordering::Relaxed);
                     PhysicalButton::POWER
                 }
                 ecodes::KEY_WAKEUP => {
-                    state.states[4].store(ev.value != 0, Ordering::Relaxed);
+                    state.states[4].store(ev.value() != 0, Ordering::Relaxed);
                     PhysicalButton::WAKEUP
                 }
                 _ => return None,
             };
 
-            let event = if ev.value != 0 {
+            let event = if ev.value() != 0 {
                 GPIOEvent::Press { button: p }
             } else {
                 GPIOEvent::Unpress { button: p }
@@ -83,8 +83,8 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Option<InputE
         _ => {
             // Shouldn't happen
             error!(
-                "Unknown event on PhysicalButtonHandler (type: {0})",
-                ev._type
+                "Unknown event on PhysicalButtonHandler (type: {0:?})",
+                ev.event_type()
             );
             None
         }

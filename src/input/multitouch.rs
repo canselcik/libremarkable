@@ -5,8 +5,9 @@ use crate::framebuffer::common::{DISPLAYHEIGHT, DISPLAYWIDTH, MTHEIGHT, MTWIDTH}
 use crate::input::rotate::CoordinatePart;
 use crate::input::scan::SCANNED;
 use crate::input::{InputDeviceState, InputEvent};
+use once_cell::sync::Lazy;
 
-use evdev::raw::input_event;
+use evdev::InputEvent as EvInputEvent;
 use fxhash::FxHashMap;
 use log::{debug, warn};
 use std::sync::{
@@ -14,10 +15,8 @@ use std::sync::{
     Mutex,
 };
 
-lazy_static! {
-    static ref MT_HSCALAR: f32 = (DISPLAYWIDTH as f32) / (*MTWIDTH as f32);
-    static ref MT_VSCALAR: f32 = (DISPLAYHEIGHT as f32) / (*MTHEIGHT as f32);
-}
+static MT_HSCALAR: Lazy<f32> = Lazy::new(|| (DISPLAYWIDTH as f32) / (*MTWIDTH as f32));
+static MT_VSCALAR: Lazy<f32> = Lazy::new(|| (DISPLAYHEIGHT as f32) / (*MTHEIGHT as f32));
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Finger {
@@ -77,16 +76,16 @@ impl MultitouchEvent {
     }
 }
 
-pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Vec<InputEvent> {
+pub fn decode(ev: &EvInputEvent, outer_state: &InputDeviceState) -> Vec<InputEvent> {
     let state = match outer_state {
         InputDeviceState::MultitouchState(ref state_arc) => state_arc,
         _ => unreachable!(),
     };
     let mut fingers = state.fingers.lock().unwrap();
     let current_slot = state.current_slot.load(Ordering::Relaxed);
-    match ev._type {
+    match ev.event_type().0 {
         ecodes::EV_SYN => {
-            match ev.code {
+            match ev.code() {
                 ecodes::SYN_REPORT => {
                     let mut events: Vec<InputEvent> = vec![];
                     for (_slot, mut finger) in fingers.iter_mut() {
@@ -117,8 +116,10 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Vec<InputEven
                 }
                 _ => {
                     debug!(
-                        "Unsupported event code for syn [type: {0} code: {1} value: {2}]",
-                        ev._type, ev.code, ev.value
+                        "Unsupported event code for syn [type: {0:?} code: {1} value: {2}]",
+                        ev.event_type(),
+                        ev.code(),
+                        ev.value()
                     );
                     vec![]
                 }
@@ -126,9 +127,9 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Vec<InputEven
         }
         ecodes::EV_ABS => {
             // Absolute
-            match ev.code {
+            match ev.code() {
                 ecodes::ABS_MT_SLOT => {
-                    state.current_slot.store(ev.value, Ordering::Relaxed);
+                    state.current_slot.store(ev.value(), Ordering::Relaxed);
                     // Since only one event is processed, it isn't
                     // necessary to change the local current_slot variable.
                     vec![]
@@ -136,7 +137,7 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Vec<InputEven
                 ecodes::ABS_MT_POSITION_X => {
                     let placement = CURRENT_DEVICE.get_multitouch_placement();
                     let mut rotated_part = placement.rotation.rotate_part(
-                        CoordinatePart::X(ev.value as u16),
+                        CoordinatePart::X(ev.value() as u16),
                         &SCANNED.multitouch_orig_size,
                     );
                     if placement.invert_x {
@@ -164,7 +165,7 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Vec<InputEven
                 ecodes::ABS_MT_POSITION_Y => {
                     let placement = CURRENT_DEVICE.get_multitouch_placement();
                     let mut rotated_part = placement.rotation.rotate_part(
-                        CoordinatePart::Y(ev.value as u16),
+                        CoordinatePart::Y(ev.value() as u16),
                         &SCANNED.multitouch_orig_size,
                     );
                     if placement.invert_x {
@@ -190,19 +191,19 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Vec<InputEven
                     vec![]
                 }
                 ecodes::ABS_MT_PRESSURE => {
-                    if ev.value > 0 {
+                    if ev.value() > 0 {
                         // Pretty much always true, but who knows
                         fingers.entry(current_slot).or_default().pressed = true;
                     }
                     vec![]
                 }
-                ecodes::ABS_MT_TRACKING_ID => match ev.value {
+                ecodes::ABS_MT_TRACKING_ID => match ev.value() {
                     -1 => {
                         fingers.entry(current_slot).or_default().pressed = false;
                         vec![]
                     }
                     _ => {
-                        fingers.entry(current_slot).or_default().tracking_id = ev.value;
+                        fingers.entry(current_slot).or_default().tracking_id = ev.value();
                         vec![]
                     }
                 },
@@ -215,8 +216,10 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Vec<InputEven
                 // ABS_MT_WIDTH_MINOR, ABS_MT_TOOL_TYPE or ABS_MT_BLOB_ID
                 _ => {
                     warn!(
-                        "Unknown event code for multitouch [type: {0} code: {1} value: {2}]",
-                        ev._type, ev.code, ev.value
+                        "Unknown event code for multitouch [type: {0:?} code: {1} value: {2}]",
+                        ev.event_type(),
+                        ev.code(),
+                        ev.value()
                     );
                     vec![]
                 }
@@ -224,8 +227,10 @@ pub fn decode(ev: &input_event, outer_state: &InputDeviceState) -> Vec<InputEven
         }
         _ => {
             warn!(
-                "Unknown event type for [type: {0} code: {1} value: {2}]",
-                ev._type, ev.code, ev.value
+                "Unknown event type for [type: {0:?} code: {1} value: {2}]",
+                ev.event_type(),
+                ev.code(),
+                ev.value()
             );
             vec![]
         }
