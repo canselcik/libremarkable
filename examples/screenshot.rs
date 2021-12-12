@@ -36,7 +36,7 @@ fn main() {
                 .expect("Invalid path provided as argument!");
             DynamicImage::ImageRgb8(image)
                 .write_to(&mut output_file, ImageOutputFormat::Png)
-                .expect("failed while writing to stdout");
+                .expect("failed while writing to output file");
         }
         None => {
             let mut stdout = std::io::stdout();
