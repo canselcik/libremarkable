@@ -300,20 +300,20 @@ pub enum mxcfb_ioctl {
     MXCFB_ENABLE_EPDC_ACCESS = 0x36,
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum auto_update_mode {
     AUTO_UPDATE_MODE_REGION_MODE = 0,
     AUTO_UPDATE_MODE_AUTOMATIC_MODE = 1,
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum update_scheme {
     UPDATE_SCHEME_SNAPSHOT = 0,
     UPDATE_SCHEME_QUEUE = 1,
     UPDATE_SCHEME_QUEUE_AND_MERGE = 2,
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum update_mode {
     /// Returns a marker, no locking, no waiting on the
     /// clean state on the update region
@@ -324,7 +324,7 @@ pub enum update_mode {
     UPDATE_MODE_FULL = 1,
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum dither_mode {
     EPDC_FLAG_USE_DITHERING_PASSTHROUGH = 0x0,
     EPDC_FLAG_USE_DITHERING_DRAWING = 0x1,
@@ -344,7 +344,7 @@ pub enum dither_mode {
     EPDC_FLAG_EXP8 = 0x7ed3_d2c0,
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum waveform_mode {
     /// (Recommended) Screen goes to white
     /// (flashes black/white once to clear ghosting when used with UPDATE_MODE_FULL)
@@ -395,7 +395,7 @@ pub enum waveform_mode {
     WAVEFORM_MODE_AUTO = 257,
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum display_temp {
     /// Seems to have the best draw latency. Perhaps the rule of thumb here is the lower the faster.
     /// `xochitl` seems to use this value.
