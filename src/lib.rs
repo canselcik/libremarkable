@@ -31,7 +31,7 @@ macro_rules! end_bench {
     };
 }
 
-#[macro_use]
+#[macro_use(io, ioc, iow, iowr)]
 extern crate ioctl_gen;
 
 pub use cgmath;
