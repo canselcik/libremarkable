@@ -87,8 +87,6 @@ make TARGET=armv7-unknown-linux-gnueabihf deploy-x-demo
 # then deploys the demo
 ```
 ##### Using [`musl`](https://musl.libc.org/)
-Make sure to build with `lto = true` otherwise `musl` symbols may be improperly resolved (call to `mmap` fails).
-
 1. Compile with `cross build --example demo --release --target=armv7-unknown-linux-musleabihf` (or `make x-demo`)
 1. Run the demo: `make deploy-x-demo`
 
