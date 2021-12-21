@@ -7,7 +7,7 @@ license = "MIT"
 description = "The only publicly available Framework for developing applications for the Remarkable Paper Tablet w/ Low Latency Partial Refresh Support"
 readme = "README.md"
 exclude = [ "reference-material/*", "legacy-c-impl/*", "private/*" ]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 log = "0.4.14"
@@ -24,17 +24,16 @@ hlua = "0.4.1"
 aabb-quadtree = "0.1.0"
 zstd = "0.9.0+zstd.1.5.0"
 stopwatch = "0.0.7"
-atomic = "0.5.0"
+atomic = "0.5.1"
 cgmath = "0.18.0"
 fxhash = "0.2.1"
-once_cell = "1.8.0"
+once_cell = "1.9.0"
 
 [features]
 enable-runtime-benchmarking = []
 
 [profile.release]
 debug = true
-lto = true
 
 [[example]]
 name = "spy"
