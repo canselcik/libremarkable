@@ -161,7 +161,7 @@ impl SwtfbClient {
         // This adds some arbitrary delay should this happen.
         // This is really rare, but could be observed when using the lib
         // with plato, (probably exessive calls to wait() there).
-        let mut sem_open_attempts = 0usize;
+        let mut sem_open_attempts: u8 = 0;
         let sem = loop {
             let sem = unsafe { libc::sem_open(sem_name_c.as_ptr(), libc::O_CREAT) };
             sem_open_attempts += 1;
