@@ -9,7 +9,7 @@ use crate::device;
 use crate::framebuffer::screeninfo::{FixScreeninfo, VarScreeninfo};
 use log::warn;
 use memmap2::{MmapOptions, MmapRaw};
-use std::ffi::{c_void, CString};
+use std::ffi::{c_void, CStr, CString};
 use std::fs::{File, OpenOptions};
 use std::io::Error as IoError;
 use std::os::unix::prelude::AsRawFd;
@@ -155,8 +155,34 @@ impl SwtfbClient {
         }
         self.send_wait_update(&wait_sem_data { sem_name });
         let sem_name_c = CString::new(sem_name_str.as_str()).unwrap();
-        let sem =
-            unsafe { libc::sem_open(sem_name_c.as_ptr() as *const libc::c_char, libc::O_CREAT) };
+        // Make up to 3 attempts at sem_open
+        // The rust implemenation can be a little bit too fast,
+        // causing a SEM_FAILED result with errno = 22 ("Invalid value").
+        // This adds some arbitrary delay should this happen.
+        // This is really rare, but could be observed when using the lib
+        // with plato, (probably exessive calls to wait() there).
+        let mut sem_open_attempts = 0usize;
+        let sem = loop {
+            let sem = unsafe { libc::sem_open(sem_name_c.as_ptr(), libc::O_CREAT) };
+            sem_open_attempts += 1;
+            if sem == libc::SEM_FAILED {
+                // Attempt up to 3 times before failing
+                if sem_open_attempts <= 3 {
+                    log::debug!("Failed to open a semaphore to wait for swtfb update (attempt {} of 3). Waiting 5ms...", sem_open_attempts);
+                    std::thread::sleep(std::time::Duration::from_millis(5));
+                    continue;
+                } else {
+                    /*let cstr = CString::new("Opening semaphore to wait for swtfb update failed").unwrap();
+                    unsafe { libc::perror(cstr.as_ptr()) };*/
+                    panic!(
+                        "Opening semaphore to wait for swtfb update failed: {:?}",
+                        unsafe { CStr::from_ptr(libc::strerror(*libc::__errno_location())) }
+                    );
+                }
+            } else {
+                break sem;
+            }
+        };
 
         let mut timeout = libc::timespec {
             tv_nsec: 0,
