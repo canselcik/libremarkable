@@ -13,6 +13,8 @@ use crate::framebuffer::common::{
 };
 use crate::framebuffer::screeninfo::{FixScreeninfo, VarScreeninfo};
 use crate::framebuffer::swtfb_client::SwtfbClient;
+use crate::framebuffer::FramebufferBase;
+use crate::device;
 
 /// Framebuffer struct containing the state (latest update marker etc.)
 /// along with the var/fix screeninfo structs.
@@ -32,13 +34,33 @@ pub struct Framebuffer<'a> {
 unsafe impl<'a> Send for Framebuffer<'a> {}
 unsafe impl<'a> Sync for Framebuffer<'a> {}
 
-impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
-    fn from_path(path_to_device: &str) -> Framebuffer<'_> {
+impl<'a> Framebuffer<'a> {
+
+    /// Create a new framebuffer instance, autodetecting the correct path.
+    pub fn new() -> Framebuffer<'a> {
+        Framebuffer::from_path(device::CURRENT_DEVICE.get_framebuffer_path())
+    }
+
+    pub fn classic(path: &str) -> Framebuffer<'a> {
+        Framebuffer::build(path, None)
+    }
+
+    pub fn rm2fb(path: &str) -> Framebuffer<'a> {
+        Framebuffer::build(path, Some(SwtfbClient::default()))
+    }
+
+
+    pub fn from_path(path_to_device: &str) -> Framebuffer<'a> {
         let swtfb_client = if path_to_device == crate::device::Model::Gen2.framebuffer_path() {
             Some(SwtfbClient::default())
         } else {
             None
         };
+
+        Framebuffer::build(path_to_device, swtfb_client)
+    }
+
+    fn build(path_to_device: &str, swtfb_client: Option<SwtfbClient>) -> Framebuffer<'a> {
 
         let (device, mem_map) = if let Some(ref swtfb_client) = swtfb_client {
             let (device, mem_map) = swtfb_client
@@ -98,7 +120,9 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
             swtfb_client,
         }
     }
+}
 
+impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
     fn set_epdc_access(&mut self, state: bool) {
         if self.swtfb_client.is_some() {
             // Not caught/handled in rm2fb => noop

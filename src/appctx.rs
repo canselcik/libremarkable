@@ -12,7 +12,6 @@ use crate::framebuffer::cgmath;
 use crate::framebuffer::common::*;
 use crate::framebuffer::core;
 use crate::framebuffer::refresh::PartialRefreshMode;
-use crate::framebuffer::FramebufferBase;
 use crate::framebuffer::FramebufferDraw;
 use crate::framebuffer::FramebufferRefresh;
 use crate::input::ev;
