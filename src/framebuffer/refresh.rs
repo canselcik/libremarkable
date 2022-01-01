@@ -6,8 +6,8 @@ use log::warn;
 use crate::framebuffer;
 use crate::framebuffer::common;
 use crate::framebuffer::core;
-use crate::framebuffer::mxcfb::*;
 use crate::framebuffer::core::FramebufferUpdate;
+use crate::framebuffer::mxcfb::*;
 
 pub enum PartialRefreshMode {
     DryRun,
@@ -48,9 +48,7 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
                 let pt: *const mxcfb_update_data = &whole;
                 (unsafe { libc::ioctl(device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt) }) >= 0
             }
-            FramebufferUpdate::Swtfb(swtfb_client) => {
-                swtfb_client.send_mxcfb_update(&whole)
-            }
+            FramebufferUpdate::Swtfb(swtfb_client) => swtfb_client.send_mxcfb_update(&whole),
         };
 
         if !update_succeeded {
@@ -129,9 +127,7 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
                 let pt: *const mxcfb_update_data = &whole;
                 (unsafe { libc::ioctl(device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt) }) >= 0
             }
-            FramebufferUpdate::Swtfb(swtfb_client) => {
-                swtfb_client.send_mxcfb_update(&whole)
-            }
+            FramebufferUpdate::Swtfb(swtfb_client) => swtfb_client.send_mxcfb_update(&whole),
         };
 
         if !update_succeeded {

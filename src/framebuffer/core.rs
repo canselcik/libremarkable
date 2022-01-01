@@ -6,6 +6,8 @@ use std::fs::{File, OpenOptions};
 use std::os::unix::io::AsRawFd;
 use std::sync::atomic::AtomicU32;
 
+use crate::device;
+use crate::device::Model;
 use crate::framebuffer;
 use crate::framebuffer::common::{
     FBIOGET_FSCREENINFO, FBIOGET_VSCREENINFO, FBIOPUT_VSCREENINFO, MXCFB_DISABLE_EPDC_ACCESS,
@@ -14,8 +16,6 @@ use crate::framebuffer::common::{
 use crate::framebuffer::screeninfo::{FixScreeninfo, VarScreeninfo};
 use crate::framebuffer::swtfb_client::SwtfbClient;
 use crate::framebuffer::FramebufferBase;
-use crate::device;
-use crate::device::Model;
 
 pub enum FramebufferUpdate {
     Ioctl(File),
@@ -40,17 +40,12 @@ unsafe impl<'a> Send for Framebuffer<'a> {}
 unsafe impl<'a> Sync for Framebuffer<'a> {}
 
 impl<'a> Framebuffer<'a> {
-
     /// Create a new framebuffer instance, autodetecting the correct path.
     pub fn new() -> Framebuffer<'a> {
         let device = &*device::CURRENT_DEVICE;
         match device.model {
-            Model::Gen1 => {
-                Framebuffer::classic(device.get_framebuffer_path())
-            }
-            Model::Gen2 => {
-                Framebuffer::rm2fb()
-            }
+            Model::Gen1 => Framebuffer::classic(device.get_framebuffer_path()),
+            Model::Gen2 => Framebuffer::rm2fb(),
         }
     }
 
@@ -67,7 +62,6 @@ impl<'a> Framebuffer<'a> {
         Framebuffer::build(FramebufferUpdate::Swtfb(SwtfbClient::default()))
     }
 
-
     #[deprecated = "Use `new` to autodetect the right update method based on your device version, or `classic` or `rm2fb` to choose one explicitly."]
     pub fn from_path(path_to_device: &str) -> Framebuffer<'a> {
         if path_to_device == crate::device::Model::Gen2.framebuffer_path() {
@@ -78,14 +72,9 @@ impl<'a> Framebuffer<'a> {
     }
 
     fn build(framebuffer_update: FramebufferUpdate) -> Framebuffer<'a> {
-
         let mut var_screen_info = match &framebuffer_update {
-            FramebufferUpdate::Ioctl(device) => {
-                Framebuffer::get_var_screeninfo(&device)
-            }
-            FramebufferUpdate::Swtfb(c) => {
-                c.get_var_screeninfo()
-            }
+            FramebufferUpdate::Ioctl(device) => Framebuffer::get_var_screeninfo(&device),
+            FramebufferUpdate::Swtfb(c) => c.get_var_screeninfo(),
         };
         var_screen_info.xres = 1404;
         var_screen_info.yres = 1872;
@@ -108,21 +97,16 @@ impl<'a> Framebuffer<'a> {
                 Framebuffer::put_var_screeninfo(&device, &mut var_screen_info);
                 Framebuffer::get_fix_screeninfo(&device)
             }
-            FramebufferUpdate::Swtfb(c) => {
-                c.get_fix_screeninfo()
-            }
+            FramebufferUpdate::Swtfb(c) => c.get_fix_screeninfo(),
         };
-
 
         let frame_length = (fix_screen_info.line_length * var_screen_info.yres) as usize;
 
         let mem_map = match &framebuffer_update {
-            FramebufferUpdate::Ioctl(device) => {
-                MmapOptions::new()
-                    .len(frame_length)
-                    .map_raw(device)
-                    .expect("Unable to map provided path")
-            }
+            FramebufferUpdate::Ioctl(device) => MmapOptions::new()
+                .len(frame_length)
+                .map_raw(device)
+                .expect("Unable to map provided path"),
             FramebufferUpdate::Swtfb(swtfb_client) => {
                 let (_, mem_map) = swtfb_client
                     .open_buffer()
@@ -210,10 +194,7 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
         info
     }
 
-    fn put_var_screeninfo(
-        device: &std::fs::File,
-        var_screen_info: &mut VarScreeninfo,
-    ) -> bool {
+    fn put_var_screeninfo(device: &std::fs::File, var_screen_info: &mut VarScreeninfo) -> bool {
         let result = unsafe { ioctl(device.as_raw_fd(), FBIOPUT_VSCREENINFO, var_screen_info) };
         result == 0
     }
@@ -221,14 +202,9 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
     fn update_var_screeninfo(&mut self) -> bool {
         match &self.framebuffer_update {
             FramebufferUpdate::Ioctl(device) => {
-                Self::put_var_screeninfo(
-                    &device,
-                    &mut self.var_screen_info,
-                )
+                Self::put_var_screeninfo(&device, &mut self.var_screen_info)
             }
-            FramebufferUpdate::Swtfb(_) => {
-                true
-            }
+            FramebufferUpdate::Swtfb(_) => true,
         }
     }
 }
