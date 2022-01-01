@@ -73,7 +73,7 @@ impl<'a> Framebuffer<'a> {
 
     fn build(framebuffer_update: FramebufferUpdate) -> Framebuffer<'a> {
         let mut var_screen_info = match &framebuffer_update {
-            FramebufferUpdate::Ioctl(device) => Framebuffer::get_var_screeninfo(&device),
+            FramebufferUpdate::Ioctl(device) => Framebuffer::get_var_screeninfo(device),
             FramebufferUpdate::Swtfb(c) => c.get_var_screeninfo(),
         };
         var_screen_info.xres = 1404;
@@ -94,8 +94,8 @@ impl<'a> Framebuffer<'a> {
 
         let fix_screen_info = match &framebuffer_update {
             FramebufferUpdate::Ioctl(device) => {
-                Framebuffer::put_var_screeninfo(&device, &mut var_screen_info);
-                Framebuffer::get_fix_screeninfo(&device)
+                Framebuffer::put_var_screeninfo(device, &mut var_screen_info);
+                Framebuffer::get_fix_screeninfo(device)
             }
             FramebufferUpdate::Swtfb(c) => c.get_fix_screeninfo(),
         };
@@ -202,7 +202,7 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
     fn update_var_screeninfo(&mut self) -> bool {
         match &self.framebuffer_update {
             FramebufferUpdate::Ioctl(device) => {
-                Self::put_var_screeninfo(&device, &mut self.var_screen_info)
+                Self::put_var_screeninfo(device, &mut self.var_screen_info)
             }
             FramebufferUpdate::Swtfb(_) => true,
         }
