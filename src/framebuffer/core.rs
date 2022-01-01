@@ -50,6 +50,7 @@ impl<'a> Framebuffer<'a> {
     }
 
 
+    #[deprecated = "Use `new` to autodetect the right update method based on your device version, or `classic` or `rm2fb` to choose one explicitly."]
     pub fn from_path(path_to_device: &str) -> Framebuffer<'a> {
         let swtfb_client = if path_to_device == crate::device::Model::Gen2.framebuffer_path() {
             Some(SwtfbClient::default())
