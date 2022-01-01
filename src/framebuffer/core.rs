@@ -18,14 +18,13 @@ use crate::device;
 use crate::device::Model;
 
 pub enum FramebufferUpdate {
-    Ioctl,
+    Ioctl(File),
     Swtfb(SwtfbClient),
 }
 
 /// Framebuffer struct containing the state (latest update marker etc.)
 /// along with the var/fix screeninfo structs.
 pub struct Framebuffer<'a> {
-    pub device: File,
     pub frame: MmapRaw,
     pub marker: AtomicU32,
     pub default_font: Font<'a>,
@@ -34,7 +33,7 @@ pub struct Framebuffer<'a> {
     /// like it has been done in `Framebuffer::new(..)`.
     pub var_screen_info: VarScreeninfo,
     pub fix_screen_info: FixScreeninfo,
-    pub framebuffer_update: FramebufferUpdate,
+    pub(crate) framebuffer_update: FramebufferUpdate,
 }
 
 unsafe impl<'a> Send for Framebuffer<'a> {}
@@ -50,52 +49,38 @@ impl<'a> Framebuffer<'a> {
                 Framebuffer::classic(device.get_framebuffer_path())
             }
             Model::Gen2 => {
-                Framebuffer::rm2fb(device.get_framebuffer_path())
+                Framebuffer::rm2fb()
             }
         }
     }
 
     pub fn classic(path: &str) -> Framebuffer<'a> {
-        Framebuffer::build(path, FramebufferUpdate::Ioctl)
+        let device = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(path)
+            .unwrap();
+        Framebuffer::build(FramebufferUpdate::Ioctl(device))
     }
 
-    pub fn rm2fb(path: &str) -> Framebuffer<'a> {
-        Framebuffer::build(path, FramebufferUpdate::Swtfb(SwtfbClient::default()))
+    pub fn rm2fb() -> Framebuffer<'a> {
+        Framebuffer::build(FramebufferUpdate::Swtfb(SwtfbClient::default()))
     }
 
 
     #[deprecated = "Use `new` to autodetect the right update method based on your device version, or `classic` or `rm2fb` to choose one explicitly."]
     pub fn from_path(path_to_device: &str) -> Framebuffer<'a> {
-        let swtfb_client = if path_to_device == crate::device::Model::Gen2.framebuffer_path() {
-            FramebufferUpdate::Swtfb(SwtfbClient::default())
+        if path_to_device == crate::device::Model::Gen2.framebuffer_path() {
+            Framebuffer::classic(path_to_device)
         } else {
-            FramebufferUpdate::Ioctl
-        };
-
-        Framebuffer::build(path_to_device, swtfb_client)
+            Framebuffer::rm2fb()
+        }
     }
 
-    fn build(path_to_device: &str, framebuffer_update: FramebufferUpdate) -> Framebuffer<'a> {
-
-        let (device, mem_map) = match &framebuffer_update {
-            FramebufferUpdate::Ioctl => {
-                let device = OpenOptions::new()
-                    .read(true)
-                    .write(true)
-                    .open(path_to_device)
-                    .unwrap();
-                (device, None)
-            }
-            FramebufferUpdate::Swtfb(swtfb_client) => {
-                let (device, mem_map) = swtfb_client
-                    .open_buffer()
-                    .expect("Failed to open swtfb shared buffer");
-                (device, Some(mem_map))
-            }
-        };
+    fn build(framebuffer_update: FramebufferUpdate) -> Framebuffer<'a> {
 
         let mut var_screen_info = match &framebuffer_update {
-            FramebufferUpdate::Ioctl => {
+            FramebufferUpdate::Ioctl(device) => {
                 Framebuffer::get_var_screeninfo(&device)
             }
             FramebufferUpdate::Swtfb(c) => {
@@ -119,7 +104,7 @@ impl<'a> Framebuffer<'a> {
         var_screen_info.accel_flags = 0;
 
         let fix_screen_info = match &framebuffer_update {
-            FramebufferUpdate::Ioctl => {
+            FramebufferUpdate::Ioctl(device) => {
                 Framebuffer::put_var_screeninfo(&device, &mut var_screen_info);
                 Framebuffer::get_fix_screeninfo(&device)
             }
@@ -131,13 +116,19 @@ impl<'a> Framebuffer<'a> {
 
         let frame_length = (fix_screen_info.line_length * var_screen_info.yres) as usize;
 
-        let mem_map = if let Some(mem_map) = mem_map {
-            mem_map
-        } else {
-            MmapOptions::new()
-                .len(frame_length)
-                .map_raw(&device)
-                .expect("Unable to map provided path")
+        let mem_map = match &framebuffer_update {
+            FramebufferUpdate::Ioctl(device) => {
+                MmapOptions::new()
+                    .len(frame_length)
+                    .map_raw(device)
+                    .expect("Unable to map provided path")
+            }
+            FramebufferUpdate::Swtfb(swtfb_client) => {
+                let (_, mem_map) = swtfb_client
+                    .open_buffer()
+                    .expect("Failed to open swtfb shared buffer");
+                mem_map
+            }
         };
 
         // Load the font
@@ -145,7 +136,6 @@ impl<'a> Framebuffer<'a> {
         let default_font = Font::try_from_bytes(font_data as &[u8]).expect("corrupted font data");
         Framebuffer {
             marker: AtomicU32::new(1),
-            device,
             frame: mem_map,
             default_font,
             var_screen_info,
@@ -157,11 +147,11 @@ impl<'a> Framebuffer<'a> {
 
 impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
     fn set_epdc_access(&mut self, state: bool) {
-        match self.framebuffer_update {
-            FramebufferUpdate::Ioctl => {
+        match &self.framebuffer_update {
+            FramebufferUpdate::Ioctl(device) => {
                 unsafe {
                     libc::ioctl(
-                        self.device.as_raw_fd(),
+                        device.as_raw_fd(),
                         if state {
                             MXCFB_ENABLE_EPDC_ACCESS
                         } else {
@@ -175,12 +165,12 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
     }
 
     fn set_autoupdate_mode(&mut self, mode: u32) {
-        match self.framebuffer_update {
-            FramebufferUpdate::Ioctl => {
+        match &self.framebuffer_update {
+            FramebufferUpdate::Ioctl(device) => {
                 let m = mode.to_owned();
                 unsafe {
                     libc::ioctl(
-                        self.device.as_raw_fd(),
+                        device.as_raw_fd(),
                         MXCFB_SET_AUTO_UPDATE_MODE,
                         &m as *const u32,
                     );
@@ -191,12 +181,12 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
     }
 
     fn set_update_scheme(&mut self, scheme: u32) {
-        match self.framebuffer_update {
-            FramebufferUpdate::Ioctl => {
+        match &self.framebuffer_update {
+            FramebufferUpdate::Ioctl(device) => {
                 let s = scheme.to_owned();
                 unsafe {
                     libc::ioctl(
-                        self.device.as_raw_fd(),
+                        device.as_raw_fd(),
                         MXCFB_SET_UPDATE_SCHEME,
                         &s as *const u32,
                     );
@@ -229,9 +219,16 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
     }
 
     fn update_var_screeninfo(&mut self) -> bool {
-        Self::put_var_screeninfo(
-            &self.device,
-            &mut self.var_screen_info,
-        )
+        match &self.framebuffer_update {
+            FramebufferUpdate::Ioctl(device) => {
+                Self::put_var_screeninfo(
+                    &device,
+                    &mut self.var_screen_info,
+                )
+            }
+            FramebufferUpdate::Swtfb(_) => {
+                true
+            }
+        }
     }
 }

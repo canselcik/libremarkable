@@ -44,9 +44,9 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
         };
 
         let update_succeeded = match &self.framebuffer_update {
-            FramebufferUpdate::Ioctl => {
+            FramebufferUpdate::Ioctl(device) => {
                 let pt: *const mxcfb_update_data = &whole;
-                (unsafe { libc::ioctl(self.device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt) }) >= 0
+                (unsafe { libc::ioctl(device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt) }) >= 0
             }
             FramebufferUpdate::Swtfb(swtfb_client) => {
                 swtfb_client.send_mxcfb_update(&whole)
@@ -125,9 +125,9 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
         };
 
         let update_succeeded = match &self.framebuffer_update {
-            FramebufferUpdate::Ioctl => {
+            FramebufferUpdate::Ioctl(device) => {
                 let pt: *const mxcfb_update_data = &whole;
-                (unsafe { libc::ioctl(self.device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt) }) >= 0
+                (unsafe { libc::ioctl(device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt) }) >= 0
             }
             FramebufferUpdate::Swtfb(swtfb_client) => {
                 swtfb_client.send_mxcfb_update(&whole)
@@ -148,14 +148,14 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
 
     fn wait_refresh_complete(&self, update_marker: u32) -> u32 {
         match &self.framebuffer_update {
-            FramebufferUpdate::Ioctl => {
+            FramebufferUpdate::Ioctl(device) => {
                 let mut markerdata = mxcfb_update_marker_data {
                     update_marker,
                     collision_test: 0,
                 };
                 if (unsafe {
                     libc::ioctl(
-                        self.device.as_raw_fd(),
+                        device.as_raw_fd(),
                         common::MXCFB_WAIT_FOR_UPDATE_COMPLETE,
                         &mut markerdata,
                     )
