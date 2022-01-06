@@ -1,3 +1,25 @@
+use libremarkable::framebuffer::cgmath;
+use libremarkable::framebuffer::cgmath::EuclideanSpace;
+use libremarkable::framebuffer::common::*;
+use libremarkable::framebuffer::refresh::PartialRefreshMode;
+use libremarkable::framebuffer::storage;
+use libremarkable::framebuffer::{FramebufferDraw, FramebufferIO, FramebufferRefresh};
+use libremarkable::image::GenericImage;
+use libremarkable::input::{gpio, multitouch, wacom, InputDevice, InputEvent};
+use libremarkable::ui_extensions::element::{
+	UIConstraintRefresh, UIElement, UIElementHandle, UIElementWrapper,
+};
+use libremarkable::{appctx, battery, image};
+use libremarkable::{end_bench, start_bench};
+
+#[cfg(feature = "enable-runtime-benchmarking")]
+use libremarkable::stopwatch;
+
+use atomic::Atomic;
+use chrono::{DateTime, Local};
+use log::info;
+use once_cell::sync::Lazy;
+
 use std::collections::VecDeque;
 use std::fmt;
 use std::process::Command;
@@ -5,27 +27,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::thread::sleep;
 use std::time::Duration;
-
-use atomic::Atomic;
-use chrono::{DateTime, Local};
-use log::info;
-use once_cell::sync::Lazy;
-
-use libremarkable::{appctx, battery, image};
-use libremarkable::{end_bench, start_bench};
-use libremarkable::framebuffer::{FramebufferDraw, FramebufferIO, FramebufferRefresh};
-use libremarkable::framebuffer::cgmath;
-use libremarkable::framebuffer::cgmath::EuclideanSpace;
-use libremarkable::framebuffer::common::*;
-use libremarkable::framebuffer::refresh::PartialRefreshMode;
-use libremarkable::framebuffer::storage;
-use libremarkable::image::GenericImage;
-use libremarkable::input::{gpio, InputDevice, InputEvent, multitouch, wacom};
-#[cfg(feature = "enable-runtime-benchmarking")]
-use libremarkable::stopwatch;
-use libremarkable::ui_extensions::element::{
-	UIConstraintRefresh, UIElement, UIElementHandle, UIElementWrapper,
-};
 
 #[derive(Copy, Clone, PartialEq)]
 enum DrawMode {
@@ -677,7 +678,7 @@ fn main() {
     // Takes callback functions as arguments
     // They are called with the event and the &mut framebuffer
     let mut app: appctx::ApplicationContext<'_> =
-        appctx::ApplicationContext::new(on_button_press, on_wacom_input, on_touch_handler);
+        appctx::ApplicationContext::new();
 
     // Alternatively we could have called `app.execute_lua("fb.clear()")`
     app.clear(true);
