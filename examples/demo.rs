@@ -1,25 +1,3 @@
-use libremarkable::framebuffer::cgmath;
-use libremarkable::framebuffer::cgmath::EuclideanSpace;
-use libremarkable::framebuffer::common::*;
-use libremarkable::framebuffer::refresh::PartialRefreshMode;
-use libremarkable::framebuffer::storage;
-use libremarkable::framebuffer::{FramebufferDraw, FramebufferIO, FramebufferRefresh};
-use libremarkable::image::GenericImage;
-use libremarkable::input::{gpio, multitouch, wacom, InputDevice};
-use libremarkable::ui_extensions::element::{
-    UIConstraintRefresh, UIElement, UIElementHandle, UIElementWrapper,
-};
-use libremarkable::{appctx, battery, image};
-use libremarkable::{end_bench, start_bench};
-
-#[cfg(feature = "enable-runtime-benchmarking")]
-use libremarkable::stopwatch;
-
-use atomic::Atomic;
-use chrono::{DateTime, Local};
-use log::info;
-use once_cell::sync::Lazy;
-
 use std::collections::VecDeque;
 use std::fmt;
 use std::process::Command;
@@ -27,6 +5,27 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::thread::sleep;
 use std::time::Duration;
+
+use atomic::Atomic;
+use chrono::{DateTime, Local};
+use log::info;
+use once_cell::sync::Lazy;
+
+use libremarkable::{appctx, battery, image};
+use libremarkable::{end_bench, start_bench};
+use libremarkable::framebuffer::{FramebufferDraw, FramebufferIO, FramebufferRefresh};
+use libremarkable::framebuffer::cgmath;
+use libremarkable::framebuffer::cgmath::EuclideanSpace;
+use libremarkable::framebuffer::common::*;
+use libremarkable::framebuffer::refresh::PartialRefreshMode;
+use libremarkable::framebuffer::storage;
+use libremarkable::image::GenericImage;
+use libremarkable::input::{gpio, InputDevice, InputEvent, multitouch, wacom};
+#[cfg(feature = "enable-runtime-benchmarking")]
+use libremarkable::stopwatch;
+use libremarkable::ui_extensions::element::{
+	UIConstraintRefresh, UIElement, UIElementHandle, UIElementWrapper,
+};
 
 #[derive(Copy, Clone, PartialEq)]
 enum DrawMode {
@@ -1215,6 +1214,13 @@ fn main() {
     info!("Init complete. Beginning event dispatch...");
 
     // Blocking call to process events from digitizer + touchscreen + physical buttons
-    app.dispatch_events(true, true, true);
+    app.start_event_loop(true, true, true, |ctx, evt| {
+        match evt {
+            InputEvent::WacomEvent { event } => on_wacom_input(ctx, event),
+            InputEvent::MultitouchEvent { event } => on_touch_handler(ctx, event),
+            InputEvent::GPIO { event } => on_button_press(ctx, event),
+            _ => {}
+        }
+    });
     clock_thread.join().unwrap();
 }

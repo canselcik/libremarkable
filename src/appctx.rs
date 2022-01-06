@@ -16,9 +16,7 @@ use crate::framebuffer::FramebufferBase;
 use crate::framebuffer::FramebufferDraw;
 use crate::framebuffer::FramebufferRefresh;
 use crate::input::ev;
-use crate::input::gpio::GPIOEvent;
 use crate::input::multitouch::MultitouchEvent;
-use crate::input::wacom::WacomEvent;
 use crate::input::{InputDevice, InputEvent};
 use crate::ui_extensions::element::{
     ActiveRegionFunction, ActiveRegionHandler, UIConstraintRefresh, UIElementHandle,
@@ -42,13 +40,8 @@ pub struct ApplicationContext<'a> {
     input_rx: std::sync::mpsc::Receiver<InputEvent>,
 
     button_ctx: RwLock<Option<ev::EvDevContext>>,
-    on_button: fn(&mut ApplicationContext<'_>, GPIOEvent),
-
     wacom_ctx: RwLock<Option<ev::EvDevContext>>,
-    on_wacom: fn(&mut ApplicationContext<'_>, WacomEvent),
-
     touch_ctx: RwLock<Option<ev::EvDevContext>>,
-    on_touch: fn(&mut ApplicationContext<'_>, MultitouchEvent),
 
     active_regions: QuadTree<ActiveRegionHandler>,
     ui_elements: HashMap<String, UIElementHandle>,
@@ -81,11 +74,7 @@ impl<'a> ApplicationContext<'a> {
         (self.yres, self.xres)
     }
 
-    pub fn new(
-        on_button: fn(&mut ApplicationContext<'_>, GPIOEvent),
-        on_wacom: fn(&mut ApplicationContext<'_>, WacomEvent),
-        on_touch: fn(&mut ApplicationContext<'_>, MultitouchEvent),
-    ) -> ApplicationContext<'static> {
+    pub fn new() -> ApplicationContext<'static> {
         let framebuffer = Box::new(core::Framebuffer::from_path(
             crate::device::CURRENT_DEVICE.get_framebuffer_path(),
         ));
@@ -104,9 +93,6 @@ impl<'a> ApplicationContext<'a> {
             lua: UnsafeCell::new(Lua::new()),
             input_rx,
             input_tx,
-            on_button,
-            on_wacom,
-            on_touch,
             ui_elements: HashMap::new(),
             active_regions: QuadTree::default(geom::Rect::from_points(
                 &geom::Point { x: 0.0, y: 0.0 },
@@ -463,11 +449,12 @@ impl<'a> ApplicationContext<'a> {
         &self.input_rx
     }
 
-    pub fn dispatch_events(
+    pub fn start_event_loop<F: FnMut(&mut ApplicationContext<'_>, InputEvent)>(
         &mut self,
         activate_wacom: bool,
         activate_multitouch: bool,
         activate_buttons: bool,
+        mut callback: F
     ) {
         let appref = self.upgrade_ref();
 
@@ -486,13 +473,11 @@ impl<'a> ApplicationContext<'a> {
 
         let mut last_active_region_gesture_id: i32 = -1;
         while self.running.load(Ordering::Relaxed) {
-            match self.input_rx.recv() {
+            let event = self.input_rx.recv();
+            match event {
                 Err(e) => println!("Error in input event consumer: {0}", e),
-                Ok(event) => match event {
-                    InputEvent::GPIO { event } => {
-                        (self.on_button)(appref, event);
-                    }
-                    InputEvent::MultitouchEvent { event } => {
+                Ok(event) => {
+                    if let InputEvent::MultitouchEvent { event } = event {
                         // Check for and notify clickable active regions for multitouch events
                         if let MultitouchEvent::Press { finger }
                         | MultitouchEvent::Move { finger } = event
@@ -507,12 +492,9 @@ impl<'a> ApplicationContext<'a> {
                                 last_active_region_gesture_id = gseq;
                             }
                         }
-                        (self.on_touch)(appref, event);
                     }
-                    InputEvent::WacomEvent { event } => {
-                        (self.on_wacom)(appref, event);
-                    }
-                    _ => {}
+
+                    callback(appref, event);
                 },
             };
         }
@@ -525,25 +507,15 @@ impl<'a> ApplicationContext<'a> {
         self.running.store(true, Ordering::Relaxed);
 
         if self.running.load(Ordering::Relaxed) {
-            match event {
-                InputEvent::GPIO { event } => {
-                    (self.on_button)(appref, event);
-                }
-                InputEvent::MultitouchEvent { event } => {
-                    // Check for and notify clickable active regions for multitouch events
-                    if let MultitouchEvent::Press { finger } | MultitouchEvent::Move { finger } =
-                        event
-                    {
-                        if let Some((h, _)) = self.find_active_region(finger.pos.y, finger.pos.x) {
-                            (h.handler)(appref, h.element.clone());
-                        }
+            if let InputEvent::MultitouchEvent { event } = event {
+                // Check for and notify clickable active regions for multitouch events
+                if let MultitouchEvent::Press { finger } | MultitouchEvent::Move { finger } =
+                    event
+                {
+                    if let Some((h, _)) = self.find_active_region(finger.pos.y, finger.pos.x) {
+                        (h.handler)(appref, h.element.clone());
                     }
-                    (self.on_touch)(appref, event);
                 }
-                InputEvent::WacomEvent { event } => {
-                    (self.on_wacom)(appref, event);
-                }
-                _ => {}
             }
         }
     }
