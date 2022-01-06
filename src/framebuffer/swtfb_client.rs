@@ -9,7 +9,7 @@ use crate::device;
 use crate::framebuffer::screeninfo::{FixScreeninfo, VarScreeninfo};
 use log::warn;
 use memmap2::{MmapOptions, MmapRaw};
-use std::ffi::{c_void, CString};
+use std::ffi::{c_void, CStr, CString};
 use std::fs::{File, OpenOptions};
 use std::io::Error as IoError;
 use std::os::unix::prelude::AsRawFd;
@@ -155,8 +155,13 @@ impl SwtfbClient {
         }
         self.send_wait_update(&wait_sem_data { sem_name });
         let sem_name_c = CString::new(sem_name_str.as_str()).unwrap();
-        let sem =
-            unsafe { libc::sem_open(sem_name_c.as_ptr() as *const libc::c_char, libc::O_CREAT) };
+        let sem = unsafe { libc::sem_open(sem_name_c.as_ptr(), libc::O_CREAT, 0x644, 0) };
+        if sem == libc::SEM_FAILED {
+            panic!(
+                "Opening semaphore to wait for swtfb update failed: {:?}",
+                unsafe { CStr::from_ptr(libc::strerror(*libc::__errno_location())) }
+            );
+        }
 
         let mut timeout = libc::timespec {
             tv_nsec: 0,
