@@ -7,7 +7,7 @@ use libremarkable::framebuffer::{FramebufferDraw, FramebufferIO, FramebufferRefr
 use libremarkable::image::GenericImage;
 use libremarkable::input::{gpio, multitouch, wacom, InputDevice, InputEvent};
 use libremarkable::ui_extensions::element::{
-	UIConstraintRefresh, UIElement, UIElementHandle, UIElementWrapper,
+    UIConstraintRefresh, UIElement, UIElementHandle, UIElementWrapper,
 };
 use libremarkable::{appctx, battery, image};
 use libremarkable::{end_bench, start_bench};
