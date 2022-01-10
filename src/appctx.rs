@@ -47,34 +47,8 @@ pub struct ApplicationContext<'a> {
     ui_elements: HashMap<String, UIElementHandle>,
 }
 
-impl<'a> ApplicationContext<'a> {
-    pub fn get_framebuffer_ref(&mut self) -> &'static mut core::Framebuffer<'static> {
-        unsafe {
-            std::mem::transmute::<_, &'static mut core::Framebuffer<'static>>(
-                self.framebuffer.deref_mut(),
-            )
-        }
-    }
-
-    /// Perhaps this is bad practice but we know that the ApplicationContext,
-    /// just like the Framebuffer will have a static lifetime. We are doing this
-    /// so that we can have the event handlers call into the ApplicationContext.
-    pub fn upgrade_ref(&mut self) -> &'static mut ApplicationContext<'static> {
-        unsafe { std::mem::transmute(self) }
-    }
-
-    pub fn get_lua_ref(&mut self) -> &'a mut Lua<'static> {
-        #[allow(clippy::transmute_ptr_to_ref)]
-        unsafe {
-            std::mem::transmute::<_, &'a mut Lua<'static>>(self.lua.get())
-        }
-    }
-
-    pub fn get_dimensions(&self) -> (u32, u32) {
-        (self.yres, self.xres)
-    }
-
-    pub fn new() -> ApplicationContext<'static> {
+impl Default for ApplicationContext<'static> {
+    fn default() -> ApplicationContext<'static> {
         let framebuffer = Box::new(core::Framebuffer::from_path(
             crate::device::CURRENT_DEVICE.get_framebuffer_path(),
         ));
@@ -126,6 +100,34 @@ impl<'a> ApplicationContext<'a> {
         nms.set("set_pixel", hlua::function3(luaext::lua_set_pixel));
 
         res
+    }
+}
+
+impl<'a> ApplicationContext<'a> {
+    pub fn get_framebuffer_ref(&mut self) -> &'static mut core::Framebuffer<'static> {
+        unsafe {
+            std::mem::transmute::<_, &'static mut core::Framebuffer<'static>>(
+                self.framebuffer.deref_mut(),
+            )
+        }
+    }
+
+    /// Perhaps this is bad practice but we know that the ApplicationContext,
+    /// just like the Framebuffer will have a static lifetime. We are doing this
+    /// so that we can have the event handlers call into the ApplicationContext.
+    pub fn upgrade_ref(&mut self) -> &'static mut ApplicationContext<'static> {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    pub fn get_lua_ref(&mut self) -> &'a mut Lua<'static> {
+        #[allow(clippy::transmute_ptr_to_ref)]
+        unsafe {
+            std::mem::transmute::<_, &'a mut Lua<'static>>(self.lua.get())
+        }
+    }
+
+    pub fn get_dimensions(&self) -> (u32, u32) {
+        (self.yres, self.xres)
     }
 
     pub fn execute_lua(&mut self, code: &str) {
@@ -454,7 +456,7 @@ impl<'a> ApplicationContext<'a> {
         activate_wacom: bool,
         activate_multitouch: bool,
         activate_buttons: bool,
-        mut callback: F
+        mut callback: F,
     ) {
         let appref = self.upgrade_ref();
 
@@ -495,7 +497,7 @@ impl<'a> ApplicationContext<'a> {
                     }
 
                     callback(appref, event);
-                },
+                }
             };
         }
     }
@@ -509,8 +511,7 @@ impl<'a> ApplicationContext<'a> {
         if self.running.load(Ordering::Relaxed) {
             if let InputEvent::MultitouchEvent { event } = event {
                 // Check for and notify clickable active regions for multitouch events
-                if let MultitouchEvent::Press { finger } | MultitouchEvent::Move { finger } =
-                    event
+                if let MultitouchEvent::Press { finger } | MultitouchEvent::Move { finger } = event
                 {
                     if let Some((h, _)) = self.find_active_region(finger.pos.y, finger.pos.x) {
                         (h.handler)(appref, h.element.clone());

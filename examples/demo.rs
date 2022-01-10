@@ -677,8 +677,7 @@ fn main() {
 
     // Takes callback functions as arguments
     // They are called with the event and the &mut framebuffer
-    let mut app: appctx::ApplicationContext<'_> =
-        appctx::ApplicationContext::new();
+    let mut app: appctx::ApplicationContext<'_> = appctx::ApplicationContext::default();
 
     // Alternatively we could have called `app.execute_lua("fb.clear()")`
     app.clear(true);
@@ -1215,13 +1214,11 @@ fn main() {
     info!("Init complete. Beginning event dispatch...");
 
     // Blocking call to process events from digitizer + touchscreen + physical buttons
-    app.start_event_loop(true, true, true, |ctx, evt| {
-        match evt {
-            InputEvent::WacomEvent { event } => on_wacom_input(ctx, event),
-            InputEvent::MultitouchEvent { event } => on_touch_handler(ctx, event),
-            InputEvent::GPIO { event } => on_button_press(ctx, event),
-            _ => {}
-        }
+    app.start_event_loop(true, true, true, |ctx, evt| match evt {
+        InputEvent::WacomEvent { event } => on_wacom_input(ctx, event),
+        InputEvent::MultitouchEvent { event } => on_touch_handler(ctx, event),
+        InputEvent::GPIO { event } => on_button_press(ctx, event),
+        _ => {}
     });
     clock_thread.join().unwrap();
 }
