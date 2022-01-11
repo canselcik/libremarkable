@@ -38,12 +38,12 @@ fn main() {
         )
         .unwrap();
         let mut writer = BufWriter::new(Vec::new());
-        image::jpeg::JPEGEncoder::new(&mut writer)
+        image::jpeg::JpegEncoder::new(&mut writer)
             .encode(
                 &*rgb888,
                 DISPLAYWIDTH.into(),
                 DISPLAYHEIGHT.into(),
-                image::ColorType::RGB(8),
+                image::ColorType::Rgb8,
             )
             .unwrap();
 

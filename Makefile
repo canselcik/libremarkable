@@ -1,20 +1,28 @@
-TARGET ?= armv7-unknown-linux-gnueabihf
+# For non-musl, use: armv7-unknown-linux-gnueabihf
+TARGET ?= armv7-unknown-linux-musleabihf
+
+DEVICE_IP ?= '10.11.99.1'
+DEVICE_HOST ?= root@$(DEVICE_IP)
 
 all: library examples
 
 .PHONY: examples
 examples:
-	cargo build --examples --release --target=$(TARGET)
+	cargo build --examples --release --target=armv7-unknown-linux-gnueabihf
 
 demo:
-	cargo build --example demo --release --target=$(TARGET)
+	cargo build --example demo --release --target=armv7-unknown-linux-gnueabihf
 
-demo-musl:
-	# cargo install cross
-	cross build --example demo --release --target=armv7-unknown-linux-musleabihf
+x-demo:
+	cross build --example demo --release --target=$(TARGET)
+deploy-x-demo: x-demo
+	du -sh ./target/$(TARGET)/release/examples/demo
+	ssh $(DEVICE_HOST) 'killall -q -9 demo || true; systemctl stop xochitl || true'
+	scp ./target/$(TARGET)/release/examples/demo $(DEVICE_HOST):
+	ssh $(DEVICE_HOST) 'RUST_BACKTRACE=1 RUST_LOG=debug ./demo'
 
 bench:
-	cargo build --examples --release --target=$(TARGET) --features "enable-runtime-benchmarking"
+	cargo build --examples --release --target=armv7-unknown-linux-gnueabihf --features "enable-runtime-benchmarking"
 
 .PHONY: docker-env
 docker-env:
@@ -34,17 +42,15 @@ examples-docker: docker-env
 		-v cargo-registry:/home/builder/.cargo/registry \
 		-w /home/builder/libremarkable \
 		rust-build-remarkable:latest \
-		cargo build --examples --release --target=$(TARGET)
+		cargo build --examples --release --target=armv7-unknown-linux-gnueabihf
 
 library:
-	cargo build --release --target=$(TARGET)
+	cargo build --release --target=armv7-unknown-linux-gnueabihf
 
 test:
 	# Notice we aren't using the armv7 target here
 	cargo test
 
-DEVICE_IP ?= '10.11.99.1'
-DEVICE_HOST ?= root@$(DEVICE_IP)
 deploy-demo:
 	ssh $(DEVICE_HOST) 'killall -q -9 demo || true; systemctl stop xochitl || true'
 	scp ./target/$(TARGET)/release/examples/demo $(DEVICE_HOST):

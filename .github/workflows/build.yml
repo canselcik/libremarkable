@@ -1,8 +1,7 @@
 on: [push, pull_request]
-
 name: Continuous integration
-
 jobs:
+
   check:
     name: Check
     runs-on: ubuntu-latest
@@ -11,17 +10,36 @@ jobs:
     - uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: nightly
-        target: armv7-unknown-linux-gnueabihf
+        toolchain: stable
+        target: ${{ env.TARGET }}
         override: true
         components: rustfmt
     - uses: actions-rs/cargo@v1
       with:
         command: check
         use-cross: true
-        args: --target armv7-unknown-linux-gnueabihf
+        args: --target ${{ env.TARGET }}
 
   test:
+    name: Test Suite on gnueabihf
+    runs-on: ubuntu-latest
+    env:
+      TARGET: armv7-unknown-linux-gnueabihf
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        target: ${{ env.TARGET }}
+        override: true
+        components: rustfmt
+    - uses: actions-rs/cargo@v1
+      with:
+        command: test
+        use-cross: true
+        args: --target ${{ env.TARGET }}
+  test-local:
     name: Test Suite
     runs-on: ubuntu-latest
     steps:
@@ -29,15 +47,10 @@ jobs:
     - uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: nightly
-        target: armv7-unknown-linux-gnueabihf
-        override: true
-        components: rustfmt
+        toolchain: stable
     - uses: actions-rs/cargo@v1
       with:
         command: test
-        use-cross: true
-        args: --target armv7-unknown-linux-gnueabihf
 
   fmt:
     name: Rustfmt
@@ -47,8 +60,8 @@ jobs:
     - uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: nightly
-        target: armv7-unknown-linux-gnueabihf
+        toolchain: stable
+        target: ${{ env.TARGET }}
         override: true
         components: rustfmt
     - uses: actions-rs/cargo@v1
@@ -64,12 +77,15 @@ jobs:
     - uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: nightly
-        target: armv7-unknown-linux-gnueabihf
+        toolchain: stable
+        target: ${{ env.TARGET }}
         override: true
         components: rustfmt, clippy
     - uses: actions-rs/cargo@v1
       with:
         command: clippy
         use-cross: true
-        args: --target armv7-unknown-linux-gnueabihf -- -D warnings
+        args: --target ${{ env.TARGET }} -- -D warnings
+
+env:
+  TARGET: armv7-unknown-linux-musleabihf

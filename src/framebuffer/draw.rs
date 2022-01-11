@@ -14,7 +14,7 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
             let pixel_pos = pos + vec2(x as i32, y as i32);
             self.write_pixel(
                 pixel_pos.cast().unwrap(),
-                color::RGB(pixel.data[0], pixel.data[1], pixel.data[2]),
+                color::RGB(pixel.0[0], pixel.0[1], pixel.0[2]),
             );
         }
         mxcfb_rect {
@@ -132,7 +132,7 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
     fn draw_text(
         &mut self,
         pos: Point2<f32>,
-        text: String,
+        text: &str,
         size: f32,
         col: color,
         dryrun: bool,
@@ -158,7 +158,7 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         let c3 = f32::from(255 - components[2]);
 
         // Loop through the glyphs in the text, positing each one on a line
-        for glyph in dfont.layout(&text, scale, start) {
+        for glyph in dfont.layout(text, scale, start) {
             if let Some(bounding_box) = glyph.pixel_bounding_box() {
                 // Draw the glyph into the image per-pixel by using the draw closure
                 let bbmax_y = bounding_box.max.y as u32;
@@ -242,7 +242,7 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         let line_length = self.fix_screen_info.line_length as usize;
         unsafe {
             libc::memset(
-                self.frame.data() as *mut libc::c_void,
+                self.frame.as_mut_ptr() as *mut libc::c_void,
                 std::i32::MAX,
                 line_length * h,
             );

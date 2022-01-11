@@ -32,10 +32,8 @@ macro_rules! end_bench {
 }
 
 #[cfg(feature = "framebuffer")]
-#[macro_use]
+#[macro_use(io, ioc, iow, iowr)]
 extern crate ioctl_gen;
-#[macro_use]
-extern crate lazy_static;
 
 pub use cgmath;
 pub use epoll;

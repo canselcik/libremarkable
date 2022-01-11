@@ -159,11 +159,11 @@ impl UIElementWrapper {
                 scale,
                 border_px as u32,
                 8,
-                text.to_string(),
+                text,
                 refresh,
             ),
             UIElement::Image { ref img } => {
-                app.display_image(&img, self.position.cast().unwrap(), refresh)
+                app.display_image(img, self.position.cast().unwrap(), refresh)
             }
             UIElement::Region {
                 size,

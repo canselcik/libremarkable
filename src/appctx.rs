@@ -1,35 +1,28 @@
 use std::cell::UnsafeCell;
+use std::collections::HashMap;
 use std::ops::DerefMut;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::RwLock;
 
-use std::collections::HashMap;
-
-use crate::input::ev;
-
-use crate::framebuffer::common::*;
-
-use crate::ui_extensions::element::{
-    ActiveRegionFunction, ActiveRegionHandler, UIConstraintRefresh, UIElementHandle,
-    UIElementWrapper,
-};
-use crate::ui_extensions::luaext;
-use hlua::Lua;
-
 use aabb_quadtree::{geom, ItemId, QuadTree};
+use hlua::Lua;
 use log::warn;
 
 use crate::framebuffer::cgmath;
+use crate::framebuffer::common::*;
 use crate::framebuffer::core;
 use crate::framebuffer::refresh::PartialRefreshMode;
 use crate::framebuffer::FramebufferBase;
 use crate::framebuffer::FramebufferDraw;
 use crate::framebuffer::FramebufferRefresh;
-
-use crate::input::gpio::GPIOEvent;
+use crate::input::ev;
 use crate::input::multitouch::MultitouchEvent;
-use crate::input::wacom::WacomEvent;
 use crate::input::{InputDevice, InputEvent};
+use crate::ui_extensions::element::{
+    ActiveRegionFunction, ActiveRegionHandler, UIConstraintRefresh, UIElementHandle,
+    UIElementWrapper,
+};
+use crate::ui_extensions::luaext;
 
 unsafe impl<'a> Send for ApplicationContext<'a> {}
 unsafe impl<'a> Sync for ApplicationContext<'a> {}
@@ -47,51 +40,18 @@ pub struct ApplicationContext<'a> {
     input_rx: std::sync::mpsc::Receiver<InputEvent>,
 
     button_ctx: RwLock<Option<ev::EvDevContext>>,
-    on_button: fn(&mut ApplicationContext<'_>, GPIOEvent),
-
     wacom_ctx: RwLock<Option<ev::EvDevContext>>,
-    on_wacom: fn(&mut ApplicationContext<'_>, WacomEvent),
-
     touch_ctx: RwLock<Option<ev::EvDevContext>>,
-    on_touch: fn(&mut ApplicationContext<'_>, MultitouchEvent),
 
     active_regions: QuadTree<ActiveRegionHandler>,
     ui_elements: HashMap<String, UIElementHandle>,
 }
 
-impl<'a> ApplicationContext<'a> {
-    pub fn get_framebuffer_ref(&mut self) -> &'static mut core::Framebuffer<'static> {
-        unsafe {
-            std::mem::transmute::<_, &'static mut core::Framebuffer<'static>>(
-                self.framebuffer.deref_mut(),
-            )
-        }
-    }
-
-    /// Perhaps this is bad practice but we know that the ApplicationContext,
-    /// just like the Framebuffer will have a static lifetime. We are doing this
-    /// so that we can have the event handlers call into the ApplicationContext.
-    pub fn upgrade_ref(&mut self) -> &'static mut ApplicationContext<'static> {
-        unsafe { std::mem::transmute(self) }
-    }
-
-    pub fn get_lua_ref(&mut self) -> &'a mut Lua<'static> {
-        #[allow(clippy::transmute_ptr_to_ref)]
-        unsafe {
-            std::mem::transmute::<_, &'a mut Lua<'static>>(self.lua.get())
-        }
-    }
-
-    pub fn get_dimensions(&self) -> (u32, u32) {
-        (self.yres, self.xres)
-    }
-
-    pub fn new(
-        on_button: fn(&mut ApplicationContext<'_>, GPIOEvent),
-        on_wacom: fn(&mut ApplicationContext<'_>, WacomEvent),
-        on_touch: fn(&mut ApplicationContext<'_>, MultitouchEvent),
-    ) -> ApplicationContext<'static> {
-        let framebuffer = Box::new(core::Framebuffer::from_path("/dev/fb0"));
+impl Default for ApplicationContext<'static> {
+    fn default() -> ApplicationContext<'static> {
+        let framebuffer = Box::new(core::Framebuffer::from_path(
+            crate::device::CURRENT_DEVICE.get_framebuffer_path(),
+        ));
         let yres = framebuffer.var_screen_info.yres;
         let xres = framebuffer.var_screen_info.xres;
 
@@ -107,9 +67,6 @@ impl<'a> ApplicationContext<'a> {
             lua: UnsafeCell::new(Lua::new()),
             input_rx,
             input_tx,
-            on_button,
-            on_wacom,
-            on_touch,
             ui_elements: HashMap::new(),
             active_regions: QuadTree::default(geom::Rect::from_points(
                 &geom::Point { x: 0.0, y: 0.0 },
@@ -144,10 +101,38 @@ impl<'a> ApplicationContext<'a> {
 
         res
     }
+}
+
+impl<'a> ApplicationContext<'a> {
+    pub fn get_framebuffer_ref(&mut self) -> &'static mut core::Framebuffer<'static> {
+        unsafe {
+            std::mem::transmute::<_, &'static mut core::Framebuffer<'static>>(
+                self.framebuffer.deref_mut(),
+            )
+        }
+    }
+
+    /// Perhaps this is bad practice but we know that the ApplicationContext,
+    /// just like the Framebuffer will have a static lifetime. We are doing this
+    /// so that we can have the event handlers call into the ApplicationContext.
+    pub fn upgrade_ref(&mut self) -> &'static mut ApplicationContext<'static> {
+        unsafe { std::mem::transmute(self) }
+    }
+
+    pub fn get_lua_ref(&mut self) -> &'a mut Lua<'static> {
+        #[allow(clippy::transmute_ptr_to_ref)]
+        unsafe {
+            std::mem::transmute::<_, &'a mut Lua<'static>>(self.lua.get())
+        }
+    }
+
+    pub fn get_dimensions(&self) -> (u32, u32) {
+        (self.yres, self.xres)
+    }
 
     pub fn execute_lua(&mut self, code: &str) {
         let lua = self.get_lua_ref();
-        if let Err(e) = lua.execute::<hlua::AnyLuaValue>(&code) {
+        if let Err(e) = lua.execute::<hlua::AnyLuaValue>(code) {
             warn!("Error in Lua Context: {:?}", e);
         }
     }
@@ -160,7 +145,7 @@ impl<'a> ApplicationContext<'a> {
         scale: f32,
         border_px: u32,
         border_padding: u32,
-        text: String,
+        text: &str,
         refresh: UIConstraintRefresh,
     ) -> mxcfb_rect {
         let framebuffer = self.get_framebuffer_ref();
@@ -238,7 +223,7 @@ impl<'a> ApplicationContext<'a> {
         let framebuffer = self.get_framebuffer_ref();
         let draw_area = match img {
             image::DynamicImage::ImageRgb8(ref rgb) => framebuffer.draw_image(rgb, position),
-            other => framebuffer.draw_image(&other.to_rgb(), position),
+            other => framebuffer.draw_image(&other.to_rgb8(), position),
         };
         let marker = match refresh {
             UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer
@@ -287,14 +272,10 @@ impl<'a> ApplicationContext<'a> {
         match self.ui_elements.get(name) {
             None => false,
             Some(element) => {
-                let h = element.read().onclick;
-                let handler = match h {
-                    Some(handler) => Some(ActiveRegionHandler {
-                        handler,
-                        element: element.clone(),
-                    }),
-                    _ => None,
-                };
+                let handler = element.read().onclick.map(|handler| ActiveRegionHandler {
+                    handler,
+                    element: element.clone(),
+                });
                 element.write().draw(appref, &handler);
                 true
             }
@@ -314,14 +295,10 @@ impl<'a> ApplicationContext<'a> {
             .collect();
 
         for element in &mut elems {
-            let h = element.read().onclick;
-            let handler = match h {
-                Some(handler) => Some(ActiveRegionHandler {
-                    handler,
-                    element: element.clone(),
-                }),
-                _ => None,
-            };
+            let handler = element.read().onclick.map(|handler| ActiveRegionHandler {
+                handler,
+                element: element.clone(),
+            });
             element.write().draw(self, &handler);
         }
         end_bench!(draw_elements);
@@ -474,11 +451,12 @@ impl<'a> ApplicationContext<'a> {
         &self.input_rx
     }
 
-    pub fn dispatch_events(
+    pub fn start_event_loop<F: FnMut(&mut ApplicationContext<'_>, InputEvent)>(
         &mut self,
         activate_wacom: bool,
         activate_multitouch: bool,
         activate_buttons: bool,
+        mut callback: F,
     ) {
         let appref = self.upgrade_ref();
 
@@ -497,13 +475,11 @@ impl<'a> ApplicationContext<'a> {
 
         let mut last_active_region_gesture_id: i32 = -1;
         while self.running.load(Ordering::Relaxed) {
-            match self.input_rx.recv() {
+            let event = self.input_rx.recv();
+            match event {
                 Err(e) => println!("Error in input event consumer: {0}", e),
-                Ok(event) => match event {
-                    InputEvent::GPIO { event } => {
-                        (self.on_button)(appref, event);
-                    }
-                    InputEvent::MultitouchEvent { event } => {
+                Ok(event) => {
+                    if let InputEvent::MultitouchEvent { event } = event {
                         // Check for and notify clickable active regions for multitouch events
                         if let MultitouchEvent::Press { finger }
                         | MultitouchEvent::Move { finger } = event
@@ -518,13 +494,10 @@ impl<'a> ApplicationContext<'a> {
                                 last_active_region_gesture_id = gseq;
                             }
                         }
-                        (self.on_touch)(appref, event);
                     }
-                    InputEvent::WacomEvent { event } => {
-                        (self.on_wacom)(appref, event);
-                    }
-                    _ => {}
-                },
+
+                    callback(appref, event);
+                }
             };
         }
     }
@@ -536,25 +509,14 @@ impl<'a> ApplicationContext<'a> {
         self.running.store(true, Ordering::Relaxed);
 
         if self.running.load(Ordering::Relaxed) {
-            match event {
-                InputEvent::GPIO { event } => {
-                    (self.on_button)(appref, event);
-                }
-                InputEvent::MultitouchEvent { event } => {
-                    // Check for and notify clickable active regions for multitouch events
-                    if let MultitouchEvent::Press { finger } | MultitouchEvent::Move { finger } =
-                        event
-                    {
-                        if let Some((h, _)) = self.find_active_region(finger.pos.y, finger.pos.x) {
-                            (h.handler)(appref, h.element.clone());
-                        }
+            if let InputEvent::MultitouchEvent { event } = event {
+                // Check for and notify clickable active regions for multitouch events
+                if let MultitouchEvent::Press { finger } | MultitouchEvent::Move { finger } = event
+                {
+                    if let Some((h, _)) = self.find_active_region(finger.pos.y, finger.pos.x) {
+                        (h.handler)(appref, h.element.clone());
                     }
-                    (self.on_touch)(appref, event);
                 }
-                InputEvent::WacomEvent { event } => {
-                    (self.on_wacom)(appref, event);
-                }
-                _ => {}
             }
         }
     }
