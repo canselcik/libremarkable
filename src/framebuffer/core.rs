@@ -39,17 +39,29 @@ pub struct Framebuffer<'a> {
 unsafe impl<'a> Send for Framebuffer<'a> {}
 unsafe impl<'a> Sync for Framebuffer<'a> {}
 
+impl<'a> Default for Framebuffer<'a> {
+    fn default() -> Self {
+        Framebuffer::new()
+    }
+}
+
 impl<'a> Framebuffer<'a> {
     /// Create a new framebuffer instance, autodetecting the correct path.
     pub fn new() -> Framebuffer<'a> {
         let device = &*device::CURRENT_DEVICE;
         match device.model {
-            Model::Gen1 => Framebuffer::classic(device.get_framebuffer_path()),
+            Model::Gen1 => Framebuffer::device(device.get_framebuffer_path()),
             Model::Gen2 => Framebuffer::rm2fb(),
         }
     }
 
-    pub fn classic(path: &str) -> Framebuffer<'a> {
+    /// Use the [ioctl-based device interface](https://www.kernel.org/doc/html/latest/fb/internals.html)
+    /// for framebuffer metadata.
+    ///
+    /// This matches the pre-0.6.0 behaviour, and relies on the rm2fb client
+    /// shim on RM2. `new` is generally preferred, though existing apps may
+    /// with to use this method to avoid some risk of changing behaviour.
+    pub fn device(path: &str) -> Framebuffer<'a> {
         let device = OpenOptions::new()
             .read(true)
             .write(true)
@@ -58,14 +70,18 @@ impl<'a> Framebuffer<'a> {
         Framebuffer::build(FramebufferUpdate::Ioctl(device))
     }
 
+    /// Uses the rm2fb interface for framebuffer metadata.
+    ///
+    /// This will not work at all on rm1; consider using `new` to autodetect
+    /// the right interface for the current hardware.
     pub fn rm2fb() -> Framebuffer<'a> {
         Framebuffer::build(FramebufferUpdate::Swtfb(SwtfbClient::default()))
     }
 
-    #[deprecated = "Use `new` to autodetect the right update method based on your device version, or `classic` or `rm2fb` to choose one explicitly."]
+    #[deprecated = "Use `new` to autodetect the right update method based on your device version, or `device` or `rm2fb` to choose one explicitly."]
     pub fn from_path(path_to_device: &str) -> Framebuffer<'a> {
         if path_to_device == crate::device::Model::Gen2.framebuffer_path() {
-            Framebuffer::classic(path_to_device)
+            Framebuffer::device(path_to_device)
         } else {
             Framebuffer::rm2fb()
         }

@@ -1,6 +1,6 @@
 use libremarkable::framebuffer;
 use libremarkable::framebuffer::core::Framebuffer;
-use libremarkable::framebuffer::{FramebufferIO};
+use libremarkable::framebuffer::FramebufferIO;
 use libremarkable::image;
 use std::io::BufWriter;
 use tiny_http::{Response, Server};
