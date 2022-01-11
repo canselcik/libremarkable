@@ -5,7 +5,7 @@ use libremarkable::framebuffer::refresh::PartialRefreshMode;
 use libremarkable::framebuffer::storage;
 use libremarkable::framebuffer::{FramebufferDraw, FramebufferIO, FramebufferRefresh};
 use libremarkable::image::GenericImage;
-use libremarkable::input::{gpio, multitouch, wacom, InputDevice};
+use libremarkable::input::{gpio, multitouch, wacom, InputDevice, InputEvent};
 use libremarkable::ui_extensions::element::{
     UIConstraintRefresh, UIElement, UIElementHandle, UIElementWrapper,
 };
@@ -677,8 +677,7 @@ fn main() {
 
     // Takes callback functions as arguments
     // They are called with the event and the &mut framebuffer
-    let mut app: appctx::ApplicationContext<'_> =
-        appctx::ApplicationContext::new(on_button_press, on_wacom_input, on_touch_handler);
+    let mut app: appctx::ApplicationContext<'_> = appctx::ApplicationContext::default();
 
     // Alternatively we could have called `app.execute_lua("fb.clear()")`
     app.clear(true);
@@ -1215,6 +1214,11 @@ fn main() {
     info!("Init complete. Beginning event dispatch...");
 
     // Blocking call to process events from digitizer + touchscreen + physical buttons
-    app.dispatch_events(true, true, true);
+    app.start_event_loop(true, true, true, |ctx, evt| match evt {
+        InputEvent::WacomEvent { event } => on_wacom_input(ctx, event),
+        InputEvent::MultitouchEvent { event } => on_touch_handler(ctx, event),
+        InputEvent::GPIO { event } => on_button_press(ctx, event),
+        _ => {}
+    });
     clock_thread.join().unwrap();
 }

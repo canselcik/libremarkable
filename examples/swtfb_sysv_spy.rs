@@ -25,7 +25,7 @@ hook! {
         eprintln!("Spy: msgsnd({:#x}, {:?}, {}, {:#x}) => {}", msqid, msgp, msgsz, msgflg, res);
         if msgsz == std::mem::size_of::<swtfb_client::swtfb_update>() {
             let msg = &*(msgp as *const swtfb_client::swtfb_update);
-                eprintln!("Spy: msgsnd: Message: swt_update.mtype: {:?}, data: ... }}", msg.mtype);
+                eprintln!("Spy: msgsnd: Message: {{ swt_update.mtype: {:?}, data: ... }}", msg.mtype);
                 let data_str_formatted = match msg.mtype {
                     swtfb_client::MSG_TYPE::INIT_t => {
                         format!("...")
