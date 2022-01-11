@@ -7,8 +7,6 @@ pub use crate::dimensions::{
     DISPLAYHEIGHT, DISPLAYWIDTH, MTHEIGHT, MTWIDTH, WACOMHEIGHT, WACOMWIDTH,
 };
 
-
-
 /// This is to allow tests to run on systems with 64bit pointer types.
 /// It doesn't make a difference since we will be mocking the ioctl calls.
 #[cfg(target_pointer_width = "64")]
