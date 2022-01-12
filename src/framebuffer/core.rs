@@ -46,7 +46,7 @@ impl<'a> Default for Framebuffer<'a> {
 }
 
 impl<'a> Framebuffer<'a> {
-    /// Create a new framebuffer instance, autodetecting the correct path.
+    /// Create a new framebuffer instance, autodetecting the correct update method.
     pub fn new() -> Framebuffer<'a> {
         let device = &*device::CURRENT_DEVICE;
         match device.model {
@@ -60,7 +60,7 @@ impl<'a> Framebuffer<'a> {
     ///
     /// This matches the pre-0.6.0 behaviour, and relies on the rm2fb client
     /// shim on RM2. `new` is generally preferred, though existing apps may
-    /// with to use this method to avoid some risk of changing behaviour.
+    /// wish to use this method to avoid some risk of changing behaviour.
     pub fn device(path: &str) -> Framebuffer<'a> {
         let device = OpenOptions::new()
             .read(true)
@@ -70,9 +70,10 @@ impl<'a> Framebuffer<'a> {
         Framebuffer::build(FramebufferUpdate::Ioctl(device))
     }
 
-    /// Uses the rm2fb interface for framebuffer metadata.
+    /// Uses the [rm2fb interface](https://github.com/ddvk/remarkable2-framebuffer)
+    /// ufor framebuffer metadata.
     ///
-    /// This will not work at all on rm1; consider using `new` to autodetect
+    /// This will not work at all on RM1; consider using `new` to autodetect
     /// the right interface for the current hardware.
     pub fn rm2fb() -> Framebuffer<'a> {
         Framebuffer::build(FramebufferUpdate::Swtfb(SwtfbClient::default()))
