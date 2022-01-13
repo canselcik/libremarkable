@@ -28,7 +28,7 @@ unsafe impl<'a> Send for ApplicationContext<'a> {}
 unsafe impl<'a> Sync for ApplicationContext<'a> {}
 
 pub struct ApplicationContext<'a> {
-    framebuffer: Box<core::Framebuffer<'a>>,
+    framebuffer: Box<core::Framebuffer>,
     yres: u32,
     xres: u32,
 
@@ -83,7 +83,7 @@ impl Default for ApplicationContext<'static> {
 
         // Reluctantly resort to using a static global to associate the lua context with the
         // one and only framebuffer that's going to be used
-        unsafe { luaext::G_FB = res.framebuffer.deref_mut() as *mut core::Framebuffer<'_> };
+        unsafe { luaext::G_FB = res.framebuffer.deref_mut() as *mut core::Framebuffer };
 
         let mut nms = lua.empty_array("fb");
         // Clears and refreshes the entire screen
@@ -104,9 +104,9 @@ impl Default for ApplicationContext<'static> {
 }
 
 impl<'a> ApplicationContext<'a> {
-    pub fn get_framebuffer_ref(&mut self) -> &'static mut core::Framebuffer<'static> {
+    pub fn get_framebuffer_ref(&mut self) -> &'static mut core::Framebuffer {
         unsafe {
-            std::mem::transmute::<_, &'static mut core::Framebuffer<'static>>(
+            std::mem::transmute::<_, &'static mut core::Framebuffer>(
                 self.framebuffer.deref_mut(),
             )
         }

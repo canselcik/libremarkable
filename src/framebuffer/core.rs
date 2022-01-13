@@ -1,6 +1,5 @@
 use libc::ioctl;
 use memmap2::{MmapOptions, MmapRaw};
-use rusttype::Font;
 
 use std::fs::{File, OpenOptions};
 use std::os::unix::io::AsRawFd;
@@ -16,7 +15,7 @@ use crate::framebuffer::swtfb_client::SwtfbClient;
 
 /// Framebuffer struct containing the state (latest update marker etc.)
 /// along with the var/fix screeninfo structs.
-pub struct Framebuffer<'a> {
+pub struct Framebuffer {
     pub device: File,
     pub frame: MmapRaw,
     pub marker: AtomicU32,
@@ -28,11 +27,11 @@ pub struct Framebuffer<'a> {
     pub swtfb_client: Option<super::swtfb_client::SwtfbClient>,
 }
 
-unsafe impl<'a> Send for Framebuffer<'a> {}
-unsafe impl<'a> Sync for Framebuffer<'a> {}
+unsafe impl Send for Framebuffer {}
+unsafe impl Sync for Framebuffer {}
 
-impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
-    fn from_path(path_to_device: &str) -> Framebuffer<'_> {
+impl framebuffer::FramebufferBase for Framebuffer {
+    fn from_path(path_to_device: &str) -> Framebuffer {
         let swtfb_client = if path_to_device == crate::device::Model::Gen2.framebuffer_path() {
             Some(SwtfbClient::default())
         } else {

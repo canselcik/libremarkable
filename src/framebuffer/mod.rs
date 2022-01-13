@@ -111,9 +111,9 @@ pub trait FramebufferDraw {
 }
 
 pub mod core;
-pub trait FramebufferBase<'a> {
+pub trait FramebufferBase {
     /// Creates a new instance of Framebuffer
-    fn from_path(path_to_device: &str) -> core::Framebuffer<'_>;
+    fn from_path(path_to_device: &str) -> core::Framebuffer;
     /// Toggles the EPD Controller (see https://wiki.mobileread.com/wiki/EPD_controller)
     fn set_epdc_access(&mut self, state: bool);
     /// Toggles autoupdate mode
