@@ -106,9 +106,7 @@ impl Default for ApplicationContext<'static> {
 impl<'a> ApplicationContext<'a> {
     pub fn get_framebuffer_ref(&mut self) -> &'static mut core::Framebuffer {
         unsafe {
-            std::mem::transmute::<_, &'static mut core::Framebuffer>(
-                self.framebuffer.deref_mut(),
-            )
+            std::mem::transmute::<_, &'static mut core::Framebuffer>(self.framebuffer.deref_mut())
         }
     }
 

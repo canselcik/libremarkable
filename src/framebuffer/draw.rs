@@ -1,6 +1,6 @@
 use image::RgbImage;
 use once_cell::sync::Lazy;
-use rusttype::{Font, point, Scale};
+use rusttype::{point, Font, Scale};
 
 use crate::framebuffer;
 use crate::framebuffer::cgmath::*;
@@ -9,10 +9,10 @@ use crate::framebuffer::core;
 use crate::framebuffer::graphics;
 use crate::framebuffer::FramebufferIO;
 
-pub static DEFAULT_FONT: Lazy<Font<'static>> = Lazy::new(||
+pub static DEFAULT_FONT: Lazy<Font<'static>> = Lazy::new(|| {
     Font::try_from_bytes(include_bytes!("../../assets/Roboto-Regular.ttf").as_slice())
         .expect("corrupted font data")
-);
+});
 
 impl<'a> framebuffer::FramebufferDraw for core::Framebuffer {
     fn draw_image(&mut self, img: &RgbImage, pos: Point2<i32>) -> mxcfb_rect {
