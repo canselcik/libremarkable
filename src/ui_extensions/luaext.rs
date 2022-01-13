@@ -10,12 +10,12 @@ use crate::framebuffer::FramebufferRefresh;
 
 /// We reluctantly resort to a static global here to associate the lua context
 /// with the only active framebuffer we will have
-pub static mut G_FB: *mut core::Framebuffer<'_> = std::ptr::null_mut();
+pub static mut G_FB: *mut core::Framebuffer = std::ptr::null_mut();
 
 /// A macro to utilize this static global only inside this file.
 macro_rules! get_current_framebuffer {
     () => {
-        unsafe { &mut *(G_FB as *mut core::Framebuffer<'_>) }
+        unsafe { &mut *(G_FB as *mut core::Framebuffer) }
     };
 }
 

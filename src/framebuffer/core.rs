@@ -1,6 +1,5 @@
 use libc::ioctl;
 use memmap2::{MmapOptions, MmapRaw};
-use rusttype::Font;
 
 use std::fs::{File, OpenOptions};
 use std::os::unix::io::AsRawFd;
@@ -16,11 +15,10 @@ use crate::framebuffer::swtfb_client::SwtfbClient;
 
 /// Framebuffer struct containing the state (latest update marker etc.)
 /// along with the var/fix screeninfo structs.
-pub struct Framebuffer<'a> {
+pub struct Framebuffer {
     pub device: File,
     pub frame: MmapRaw,
     pub marker: AtomicU32,
-    pub default_font: Font<'a>,
     /// Not updated as a result of calling `Framebuffer::put_var_screeninfo(..)`.
     /// It is your responsibility to update this when you call into that function
     /// like it has been done in `Framebuffer::new(..)`.
@@ -29,11 +27,11 @@ pub struct Framebuffer<'a> {
     pub swtfb_client: Option<super::swtfb_client::SwtfbClient>,
 }
 
-unsafe impl<'a> Send for Framebuffer<'a> {}
-unsafe impl<'a> Sync for Framebuffer<'a> {}
+unsafe impl Send for Framebuffer {}
+unsafe impl Sync for Framebuffer {}
 
-impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
-    fn from_path(path_to_device: &str) -> Framebuffer<'_> {
+impl framebuffer::FramebufferBase for Framebuffer {
+    fn from_path(path_to_device: &str) -> Framebuffer {
         let swtfb_client = if path_to_device == crate::device::Model::Gen2.framebuffer_path() {
             Some(SwtfbClient::default())
         } else {
@@ -85,14 +83,10 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
                 .expect("Unable to map provided path")
         };
 
-        // Load the font
-        let font_data = include_bytes!("../../assets/Roboto-Regular.ttf");
-        let default_font = Font::try_from_bytes(font_data as &[u8]).expect("corrupted font data");
         Framebuffer {
             marker: AtomicU32::new(1),
             device,
             frame: mem_map,
-            default_font,
             var_screen_info,
             fix_screen_info,
             swtfb_client,
