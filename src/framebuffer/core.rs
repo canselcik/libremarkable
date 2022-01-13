@@ -20,7 +20,6 @@ pub struct Framebuffer<'a> {
     pub device: File,
     pub frame: MmapRaw,
     pub marker: AtomicU32,
-    pub default_font: Font<'a>,
     /// Not updated as a result of calling `Framebuffer::put_var_screeninfo(..)`.
     /// It is your responsibility to update this when you call into that function
     /// like it has been done in `Framebuffer::new(..)`.
@@ -85,14 +84,10 @@ impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
                 .expect("Unable to map provided path")
         };
 
-        // Load the font
-        let font_data = include_bytes!("../../assets/Roboto-Regular.ttf");
-        let default_font = Font::try_from_bytes(font_data as &[u8]).expect("corrupted font data");
         Framebuffer {
             marker: AtomicU32::new(1),
             device,
             frame: mem_map,
-            default_font,
             var_screen_info,
             fix_screen_info,
             swtfb_client,
