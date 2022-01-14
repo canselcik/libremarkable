@@ -4,6 +4,8 @@ use crate::framebuffer::mxcfb::*;
 
 // Compatibility re-exports
 pub use crate::dimensions::{DISPLAYHEIGHT, DISPLAYWIDTH};
+#[cfg(feature = "input")]
+pub use crate::dimensions::{MTWIDTH, MTHEIGHT, WACOMWIDTH, WACOMHEIGHT};
 
 /// This is to allow tests to run on systems with 64bit pointer types.
 /// It doesn't make a difference since we will be mocking the ioctl calls.
