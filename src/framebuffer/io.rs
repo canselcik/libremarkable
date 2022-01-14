@@ -4,7 +4,7 @@ use crate::framebuffer;
 use crate::framebuffer::cgmath;
 use crate::framebuffer::common;
 
-impl<'a> framebuffer::FramebufferIO for framebuffer::core::Framebuffer {
+impl framebuffer::FramebufferIO for framebuffer::core::Framebuffer {
     fn write_frame(&mut self, frame: &[u8]) {
         let begin = self.frame.as_mut_ptr();
         unsafe {
