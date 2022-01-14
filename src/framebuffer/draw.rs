@@ -14,7 +14,7 @@ pub static DEFAULT_FONT: Lazy<Font<'static>> = Lazy::new(|| {
         .expect("corrupted font data")
 });
 
-impl<'a> framebuffer::FramebufferDraw for core::Framebuffer {
+impl framebuffer::FramebufferDraw for core::Framebuffer {
     fn draw_image(&mut self, img: &RgbImage, pos: Point2<i32>) -> mxcfb_rect {
         for (x, y, pixel) in img.enumerate_pixels() {
             let pixel_pos = pos + vec2(x as i32, y as i32);
