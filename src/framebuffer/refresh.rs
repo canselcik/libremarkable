@@ -6,6 +6,7 @@ use log::warn;
 use crate::framebuffer;
 use crate::framebuffer::common;
 use crate::framebuffer::core;
+use crate::framebuffer::core::FramebufferUpdate;
 use crate::framebuffer::mxcfb::*;
 
 pub enum PartialRefreshMode {
@@ -42,11 +43,12 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer {
             ..Default::default()
         };
 
-        let update_succeeded = if let Some(ref swtfb_client) = self.swtfb_client {
-            swtfb_client.send_mxcfb_update(&whole)
-        } else {
-            let pt: *const mxcfb_update_data = &whole;
-            (unsafe { libc::ioctl(self.device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt) }) >= 0
+        let update_succeeded = match &self.framebuffer_update {
+            FramebufferUpdate::Ioctl(device) => {
+                let pt: *const mxcfb_update_data = &whole;
+                (unsafe { libc::ioctl(device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt) }) >= 0
+            }
+            FramebufferUpdate::Swtfb(swtfb_client) => swtfb_client.send_mxcfb_update(&whole),
         };
 
         if !update_succeeded {
@@ -120,11 +122,12 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer {
             ..Default::default()
         };
 
-        let update_succeeded = if let Some(ref swtfb_client) = self.swtfb_client {
-            swtfb_client.send_mxcfb_update(&whole)
-        } else {
-            let pt: *const mxcfb_update_data = &whole;
-            (unsafe { libc::ioctl(self.device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt) }) >= 0
+        let update_succeeded = match &self.framebuffer_update {
+            FramebufferUpdate::Ioctl(device) => {
+                let pt: *const mxcfb_update_data = &whole;
+                (unsafe { libc::ioctl(device.as_raw_fd(), common::MXCFB_SEND_UPDATE, pt) }) >= 0
+            }
+            FramebufferUpdate::Swtfb(swtfb_client) => swtfb_client.send_mxcfb_update(&whole),
         };
 
         if !update_succeeded {
@@ -140,26 +143,29 @@ impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer {
     }
 
     fn wait_refresh_complete(&self, update_marker: u32) -> u32 {
-        if let Some(ref swtfb_client) = self.swtfb_client {
-            swtfb_client.wait_for_update_complete();
-            // Assume success
-            return 0;
+        match &self.framebuffer_update {
+            FramebufferUpdate::Ioctl(device) => {
+                let mut markerdata = mxcfb_update_marker_data {
+                    update_marker,
+                    collision_test: 0,
+                };
+                if (unsafe {
+                    libc::ioctl(
+                        device.as_raw_fd(),
+                        common::MXCFB_WAIT_FOR_UPDATE_COMPLETE,
+                        &mut markerdata,
+                    )
+                }) < 0
+                {
+                    warn!("WAIT_FOR_UPDATE_COMPLETE failed");
+                }
+                markerdata.collision_test
+            }
+            FramebufferUpdate::Swtfb(swtfb_client) => {
+                swtfb_client.wait_for_update_complete();
+                // Assume success
+                0
+            }
         }
-
-        let mut markerdata = mxcfb_update_marker_data {
-            update_marker,
-            collision_test: 0,
-        };
-        if (unsafe {
-            libc::ioctl(
-                self.device.as_raw_fd(),
-                common::MXCFB_WAIT_FOR_UPDATE_COMPLETE,
-                &mut markerdata,
-            )
-        }) < 0
-        {
-            warn!("WAIT_FOR_UPDATE_COMPLETE failed");
-        }
-        markerdata.collision_test
     }
 }

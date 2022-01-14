@@ -5,6 +5,8 @@ use std::fs::{File, OpenOptions};
 use std::os::unix::io::AsRawFd;
 use std::sync::atomic::AtomicU32;
 
+use crate::device;
+use crate::device::Model;
 use crate::framebuffer;
 use crate::framebuffer::common::{
     FBIOGET_FSCREENINFO, FBIOGET_VSCREENINFO, FBIOPUT_VSCREENINFO, MXCFB_DISABLE_EPDC_ACCESS,
@@ -12,11 +14,16 @@ use crate::framebuffer::common::{
 };
 use crate::framebuffer::screeninfo::{FixScreeninfo, VarScreeninfo};
 use crate::framebuffer::swtfb_client::SwtfbClient;
+use crate::framebuffer::FramebufferBase;
+
+pub enum FramebufferUpdate {
+    Ioctl(File),
+    Swtfb(SwtfbClient),
+}
 
 /// Framebuffer struct containing the state (latest update marker etc.)
 /// along with the var/fix screeninfo structs.
 pub struct Framebuffer {
-    pub device: File,
     pub frame: MmapRaw,
     pub marker: AtomicU32,
     /// Not updated as a result of calling `Framebuffer::put_var_screeninfo(..)`.
@@ -24,35 +31,66 @@ pub struct Framebuffer {
     /// like it has been done in `Framebuffer::new(..)`.
     pub var_screen_info: VarScreeninfo,
     pub fix_screen_info: FixScreeninfo,
-    pub swtfb_client: Option<super::swtfb_client::SwtfbClient>,
+    pub(crate) framebuffer_update: FramebufferUpdate,
 }
 
 unsafe impl Send for Framebuffer {}
 unsafe impl Sync for Framebuffer {}
 
-impl framebuffer::FramebufferBase for Framebuffer {
-    fn from_path(path_to_device: &str) -> Framebuffer {
-        let swtfb_client = if path_to_device == crate::device::Model::Gen2.framebuffer_path() {
-            Some(SwtfbClient::default())
-        } else {
-            None
-        };
+impl Default for Framebuffer {
+    fn default() -> Self {
+        Framebuffer::new()
+    }
+}
 
-        let (device, mem_map) = if let Some(ref swtfb_client) = swtfb_client {
-            let (device, mem_map) = swtfb_client
-                .open_buffer()
-                .expect("Failed to open swtfb shared buffer");
-            (device, Some(mem_map))
-        } else {
-            let device = OpenOptions::new()
-                .read(true)
-                .write(true)
-                .open(path_to_device)
-                .unwrap();
-            (device, None)
-        };
+impl Framebuffer {
+    /// Create a new framebuffer instance, autodetecting the correct update method.
+    pub fn new() -> Framebuffer {
+        let device = &*device::CURRENT_DEVICE;
+        match device.model {
+            Model::Gen1 => Framebuffer::device(device.get_framebuffer_path()),
+            Model::Gen2 => Framebuffer::rm2fb(),
+        }
+    }
 
-        let mut var_screen_info = Framebuffer::get_var_screeninfo(&device, swtfb_client.as_ref());
+    /// Use the [ioctl-based device interface](https://www.kernel.org/doc/html/latest/fb/internals.html)
+    /// for framebuffer metadata.
+    ///
+    /// This matches the pre-0.6.0 behaviour, and relies on the rm2fb client
+    /// shim on RM2. `new` is generally preferred, though existing apps may
+    /// wish to use this method to avoid some risk of changing behaviour.
+    pub fn device(path: &str) -> Framebuffer {
+        let device = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(path)
+            .unwrap();
+        Framebuffer::build(FramebufferUpdate::Ioctl(device))
+    }
+
+    /// Uses the [rm2fb interface](https://github.com/ddvk/remarkable2-framebuffer)
+    /// ufor framebuffer metadata.
+    ///
+    /// This will not work at all on RM1; consider using `new` to autodetect
+    /// the right interface for the current hardware.
+    pub fn rm2fb() -> Framebuffer {
+        Framebuffer::build(FramebufferUpdate::Swtfb(SwtfbClient::default()))
+    }
+
+    #[deprecated = "Use `new` to autodetect the right update method based on your device version, or `device` or `rm2fb` to choose one explicitly."]
+    pub fn from_path(path_to_device: &str) -> Framebuffer {
+        if path_to_device == crate::device::Model::Gen2.framebuffer_path() {
+            Framebuffer::device(path_to_device)
+        } else {
+            Framebuffer::rm2fb()
+        }
+    }
+
+    fn build(framebuffer_update: FramebufferUpdate) -> Framebuffer {
+        let mut var_screen_info = match &framebuffer_update {
+            FramebufferUpdate::Ioctl(device) => Framebuffer::get_var_screeninfo(device),
+            FramebufferUpdate::Swtfb(c) => c.get_var_screeninfo(),
+        };
         var_screen_info.xres = 1404;
         var_screen_info.yres = 1872;
         var_screen_info.rotate = 1;
@@ -69,123 +107,113 @@ impl framebuffer::FramebufferBase for Framebuffer {
         var_screen_info.vmode = 0; // FB_VMODE_NONINTERLACED
         var_screen_info.accel_flags = 0;
 
-        Framebuffer::put_var_screeninfo(&device, swtfb_client.as_ref(), &mut var_screen_info);
+        let fix_screen_info = match &framebuffer_update {
+            FramebufferUpdate::Ioctl(device) => {
+                Framebuffer::put_var_screeninfo(device, &mut var_screen_info);
+                Framebuffer::get_fix_screeninfo(device)
+            }
+            FramebufferUpdate::Swtfb(c) => c.get_fix_screeninfo(),
+        };
 
-        let fix_screen_info = Framebuffer::get_fix_screeninfo(&device, swtfb_client.as_ref());
         let frame_length = (fix_screen_info.line_length * var_screen_info.yres) as usize;
 
-        let mem_map = if let Some(mem_map) = mem_map {
-            mem_map
-        } else {
-            MmapOptions::new()
+        let mem_map = match &framebuffer_update {
+            FramebufferUpdate::Ioctl(device) => MmapOptions::new()
                 .len(frame_length)
-                .map_raw(&device)
-                .expect("Unable to map provided path")
+                .map_raw(device)
+                .expect("Unable to map provided path"),
+            FramebufferUpdate::Swtfb(swtfb_client) => {
+                let (_, mem_map) = swtfb_client
+                    .open_buffer()
+                    .expect("Failed to open swtfb shared buffer");
+                mem_map
+            }
         };
 
         Framebuffer {
             marker: AtomicU32::new(1),
-            device,
             frame: mem_map,
             var_screen_info,
             fix_screen_info,
-            swtfb_client,
+            framebuffer_update,
         }
     }
+}
 
+impl framebuffer::FramebufferBase for Framebuffer {
     fn set_epdc_access(&mut self, state: bool) {
-        if self.swtfb_client.is_some() {
-            // Not caught/handled in rm2fb => noop
-            return;
-        }
-
-        unsafe {
-            libc::ioctl(
-                self.device.as_raw_fd(),
-                if state {
+        match &self.framebuffer_update {
+            FramebufferUpdate::Ioctl(device) => {
+                let request = if state {
                     MXCFB_ENABLE_EPDC_ACCESS
                 } else {
                     MXCFB_DISABLE_EPDC_ACCESS
-                },
-            );
-        };
+                };
+                unsafe {
+                    libc::ioctl(device.as_raw_fd(), request);
+                };
+            }
+            FramebufferUpdate::Swtfb(_) => {}
+        }
     }
 
     fn set_autoupdate_mode(&mut self, mode: u32) {
-        if self.swtfb_client.is_some() {
-            // https://github.com/ddvk/remarkable2-framebuffer/blob/1e288aa9/src/client/main.cpp#L137
-            // Is a noop in rm2fb
-            return;
+        match &self.framebuffer_update {
+            FramebufferUpdate::Ioctl(device) => {
+                let m = mode.to_owned();
+                unsafe {
+                    libc::ioctl(
+                        device.as_raw_fd(),
+                        MXCFB_SET_AUTO_UPDATE_MODE,
+                        &m as *const u32,
+                    );
+                };
+            }
+            FramebufferUpdate::Swtfb(_) => {}
         }
-
-        let m = mode.to_owned();
-        unsafe {
-            libc::ioctl(
-                self.device.as_raw_fd(),
-                MXCFB_SET_AUTO_UPDATE_MODE,
-                &m as *const u32,
-            );
-        };
     }
 
     fn set_update_scheme(&mut self, scheme: u32) {
-        if self.swtfb_client.is_some() {
-            // Not caught/handled in rm2fb => noop
-            return;
+        match &self.framebuffer_update {
+            FramebufferUpdate::Ioctl(device) => {
+                let s = scheme.to_owned();
+                unsafe {
+                    libc::ioctl(
+                        device.as_raw_fd(),
+                        MXCFB_SET_UPDATE_SCHEME,
+                        &s as *const u32,
+                    );
+                };
+            }
+            FramebufferUpdate::Swtfb(_) => {}
         }
-
-        let s = scheme.to_owned();
-        unsafe {
-            libc::ioctl(
-                self.device.as_raw_fd(),
-                MXCFB_SET_UPDATE_SCHEME,
-                &s as *const u32,
-            );
-        };
     }
 
-    fn get_fix_screeninfo(device: &File, swtfb_client: Option<&SwtfbClient>) -> FixScreeninfo {
-        if let Some(swtfb_client) = swtfb_client {
-            return swtfb_client.get_fix_screeninfo();
-        }
-
+    fn get_fix_screeninfo(device: &File) -> FixScreeninfo {
         let mut info: FixScreeninfo = Default::default();
         let result = unsafe { ioctl(device.as_raw_fd(), FBIOGET_FSCREENINFO, &mut info) };
         assert!(result == 0, "FBIOGET_FSCREENINFO failed");
         info
     }
 
-    fn get_var_screeninfo(device: &File, swtfb_client: Option<&SwtfbClient>) -> VarScreeninfo {
-        if let Some(swtfb_client) = swtfb_client {
-            return swtfb_client.get_var_screeninfo();
-        }
-
+    fn get_var_screeninfo(device: &File) -> VarScreeninfo {
         let mut info: VarScreeninfo = Default::default();
         let result = unsafe { ioctl(device.as_raw_fd(), FBIOGET_VSCREENINFO, &mut info) };
         assert!(result == 0, "FBIOGET_VSCREENINFO failed");
         info
     }
 
-    fn put_var_screeninfo(
-        device: &std::fs::File,
-        swtfb_client: Option<&SwtfbClient>,
-        var_screen_info: &mut VarScreeninfo,
-    ) -> bool {
-        if swtfb_client.is_some() {
-            // https://github.com/ddvk/remarkable2-framebuffer/blob/1e288aa9/src/client/main.cpp#L214
-            // Is a noop in rm2fb
-            return true;
-        }
-
+    fn put_var_screeninfo(device: &std::fs::File, var_screen_info: &mut VarScreeninfo) -> bool {
         let result = unsafe { ioctl(device.as_raw_fd(), FBIOPUT_VSCREENINFO, var_screen_info) };
         result == 0
     }
 
     fn update_var_screeninfo(&mut self) -> bool {
-        Self::put_var_screeninfo(
-            &self.device,
-            self.swtfb_client.as_ref(),
-            &mut self.var_screen_info,
-        )
+        match &self.framebuffer_update {
+            FramebufferUpdate::Ioctl(device) => {
+                Self::put_var_screeninfo(device, &mut self.var_screen_info)
+            }
+            FramebufferUpdate::Swtfb(_) => true,
+        }
     }
 }

@@ -113,8 +113,6 @@ pub trait FramebufferDraw {
 
 pub mod core;
 pub trait FramebufferBase {
-    /// Creates a new instance of Framebuffer
-    fn from_path(path_to_device: &str) -> core::Framebuffer;
     /// Toggles the EPD Controller (see https://wiki.mobileread.com/wiki/EPD_controller)
     fn set_epdc_access(&mut self, state: bool);
     /// Toggles autoupdate mode
@@ -122,21 +120,14 @@ pub trait FramebufferBase {
     /// Toggles update scheme
     fn set_update_scheme(&mut self, scheme: u32);
     /// Creates a FixScreeninfo struct and fills it using ioctl
-    fn get_fix_screeninfo(
-        device: &std::fs::File,
-        swtfb_client: Option<&swtfb_client::SwtfbClient>,
-    ) -> screeninfo::FixScreeninfo;
+    fn get_fix_screeninfo(device: &std::fs::File) -> screeninfo::FixScreeninfo;
     /// Creates a VarScreeninfo struct and fills it using ioctl
-    fn get_var_screeninfo(
-        device: &std::fs::File,
-        swtfb_client: Option<&swtfb_client::SwtfbClient>,
-    ) -> screeninfo::VarScreeninfo;
+    fn get_var_screeninfo(device: &std::fs::File) -> screeninfo::VarScreeninfo;
     /// Makes the proper ioctl call to set the VarScreenInfo.
     /// You must first update the contents of self.var_screen_info
     /// and then call this function.
     fn put_var_screeninfo(
         device: &std::fs::File,
-        swtfb_client: Option<&swtfb_client::SwtfbClient>,
         var_screen_info: &mut screeninfo::VarScreeninfo,
     ) -> bool;
 

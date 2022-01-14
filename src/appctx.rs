@@ -12,7 +12,6 @@ use crate::framebuffer::cgmath;
 use crate::framebuffer::common::*;
 use crate::framebuffer::core;
 use crate::framebuffer::refresh::PartialRefreshMode;
-use crate::framebuffer::FramebufferBase;
 use crate::framebuffer::FramebufferDraw;
 use crate::framebuffer::FramebufferRefresh;
 use crate::input::ev;
@@ -49,9 +48,7 @@ pub struct ApplicationContext<'a> {
 
 impl Default for ApplicationContext<'static> {
     fn default() -> ApplicationContext<'static> {
-        let framebuffer = Box::new(core::Framebuffer::from_path(
-            crate::device::CURRENT_DEVICE.get_framebuffer_path(),
-        ));
+        let framebuffer = Box::new(core::Framebuffer::new());
         let yres = framebuffer.var_screen_info.yres;
         let xres = framebuffer.var_screen_info.xres;
 
