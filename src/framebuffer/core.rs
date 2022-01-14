@@ -1,6 +1,5 @@
 use libc::ioctl;
 use memmap2::{MmapOptions, MmapRaw};
-use rusttype::Font;
 
 use std::fs::{File, OpenOptions};
 use std::os::unix::io::AsRawFd;
@@ -24,10 +23,9 @@ pub enum FramebufferUpdate {
 
 /// Framebuffer struct containing the state (latest update marker etc.)
 /// along with the var/fix screeninfo structs.
-pub struct Framebuffer<'a> {
+pub struct Framebuffer {
     pub frame: MmapRaw,
     pub marker: AtomicU32,
-    pub default_font: Font<'a>,
     /// Not updated as a result of calling `Framebuffer::put_var_screeninfo(..)`.
     /// It is your responsibility to update this when you call into that function
     /// like it has been done in `Framebuffer::new(..)`.
@@ -36,18 +34,18 @@ pub struct Framebuffer<'a> {
     pub(crate) framebuffer_update: FramebufferUpdate,
 }
 
-unsafe impl<'a> Send for Framebuffer<'a> {}
-unsafe impl<'a> Sync for Framebuffer<'a> {}
+unsafe impl Send for Framebuffer {}
+unsafe impl Sync for Framebuffer {}
 
-impl<'a> Default for Framebuffer<'a> {
+impl Default for Framebuffer {
     fn default() -> Self {
         Framebuffer::new()
     }
 }
 
-impl<'a> Framebuffer<'a> {
+impl Framebuffer {
     /// Create a new framebuffer instance, autodetecting the correct update method.
-    pub fn new() -> Framebuffer<'a> {
+    pub fn new() -> Framebuffer {
         let device = &*device::CURRENT_DEVICE;
         match device.model {
             Model::Gen1 => Framebuffer::device(device.get_framebuffer_path()),
@@ -61,7 +59,7 @@ impl<'a> Framebuffer<'a> {
     /// This matches the pre-0.6.0 behaviour, and relies on the rm2fb client
     /// shim on RM2. `new` is generally preferred, though existing apps may
     /// wish to use this method to avoid some risk of changing behaviour.
-    pub fn device(path: &str) -> Framebuffer<'a> {
+    pub fn device(path: &str) -> Framebuffer {
         let device = OpenOptions::new()
             .read(true)
             .write(true)
@@ -75,12 +73,12 @@ impl<'a> Framebuffer<'a> {
     ///
     /// This will not work at all on RM1; consider using `new` to autodetect
     /// the right interface for the current hardware.
-    pub fn rm2fb() -> Framebuffer<'a> {
+    pub fn rm2fb() -> Framebuffer {
         Framebuffer::build(FramebufferUpdate::Swtfb(SwtfbClient::default()))
     }
 
     #[deprecated = "Use `new` to autodetect the right update method based on your device version, or `device` or `rm2fb` to choose one explicitly."]
-    pub fn from_path(path_to_device: &str) -> Framebuffer<'a> {
+    pub fn from_path(path_to_device: &str) -> Framebuffer {
         if path_to_device == crate::device::Model::Gen2.framebuffer_path() {
             Framebuffer::device(path_to_device)
         } else {
@@ -88,7 +86,7 @@ impl<'a> Framebuffer<'a> {
         }
     }
 
-    fn build(framebuffer_update: FramebufferUpdate) -> Framebuffer<'a> {
+    fn build(framebuffer_update: FramebufferUpdate) -> Framebuffer {
         let mut var_screen_info = match &framebuffer_update {
             FramebufferUpdate::Ioctl(device) => Framebuffer::get_var_screeninfo(device),
             FramebufferUpdate::Swtfb(c) => c.get_var_screeninfo(),
@@ -132,13 +130,9 @@ impl<'a> Framebuffer<'a> {
             }
         };
 
-        // Load the font
-        let font_data = include_bytes!("../../assets/Roboto-Regular.ttf");
-        let default_font = Font::try_from_bytes(font_data as &[u8]).expect("corrupted font data");
         Framebuffer {
             marker: AtomicU32::new(1),
             frame: mem_map,
-            default_font,
             var_screen_info,
             fix_screen_info,
             framebuffer_update,
@@ -146,7 +140,7 @@ impl<'a> Framebuffer<'a> {
     }
 }
 
-impl<'a> framebuffer::FramebufferBase<'a> for Framebuffer<'a> {
+impl framebuffer::FramebufferBase for Framebuffer {
     fn set_epdc_access(&mut self, state: bool) {
         match &self.framebuffer_update {
             FramebufferUpdate::Ioctl(device) => {

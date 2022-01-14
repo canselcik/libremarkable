@@ -1,5 +1,6 @@
 use image::RgbImage;
-use rusttype::{point, Scale};
+use once_cell::sync::Lazy;
+use rusttype::{point, Font, Scale};
 
 use crate::framebuffer;
 use crate::framebuffer::cgmath::*;
@@ -8,7 +9,12 @@ use crate::framebuffer::core;
 use crate::framebuffer::graphics;
 use crate::framebuffer::FramebufferIO;
 
-impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
+pub static DEFAULT_FONT: Lazy<Font<'static>> = Lazy::new(|| {
+    Font::try_from_bytes(include_bytes!("../../assets/Roboto-Regular.ttf").as_slice())
+        .expect("corrupted font data")
+});
+
+impl<'a> framebuffer::FramebufferDraw for core::Framebuffer {
     fn draw_image(&mut self, img: &RgbImage, pos: Point2<i32>) -> mxcfb_rect {
         for (x, y, pixel) in img.enumerate_pixels() {
             let pixel_pos = pos + vec2(x as i32, y as i32);
@@ -145,8 +151,6 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         // The starting positioning of the glyphs (top left corner)
         let start = point(pos.x, pos.y);
 
-        let dfont = &mut self.default_font.clone();
-
         let mut min_y = pos.y.floor().max(0.0) as u32;
         let mut max_y = pos.y.ceil().max(0.0) as u32;
         let mut min_x = pos.x.floor().max(0.0) as u32;
@@ -158,7 +162,7 @@ impl<'a> framebuffer::FramebufferDraw for core::Framebuffer<'a> {
         let c3 = f32::from(255 - components[2]);
 
         // Loop through the glyphs in the text, positing each one on a line
-        for glyph in dfont.layout(text, scale, start) {
+        for glyph in DEFAULT_FONT.layout(text, scale, start) {
             if let Some(bounding_box) = glyph.pixel_bounding_box() {
                 // Draw the glyph into the image per-pixel by using the draw closure
                 let bbmax_y = bounding_box.max.y as u32;

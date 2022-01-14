@@ -2,6 +2,7 @@ pub mod common;
 pub mod mxcfb;
 pub mod screeninfo;
 
+#[cfg(feature = "appctx")]
 pub mod storage;
 
 pub mod io;
@@ -111,7 +112,7 @@ pub trait FramebufferDraw {
 }
 
 pub mod core;
-pub trait FramebufferBase<'a> {
+pub trait FramebufferBase {
     /// Toggles the EPD Controller (see https://wiki.mobileread.com/wiki/EPD_controller)
     fn set_epdc_access(&mut self, state: bool);
     /// Toggles autoupdate mode

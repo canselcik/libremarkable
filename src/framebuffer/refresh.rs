@@ -15,7 +15,7 @@ pub enum PartialRefreshMode {
     Wait,
 }
 
-impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer<'a> {
+impl<'a> framebuffer::FramebufferRefresh for core::Framebuffer {
     fn full_refresh(
         &self,
         waveform_mode: common::waveform_mode,
