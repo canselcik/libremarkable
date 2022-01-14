@@ -19,6 +19,16 @@ jobs:
         command: check
         use-cross: true
         args: --target ${{ env.TARGET }}
+    - uses: actions-rs/cargo@v1
+      with:
+        command: check
+        use-cross: true
+        args: --target ${{ env.TARGET }} --no-default-features
+    - uses: actions-rs/cargo@v1
+      with:
+        command: check
+        use-cross: true
+        args: --target ${{ env.TARGET }} --no-default-features --features framebuffer
 
   test:
     name: Test Suite on gnueabihf

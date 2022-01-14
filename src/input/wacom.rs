@@ -9,8 +9,8 @@ use log::debug;
 use once_cell::sync::Lazy;
 use std::sync::atomic::{AtomicU16, Ordering};
 
-use crate::framebuffer::cgmath;
-use crate::framebuffer::common::{DISPLAYHEIGHT, DISPLAYWIDTH, WACOMHEIGHT, WACOMWIDTH};
+use crate::cgmath;
+use crate::dimensions::{DISPLAYHEIGHT, DISPLAYWIDTH, WACOMHEIGHT, WACOMWIDTH};
 
 static WACOM_HSCALAR: Lazy<f32> = Lazy::new(|| (DISPLAYWIDTH as f32) / (*WACOMWIDTH as f32));
 static WACOM_VSCALAR: Lazy<f32> = Lazy::new(|| (DISPLAYHEIGHT as f32) / (*WACOMHEIGHT as f32));

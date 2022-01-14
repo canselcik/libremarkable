@@ -2,6 +2,7 @@ pub mod common;
 pub mod mxcfb;
 pub mod screeninfo;
 
+#[cfg(feature = "appctx")]
 pub mod storage;
 
 pub mod io;
