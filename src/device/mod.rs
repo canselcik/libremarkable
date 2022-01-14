@@ -1,5 +1,8 @@
-use crate::input::rotate::InputDeviceRotation;
+use rotate::InputDeviceRotation;
 use once_cell::sync::Lazy;
+
+/// Utility for rotating
+pub mod rotate;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Model {

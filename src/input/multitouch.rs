@@ -2,7 +2,7 @@ use super::ecodes;
 use crate::cgmath;
 use crate::device::CURRENT_DEVICE;
 use crate::dimensions::{DISPLAYHEIGHT, DISPLAYWIDTH, MTHEIGHT, MTWIDTH};
-use crate::input::rotate::CoordinatePart;
+use crate::device::rotate::CoordinatePart;
 use crate::input::scan::SCANNED;
 use crate::input::{InputDeviceState, InputEvent};
 use once_cell::sync::Lazy;

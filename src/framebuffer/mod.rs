@@ -2,7 +2,7 @@ pub mod common;
 pub mod mxcfb;
 pub mod screeninfo;
 
-#[cfg(feature = "appctx")]
+#[cfg(feature = "framebuffer-storage")]
 pub mod storage;
 
 pub mod io;
@@ -32,9 +32,13 @@ pub trait FramebufferIO {
     ) -> Result<u32, &'static str>;
 }
 
+#[cfg(feature = "framebuffer-drawing")]
 mod graphics;
 
+#[cfg(feature = "framebuffer-drawing")]
 pub mod draw;
+
+#[cfg(feature = "framebuffer-drawing")]
 pub trait FramebufferDraw {
     /// Draws `img` at `pos` with 1:1 scaling
     fn draw_image(&mut self, img: &image::RgbImage, pos: cgmath::Point2<i32>)
@@ -89,6 +93,7 @@ pub trait FramebufferDraw {
         v: common::color,
     ) -> common::mxcfb_rect;
     /// Draws `text` at `pos` with `color` using scale `size`
+    #[cfg(feature = "framebuffer-text-drawing")]
     fn draw_text(
         &mut self,
         pos: cgmath::Point2<f32>,

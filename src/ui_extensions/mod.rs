@@ -1,4 +1,5 @@
 /// Contains the glue code connecting the Lua context to the methods used for IO
+#[cfg(feature = "appctx-lua")]
 pub mod luaext;
 
 /// Contains the types used by the `ApplicationContext` such as `UIElementWrapper`, etc.

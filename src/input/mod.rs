@@ -18,9 +18,6 @@ pub mod ecodes;
 /// device dependant properties
 pub mod scan;
 
-/// Utility for rotating
-pub mod rotate;
-
 #[derive(PartialEq, Copy, Clone, Debug, Hash, Eq)]
 pub enum InputDevice {
     Wacom,

@@ -5,7 +5,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::RwLock;
 
 use aabb_quadtree::{geom, ItemId, QuadTree};
-use hlua::Lua;
 use log::warn;
 
 use crate::framebuffer::cgmath;
@@ -21,6 +20,11 @@ use crate::ui_extensions::element::{
     ActiveRegionFunction, ActiveRegionHandler, UIConstraintRefresh, UIElementHandle,
     UIElementWrapper,
 };
+
+#[cfg(feature = "appctx-lua")]
+use hlua::Lua;
+
+#[cfg(feature = "appctx-lua")]
 use crate::ui_extensions::luaext;
 
 unsafe impl<'a> Send for ApplicationContext<'a> {}
@@ -33,6 +37,7 @@ pub struct ApplicationContext<'a> {
 
     running: AtomicBool,
 
+    #[cfg(feature = "appctx-lua")]
     lua: UnsafeCell<Lua<'a>>,
 
     input_tx: std::sync::mpsc::Sender<InputEvent>,
@@ -61,6 +66,7 @@ impl Default for ApplicationContext<'static> {
             xres,
             yres,
             running: AtomicBool::new(false),
+            #[cfg(feature = "appctx-lua")]
             lua: UnsafeCell::new(Lua::new()),
             input_rx,
             input_tx,
@@ -73,28 +79,32 @@ impl Default for ApplicationContext<'static> {
                 },
             )),
         };
-        let lua = res.get_lua_ref();
 
         // Enable all std lib
-        lua.openlibs();
+        #[cfg(feature = "appctx-lua")]
+        {
+            let lua = res.get_lua_ref();
 
-        // Reluctantly resort to using a static global to associate the lua context with the
-        // one and only framebuffer that's going to be used
-        unsafe { luaext::G_FB = res.framebuffer.deref_mut() as *mut core::Framebuffer };
+            lua.openlibs();
 
-        let mut nms = lua.empty_array("fb");
-        // Clears and refreshes the entire screen
-        nms.set("clear", hlua::function0(luaext::lua_clear));
+            // Reluctantly resort to using a static global to associate the lua context with the
+            // one and only framebuffer that's going to be used
+            unsafe { luaext::G_FB = res.framebuffer.deref_mut() as *mut core::Framebuffer };
 
-        // Refreshes the provided rectangle. Here we are exposing a predefined set of the
-        // flags to the Lua API to simplify its use for building interfaces.
-        nms.set("refresh", hlua::function6(luaext::lua_refresh));
+            let mut nms = lua.empty_array("fb");
+            // Clears and refreshes the entire screen
+            nms.set("clear", hlua::function0(luaext::lua_clear));
 
-        // Draws text with rusttype
-        nms.set("draw_text", hlua::function5(luaext::lua_draw_text));
+            // Refreshes the provided rectangle. Here we are exposing a predefined set of the
+            // flags to the Lua API to simplify its use for building interfaces.
+            nms.set("refresh", hlua::function6(luaext::lua_refresh));
 
-        // Sets the pixel to the u8 color value, does no refresh. Refresh done explicitly via calling `refresh`
-        nms.set("set_pixel", hlua::function3(luaext::lua_set_pixel));
+            // Draws text with rusttype
+            nms.set("draw_text", hlua::function5(luaext::lua_draw_text));
+
+            // Sets the pixel to the u8 color value, does no refresh. Refresh done explicitly via calling `refresh`
+            nms.set("set_pixel", hlua::function3(luaext::lua_set_pixel));
+        }
 
         res
     }
@@ -114,6 +124,7 @@ impl<'a> ApplicationContext<'a> {
         unsafe { std::mem::transmute(self) }
     }
 
+    #[cfg(feature = "appctx-lua")]
     pub fn get_lua_ref(&mut self) -> &'a mut Lua<'static> {
         #[allow(clippy::transmute_ptr_to_ref)]
         unsafe {
@@ -125,6 +136,7 @@ impl<'a> ApplicationContext<'a> {
         (self.yres, self.xres)
     }
 
+    #[cfg(feature = "appctx-lua")]
     pub fn execute_lua(&mut self, code: &str) {
         let lua = self.get_lua_ref();
         if let Err(e) = lua.execute::<hlua::AnyLuaValue>(code) {
