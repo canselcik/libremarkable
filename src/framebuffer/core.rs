@@ -144,15 +144,13 @@ impl framebuffer::FramebufferBase for Framebuffer {
     fn set_epdc_access(&mut self, state: bool) {
         match &self.framebuffer_update {
             FramebufferUpdate::Ioctl(device) => {
+                let request = if state {
+                    MXCFB_ENABLE_EPDC_ACCESS
+                } else {
+                    MXCFB_DISABLE_EPDC_ACCESS
+                };
                 unsafe {
-                    libc::ioctl(
-                        device.as_raw_fd(),
-                        if state {
-                            MXCFB_ENABLE_EPDC_ACCESS
-                        } else {
-                            MXCFB_DISABLE_EPDC_ACCESS
-                        },
-                    );
+                    libc::ioctl(device.as_raw_fd(), request);
                 };
             }
             FramebufferUpdate::Swtfb(_) => {}
