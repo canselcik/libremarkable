@@ -1,6 +1,6 @@
 use super::ecodes;
-use crate::device::CURRENT_DEVICE;
 use crate::device::rotate::CoordinatePart;
+use crate::device::CURRENT_DEVICE;
 use crate::input::scan::SCANNED;
 use crate::input::{InputDeviceState, InputEvent};
 use atomic::Atomic;
