@@ -43,7 +43,7 @@ hlua = { version = "0.4.1", optional = true }
 stopwatch = { version = "0.0.7", optional = true }
 
 [features]
-default = ["framebuffer", "framebuffer-drawing", "input", "battery", "appctx", "appctx-lua"]
+default = ["framebuffer", "framebuffer-storage", "framebuffer-drawing", "input", "battery", "appctx", "appctx-lua"]
 
 framebuffer = ["memmap2", "ioctl-gen"]
 framebuffer-storage = ["image", "zstd"]
