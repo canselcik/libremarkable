@@ -122,12 +122,9 @@ impl Framebuffer {
                 .len(frame_length)
                 .map_raw(device)
                 .expect("Unable to map provided path"),
-            FramebufferUpdate::Swtfb(swtfb_client) => {
-                let (_, mem_map) = swtfb_client
-                    .open_buffer()
-                    .expect("Failed to open swtfb shared buffer");
-                mem_map
-            }
+            FramebufferUpdate::Swtfb(swtfb_client) => swtfb_client
+                .open_buffer()
+                .expect("Failed to open swtfb shared buffer"),
         };
 
         Framebuffer {

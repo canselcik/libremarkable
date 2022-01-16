@@ -9,7 +9,7 @@ use crate::device;
 use crate::framebuffer::screeninfo::{FixScreeninfo, VarScreeninfo};
 use memmap2::{MmapOptions, MmapRaw};
 use std::ffi::{c_void, CStr, CString};
-use std::fs::{File, OpenOptions};
+use std::fs::OpenOptions;
 use std::io::Error as IoError;
 use std::os::unix::prelude::AsRawFd;
 use std::{env, mem, ptr};
@@ -102,7 +102,7 @@ impl Default for SwtfbClient {
 }
 
 impl SwtfbClient {
-    pub fn open_buffer(&self) -> Result<(File, MmapRaw), IoError> {
+    pub fn open_buffer(&self) -> Result<MmapRaw, IoError> {
         let device = OpenOptions::new()
             .read(true)
             .write(true)
@@ -112,7 +112,7 @@ impl SwtfbClient {
             return Err(IoError::last_os_error());
         }
         let mem_map = MmapOptions::new().len(BUF_SIZE as usize).map_raw(&device)?;
-        Ok((device, mem_map))
+        Ok(mem_map)
     }
 
     pub fn send(&self, update: &swtfb_update) -> bool {
