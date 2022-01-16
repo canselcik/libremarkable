@@ -49,7 +49,7 @@ impl Framebuffer {
         let device = &*device::CURRENT_DEVICE;
         match device.model {
             Model::Gen1 => Framebuffer::device(device.get_framebuffer_path()),
-            Model::Gen2 => Framebuffer::rm2fb(),
+            Model::Gen2 => Framebuffer::rm2fb(device.get_framebuffer_path()),
         }
     }
 
@@ -73,8 +73,8 @@ impl Framebuffer {
     ///
     /// This will not work at all on RM1; consider using `new` to autodetect
     /// the right interface for the current hardware.
-    pub fn rm2fb() -> Framebuffer {
-        Framebuffer::build(FramebufferUpdate::Swtfb(SwtfbClient::default()))
+    pub fn rm2fb(path: &str) -> Framebuffer {
+        Framebuffer::build(FramebufferUpdate::Swtfb(SwtfbClient::new(path)))
     }
 
     #[deprecated = "Use `new` to autodetect the right update method based on your device version, or `device` or `rm2fb` to choose one explicitly."]
@@ -82,7 +82,7 @@ impl Framebuffer {
         if path_to_device == crate::device::Model::Gen2.framebuffer_path() {
             Framebuffer::device(path_to_device)
         } else {
-            Framebuffer::rm2fb()
+            Framebuffer::rm2fb(path_to_device)
         }
     }
 
