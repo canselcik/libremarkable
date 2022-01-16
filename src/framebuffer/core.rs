@@ -3,6 +3,7 @@ use memmap2::{MmapOptions, MmapRaw};
 
 use std::fs::{File, OpenOptions};
 use std::os::unix::io::AsRawFd;
+use std::path::Path;
 use std::sync::atomic::AtomicU32;
 
 use crate::device;
@@ -59,7 +60,7 @@ impl Framebuffer {
     /// This matches the pre-0.6.0 behaviour, and relies on the rm2fb client
     /// shim on RM2. `new` is generally preferred, though existing apps may
     /// wish to use this method to avoid some risk of changing behaviour.
-    pub fn device(path: &str) -> Framebuffer {
+    pub fn device(path: impl AsRef<Path>) -> Framebuffer {
         let device = OpenOptions::new()
             .read(true)
             .write(true)
@@ -73,7 +74,7 @@ impl Framebuffer {
     ///
     /// This will not work at all on RM1; consider using `new` to autodetect
     /// the right interface for the current hardware.
-    pub fn rm2fb(path: &str) -> Framebuffer {
+    pub fn rm2fb(path: impl AsRef<Path>) -> Framebuffer {
         Framebuffer::build(FramebufferUpdate::Swtfb(SwtfbClient::new(path)))
     }
 
