@@ -46,14 +46,14 @@ fn main() {
             &rgb565,
         )
         .unwrap();
-        let url = request.url().to_lowercase();
-        let (data, mime) = if url.ends_with("jpg") || url.ends_with("jpeg") {
+        let url_lc = request.url().to_lowercase();
+        let (data, mime) = if url_lc.ends_with("jpg") || url_lc.ends_with("jpeg") {
             (encode(&*&rgb888, ImageFormat::Jpeg), "image/jpeg")
-        } else if url.ends_with("gif") {
+        } else if url_lc.ends_with("gif") {
             (encode(&*&rgb888, ImageFormat::Gif), "image/gif")
-        } else if url.ends_with("bmp") {
+        } else if url_lc.ends_with("bmp") {
             (encode(&*&rgb888, ImageFormat::Bmp), "image/bmp")
-        } else if url.ends_with("tga") {
+        } else if url_lc.ends_with("tga") {
             (encode(&*&rgb888, ImageFormat::Tga), "image/x-tga")
         } else {
             (encode(&*&rgb888, ImageFormat::Png), "image/png")
@@ -78,14 +78,14 @@ fn encode(img_buf: &[u8], format: ImageFormat) -> Vec<u8> {
         _ => unimplemented!(),
     }
     .unwrap();
-    let res = writer.into_inner();
+    let encoded = writer.into_inner();
     println!(
         "Encoded screenshot as {:?} in {:?} resulting in a file of {} KiB",
         format,
         start.elapsed(),
-        res.len() / 1024
+        encoded.len() / 1024
     );
-    res
+    encoded
 }
 
 const INDEX_PAGE: &str = r#"<!DOCTYPE html>
