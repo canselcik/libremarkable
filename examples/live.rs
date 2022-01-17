@@ -10,7 +10,7 @@ use libremarkable::framebuffer::common::{DISPLAYHEIGHT, DISPLAYWIDTH};
 /// An HTTP server that listens on :8000 and responds to all incoming requests
 /// with the full contents of the framebuffer properly exported as a JPEG.
 fn main() {
-    let fb = Framebuffer::from_path("/dev/fb0");
+    let fb = Framebuffer::new();
     println!("libremarkable Framebuffer device initialized");
 
     let server = Server::http("0.0.0.0:8000").unwrap();
