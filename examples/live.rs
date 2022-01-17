@@ -1,11 +1,14 @@
+use image::{
+    bmp::BmpEncoder, gif::GifEncoder, jpeg::JpegEncoder, png::PngEncoder, tga::TgaEncoder,
+    ColorType::Rgb8, ImageFormat,
+};
 use libremarkable::framebuffer;
+use libremarkable::framebuffer::common::{DISPLAYHEIGHT, DISPLAYWIDTH};
 use libremarkable::framebuffer::core::Framebuffer;
 use libremarkable::framebuffer::FramebufferIO;
 use libremarkable::image;
 use std::io::BufWriter;
-use tiny_http::{Response, Server};
-
-use libremarkable::framebuffer::common::{DISPLAYHEIGHT, DISPLAYWIDTH};
+use tiny_http::{Header, Response, Server, StatusCode};
 
 /// An HTTP server that listens on :8000 and responds to all incoming requests
 /// with the full contents of the framebuffer properly exported as a JPEG.
@@ -37,24 +40,36 @@ fn main() {
             &rgb565,
         )
         .unwrap();
-        let mut writer = BufWriter::new(Vec::new());
-        image::jpeg::JpegEncoder::new(&mut writer)
-            .encode(
-                &rgb888,
-                DISPLAYWIDTH.into(),
-                DISPLAYHEIGHT.into(),
-                image::ColorType::Rgb8,
-            )
-            .unwrap();
-
-        let jpg = writer.into_inner().unwrap();
-        let response = Response::new_empty(tiny_http::StatusCode(200))
-            .with_data(&*jpg, Some(jpg.len()))
-            .with_header(
-                "Content-Type: image/jpeg"
-                    .parse::<tiny_http::Header>()
-                    .unwrap(),
-            );
+        let url = request.url().to_lowercase();
+        let (data, mime) = if url.ends_with("jpg") || url.ends_with("jpeg") {
+            (encode(&*&rgb888, ImageFormat::Jpeg), "image/jpeg")
+        } else if url.ends_with("gif") {
+            (encode(&*&rgb888, ImageFormat::Gif), "image/gif")
+        } else if url.ends_with("bmp") {
+            (encode(&*&rgb888, ImageFormat::Bmp), "image/bmp")
+        } else if url.ends_with("tga") {
+            (encode(&*&rgb888, ImageFormat::Tga), "image/x-tga")
+        } else {
+            (encode(&*&rgb888, ImageFormat::Png), "image/png")
+        };
+        let response = Response::new_empty(StatusCode(200))
+            .with_data(&*data, Some(data.len()))
+            .with_header(format!("Content-Type: {}", mime).parse::<Header>().unwrap());
         request.respond(response).unwrap();
     }
+}
+
+fn encode(img_buf: &[u8], format: ImageFormat) -> Vec<u8> {
+    let (width, height) = (DISPLAYWIDTH.into(), DISPLAYHEIGHT.into());
+    let mut writer = BufWriter::new(Vec::new());
+    match format {
+        ImageFormat::Bmp => BmpEncoder::new(&mut writer).encode(img_buf, width, height, Rgb8),
+        ImageFormat::Gif => GifEncoder::new(&mut writer).encode(img_buf, width, height, Rgb8),
+        ImageFormat::Jpeg => JpegEncoder::new(&mut writer).encode(img_buf, width, height, Rgb8),
+        ImageFormat::Png => PngEncoder::new(&mut writer).encode(img_buf, width, height, Rgb8),
+        ImageFormat::Tga => TgaEncoder::new(&mut writer).encode(img_buf, width, height, Rgb8),
+        _ => unimplemented!(),
+    }
+    .unwrap();
+    writer.into_inner().unwrap()
 }
