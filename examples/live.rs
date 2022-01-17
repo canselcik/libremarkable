@@ -24,6 +24,12 @@ fn main() {
             request.respond(Response::empty(404)).unwrap();
             continue;
         }
+        if request.url() == "/" {
+            let response = Response::from_string(INDEX_PAGE)
+                .with_header("Content-Type: text/html".parse::<Header>().unwrap());
+            request.respond(response).unwrap();
+            continue;
+        }
 
         let rgb565 = fb
             .dump_region(framebuffer::common::mxcfb_rect {
@@ -81,3 +87,46 @@ fn encode(img_buf: &[u8], format: ImageFormat) -> Vec<u8> {
     );
     res
 }
+
+const INDEX_PAGE: &str = r#"<!DOCTYPE html>
+<html>
+    <head>
+        <title>libremarkable example: live</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body {
+                background-color: #f0f0f0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            body > p {
+                text-align: center;
+            }
+            a {
+                text-decoration: inherit;
+                color: inherit;
+                border: 2px solid gray;
+                margin-bottom: 5px;
+                padding: 3px 3px;
+                transition-duration: 0.2s;
+            }
+            a:hover {
+                box-shadow: 0px 0px 2px rgba(0, 0, 0, 0.8);
+                transition-duration: 0.2s;
+            }
+            body > * {
+                width: 100%;
+                max-width: 440px;
+            }
+        </style>
+    </head>
+        <p><b>Create screenshot as</b></p>
+        <a href="/png">PNG<br><small>Lossless, fast and small when few realistic graphics included.</small></a>
+        <a href="/jpg">JPG<br><small>Lossy, slower and usually smaller, can add noise in UIs.</small></a>
+        <a href="/gif">GIF<br><small>Lossless, very small and slow. Reduced colour pallete.</small></a>
+        <a href="/tga">TGA<br><small>Lossless, huge and fast. Usually slowest due to speed, but raw.</small></a>
+        <small>You can save the image by right clicking or holding the image and selecting <i>Save image</i></small>
+    </body>
+</html>
+"#;
