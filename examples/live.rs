@@ -7,7 +7,7 @@ use libremarkable::framebuffer::common::{DISPLAYHEIGHT, DISPLAYWIDTH};
 use libremarkable::framebuffer::core::Framebuffer;
 use libremarkable::framebuffer::FramebufferIO;
 use libremarkable::image;
-use std::io::BufWriter;
+use std::io::Cursor;
 use tiny_http::{Header, Response, Server, StatusCode};
 
 /// An HTTP server that listens on :8000 and responds to all incoming requests
@@ -61,7 +61,7 @@ fn main() {
 
 fn encode(img_buf: &[u8], format: ImageFormat) -> Vec<u8> {
     let (width, height) = (DISPLAYWIDTH.into(), DISPLAYHEIGHT.into());
-    let mut writer = BufWriter::new(Vec::new());
+    let mut writer = Cursor::new(Vec::new());
     match format {
         ImageFormat::Bmp => BmpEncoder::new(&mut writer).encode(img_buf, width, height, Rgb8),
         ImageFormat::Gif => GifEncoder::new(&mut writer).encode(img_buf, width, height, Rgb8),
@@ -71,5 +71,5 @@ fn encode(img_buf: &[u8], format: ImageFormat) -> Vec<u8> {
         _ => unimplemented!(),
     }
     .unwrap();
-    writer.into_inner().unwrap()
+    writer.into_inner()
 }
