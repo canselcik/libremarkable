@@ -60,6 +60,7 @@ fn main() {
 }
 
 fn encode(img_buf: &[u8], format: ImageFormat) -> Vec<u8> {
+    let start = std::time::Instant::now();
     let (width, height) = (DISPLAYWIDTH.into(), DISPLAYHEIGHT.into());
     let mut writer = Cursor::new(Vec::new());
     match format {
@@ -71,5 +72,12 @@ fn encode(img_buf: &[u8], format: ImageFormat) -> Vec<u8> {
         _ => unimplemented!(),
     }
     .unwrap();
-    writer.into_inner()
+    let res = writer.into_inner();
+    println!(
+        "Encoded screenshot as {:?} in {:?} resulting in a file of {} KiB",
+        format,
+        start.elapsed(),
+        res.len() / 1024
+    );
+    res
 }
