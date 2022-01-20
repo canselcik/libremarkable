@@ -1,14 +1,14 @@
-#[cfg(feature = "appctx-lua")]
+#[cfg(feature = "hlua")]
 use std::cell::UnsafeCell;
 use std::collections::HashMap;
-#[cfg(not(feature = "appctx-lua"))]
+#[cfg(not(feature = "hlua"))]
 use std::marker::PhantomData;
 use std::ops::DerefMut;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::RwLock;
 
 use aabb_quadtree::{geom, ItemId, QuadTree};
-#[cfg(feature = "appctx-lua")]
+#[cfg(feature = "hlua")]
 use log::warn;
 
 use crate::framebuffer::cgmath;
@@ -25,10 +25,10 @@ use crate::ui_extensions::element::{
     UIElementWrapper,
 };
 
-#[cfg(feature = "appctx-lua")]
+#[cfg(feature = "hlua")]
 use hlua::Lua;
 
-#[cfg(feature = "appctx-lua")]
+#[cfg(feature = "hlua")]
 use crate::ui_extensions::luaext;
 
 unsafe impl<'a> Send for ApplicationContext<'a> {}
@@ -41,9 +41,9 @@ pub struct ApplicationContext<'a> {
 
     running: AtomicBool,
 
-    #[cfg(feature = "appctx-lua")]
+    #[cfg(feature = "hlua")]
     lua: UnsafeCell<Lua<'a>>,
-    #[cfg(not(feature = "appctx-lua"))]
+    #[cfg(not(feature = "hlua"))]
     lua: PhantomData<&'a ()>,
 
     input_tx: std::sync::mpsc::Sender<InputEvent>,
@@ -72,9 +72,9 @@ impl Default for ApplicationContext<'static> {
             xres,
             yres,
             running: AtomicBool::new(false),
-            #[cfg(feature = "appctx-lua")]
+            #[cfg(feature = "hlua")]
             lua: UnsafeCell::new(Lua::new()),
-            #[cfg(not(feature = "appctx-lua"))]
+            #[cfg(not(feature = "hlua"))]
             lua: PhantomData::default(),
             input_rx,
             input_tx,
@@ -89,7 +89,7 @@ impl Default for ApplicationContext<'static> {
         };
 
         // Enable all std lib
-        #[cfg(feature = "appctx-lua")]
+        #[cfg(feature = "hlua")]
         {
             let lua = res.get_lua_ref();
 
@@ -132,7 +132,7 @@ impl<'a> ApplicationContext<'a> {
         unsafe { std::mem::transmute(self) }
     }
 
-    #[cfg(feature = "appctx-lua")]
+    #[cfg(feature = "hlua")]
     pub fn get_lua_ref(&mut self) -> &'a mut Lua<'static> {
         #[allow(clippy::transmute_ptr_to_ref)]
         unsafe {
@@ -144,7 +144,7 @@ impl<'a> ApplicationContext<'a> {
         (self.yres, self.xres)
     }
 
-    #[cfg(feature = "appctx-lua")]
+    #[cfg(feature = "hlua")]
     pub fn execute_lua(&mut self, code: &str) {
         let lua = self.get_lua_ref();
         if let Err(e) = lua.execute::<hlua::AnyLuaValue>(code) {
