@@ -1,10 +1,14 @@
+#[cfg(feature = "appctx-lua")]
 use std::cell::UnsafeCell;
 use std::collections::HashMap;
+#[cfg(not(feature = "appctx-lua"))]
+use std::marker::PhantomData;
 use std::ops::DerefMut;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::RwLock;
 
 use aabb_quadtree::{geom, ItemId, QuadTree};
+#[cfg(feature = "appctx-lua")]
 use log::warn;
 
 use crate::framebuffer::cgmath;
@@ -39,6 +43,8 @@ pub struct ApplicationContext<'a> {
 
     #[cfg(feature = "appctx-lua")]
     lua: UnsafeCell<Lua<'a>>,
+    #[cfg(not(feature = "appctx-lua"))]
+    lua: PhantomData<&'a ()>,
 
     input_tx: std::sync::mpsc::Sender<InputEvent>,
     input_rx: std::sync::mpsc::Receiver<InputEvent>,
@@ -68,6 +74,8 @@ impl Default for ApplicationContext<'static> {
             running: AtomicBool::new(false),
             #[cfg(feature = "appctx-lua")]
             lua: UnsafeCell::new(Lua::new()),
+            #[cfg(not(feature = "appctx-lua"))]
+            lua: PhantomData::default(),
             input_rx,
             input_tx,
             ui_elements: HashMap::new(),
