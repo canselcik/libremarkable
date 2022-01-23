@@ -1,3 +1,4 @@
+#[cfg(feature = "image")]
 use image::RgbImage;
 
 #[cfg(feature = "framebuffer-text-drawing")]
@@ -19,6 +20,7 @@ pub static DEFAULT_FONT: Lazy<Font<'static>> = Lazy::new(|| {
 });
 
 impl framebuffer::FramebufferDraw for core::Framebuffer {
+    #[cfg(feature = "image")]
     fn draw_image(&mut self, img: &RgbImage, pos: Point2<i32>) -> mxcfb_rect {
         for (x, y, pixel) in img.enumerate_pixels() {
             let pixel_pos = pos + vec2(x as i32, y as i32);

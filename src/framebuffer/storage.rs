@@ -40,8 +40,10 @@ impl CompressedCanvasState {
     }
 }
 
+#[cfg(feature = "image")]
 use crate::framebuffer::common;
 
+#[cfg(feature = "image")]
 pub fn rgbimage_from_u8_slice(w: u32, h: u32, buff: &[u8]) -> Option<image::RgbImage> {
     // rgb565 is the input so it is 16bits (2 bytes) per pixel
     let input_bytespp = 2;

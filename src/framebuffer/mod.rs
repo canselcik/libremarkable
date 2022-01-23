@@ -40,6 +40,7 @@ pub mod draw;
 
 #[cfg(feature = "framebuffer-drawing")]
 pub trait FramebufferDraw {
+    #[cfg(feature = "image")]
     /// Draws `img` at `pos` with 1:1 scaling
     fn draw_image(&mut self, img: &image::RgbImage, pos: cgmath::Point2<i32>)
         -> common::mxcfb_rect;

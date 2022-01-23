@@ -43,15 +43,15 @@ hlua = { version = "0.4.1", optional = true }
 stopwatch = { version = "0.0.7", optional = true }
 
 [features]
-default = ["framebuffer", "framebuffer-storage", "framebuffer-drawing", "framebuffer-text-drawing", "input", "battery", "appctx", "hlua"]
+default = ["framebuffer", "framebuffer-storage", "framebuffer-drawing", "image", "framebuffer-text-drawing", "input", "battery", "appctx", "hlua"]
 
 framebuffer = ["memmap2", "ioctl-gen"]
-framebuffer-storage = ["framebuffer", "image", "zstd"]
-framebuffer-drawing = ["framebuffer", "image", "line_drawing"]
+framebuffer-storage = ["framebuffer", "zstd"]
+framebuffer-drawing = ["framebuffer", "line_drawing"]
 framebuffer-text-drawing = ["framebuffer-drawing", "rusttype"]
 input = ["evdev", "epoll", "fxhash"]
 battery = []
-appctx = ["framebuffer-text-drawing", "input", "aabb-quadtree"]
+appctx = ["framebuffer-text-drawing", "image", "input", "aabb-quadtree"]
 
 enable-runtime-benchmarking = ["stopwatch"]
 

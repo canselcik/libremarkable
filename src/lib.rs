@@ -41,7 +41,7 @@ pub use cgmath;
 pub use epoll;
 #[cfg(feature = "input")]
 pub use evdev;
-#[cfg(any(feature = "framebuffer-storage", feature = "framebuffer-drawing"))]
+#[cfg(feature = "image")]
 pub use image;
 #[cfg(feature = "framebuffer-drawing")]
 pub use line_drawing;
