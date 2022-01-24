@@ -10,8 +10,8 @@ use evdev::InputEvent as EvInputEvent;
 use fxhash::FxHashMap;
 use log::{debug, warn};
 use std::sync::{
-	atomic::{AtomicI32, Ordering},
-	Mutex,
+    atomic::{AtomicI32, Ordering},
+    Mutex,
 };
 
 static MT_HSCALAR: Lazy<f32> = Lazy::new(|| (DISPLAYWIDTH as f32) / (*MTWIDTH as f32));

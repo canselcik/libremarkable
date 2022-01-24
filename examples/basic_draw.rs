@@ -10,7 +10,7 @@
 
 use libremarkable::appctx::ApplicationContext;
 use libremarkable::framebuffer::common::{
-	color, display_temp, dither_mode, DRAWING_QUANT_BIT, waveform_mode,
+    color, display_temp, dither_mode, DRAWING_QUANT_BIT, waveform_mode,
 };
 use libremarkable::framebuffer::PartialRefreshMode;
 use libremarkable::framebuffer::{FramebufferDraw, FramebufferRefresh};
