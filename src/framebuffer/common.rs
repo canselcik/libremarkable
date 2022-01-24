@@ -60,11 +60,11 @@ impl color {
     }
 
     pub fn to_rgb8(self) -> [u8; 3] {
-        let rgb565 = u16::from_be_bytes(self.as_native());
+        let rgb565 = u16::from_le_bytes(self.as_native());
 
-        let r5 = rgb565 >> 11 & 0b11111;
+        let r5 = rgb565 & 0b11111;
         let g6 = rgb565 >> 5 & 0b111111;
-        let b5 = rgb565 & 0b11111;
+        let b5 = rgb565 >> 11 & 0b11111;
 
         let r8 = (r5 * 255 / 0b11111) as u8;
         let g8 = (g6 * 255 / 0b111111) as u8;
@@ -101,9 +101,9 @@ impl color {
         let g6 = (g8 as u16 + 1) * 0b111111 / 255;
         let b5 = (b8 as u16 + 1) * 0b11111 / 255;
 
-        let rgb565 = r5 << 11 | g6 << 5 | b5;
+        let rgb565 = b5 << 11 | g6 << 5 | r5;
 
-        rgb565.to_be_bytes()
+        rgb565.to_le_bytes()
     }
 }
 
