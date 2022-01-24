@@ -10,12 +10,11 @@
 
 use libremarkable::appctx::ApplicationContext;
 use libremarkable::framebuffer::common::{
-    color, display_temp, dither_mode, waveform_mode, DRAWING_QUANT_BIT,
+	color, display_temp, dither_mode, DRAWING_QUANT_BIT, waveform_mode,
 };
-use libremarkable::framebuffer::refresh::PartialRefreshMode;
+use libremarkable::framebuffer::PartialRefreshMode;
 use libremarkable::framebuffer::{FramebufferDraw, FramebufferRefresh};
-use libremarkable::input::wacom::{WacomEvent, WacomPen};
-use libremarkable::input::InputEvent;
+use libremarkable::input::{InputEvent, WacomEvent, WacomPen};
 
 fn main() {
     let mut app = ApplicationContext::default();

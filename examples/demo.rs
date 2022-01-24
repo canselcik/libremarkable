@@ -1,15 +1,15 @@
 use libremarkable::framebuffer::cgmath;
 use libremarkable::framebuffer::cgmath::EuclideanSpace;
 use libremarkable::framebuffer::common::*;
-use libremarkable::framebuffer::refresh::PartialRefreshMode;
+use libremarkable::framebuffer::PartialRefreshMode;
 use libremarkable::framebuffer::storage;
 use libremarkable::framebuffer::{FramebufferDraw, FramebufferIO, FramebufferRefresh};
 use libremarkable::image::GenericImage;
-use libremarkable::input::{gpio, multitouch, wacom, InputDevice, InputEvent};
+use libremarkable::input::{gpio, InputDevice, InputEvent, multitouch, wacom};
 use libremarkable::ui_extensions::element::{
-    UIConstraintRefresh, UIElement, UIElementHandle, UIElementWrapper,
+	UIConstraintRefresh, UIElement, UIElementHandle, UIElementWrapper,
 };
-use libremarkable::{appctx, battery, image};
+use libremarkable::{appctx, battery, image, input};
 use libremarkable::{end_bench, start_bench};
 
 #[cfg(feature = "enable-runtime-benchmarking")]
@@ -451,9 +451,9 @@ fn loop_update_topbar(app: &mut appctx::ApplicationContext<'_>, millis: u64) {
 // ## Input Handlers
 // ####################
 
-fn on_wacom_input(app: &mut appctx::ApplicationContext<'_>, input: wacom::WacomEvent) {
+fn on_wacom_input(app: &mut appctx::ApplicationContext<'_>, input: input::WacomEvent) {
     match input {
-        wacom::WacomEvent::Draw {
+        input::WacomEvent::Draw {
             position,
             pressure,
             tilt: _,
@@ -527,19 +527,19 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext<'_>, input: wacom::WacomE
                 );
             }
         }
-        wacom::WacomEvent::InstrumentChange { pen, state } => {
+        input::WacomEvent::InstrumentChange { pen, state } => {
             match pen {
                 // Whether the pen is in range
-                wacom::WacomPen::ToolPen => {
+                input::WacomPen::ToolPen => {
                     WACOM_IN_RANGE.store(state, Ordering::Relaxed);
                     WACOM_RUBBER_SIDE.store(false, Ordering::Relaxed);
                 }
-                wacom::WacomPen::ToolRubber => {
+                input::WacomPen::ToolRubber => {
                     WACOM_IN_RANGE.store(state, Ordering::Relaxed);
                     WACOM_RUBBER_SIDE.store(true, Ordering::Relaxed);
                 }
                 // Whether the pen is actually making contact
-                wacom::WacomPen::Touch => {
+                input::WacomPen::Touch => {
                     // Stop drawing when instrument has left the vicinity of the screen
                     if !state {
                         let mut wacom_stack = WACOM_HISTORY.lock().unwrap();
@@ -549,7 +549,7 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext<'_>, input: wacom::WacomE
                 _ => unreachable!(),
             }
         }
-        wacom::WacomEvent::Hover {
+        input::WacomEvent::Hover {
             position: _,
             distance,
             tilt: _,
@@ -565,11 +565,11 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext<'_>, input: wacom::WacomE
     };
 }
 
-fn on_touch_handler(app: &mut appctx::ApplicationContext<'_>, input: multitouch::MultitouchEvent) {
+fn on_touch_handler(app: &mut appctx::ApplicationContext<'_>, input: input::MultitouchEvent) {
     let framebuffer = app.get_framebuffer_ref();
     match input {
-        multitouch::MultitouchEvent::Press { finger }
-        | multitouch::MultitouchEvent::Move { finger } => {
+        input::MultitouchEvent::Press { finger }
+        | input::MultitouchEvent::Move { finger } => {
             if !CANVAS_REGION.contains_point(&finger.pos.cast().unwrap()) {
                 return;
             }
@@ -636,10 +636,10 @@ fn on_touch_handler(app: &mut appctx::ApplicationContext<'_>, input: multitouch:
     }
 }
 
-fn on_button_press(app: &mut appctx::ApplicationContext<'_>, input: gpio::GPIOEvent) {
+fn on_button_press(app: &mut appctx::ApplicationContext<'_>, input: input::GPIOEvent) {
     let (btn, new_state) = match input {
-        gpio::GPIOEvent::Press { button } => (button, true),
-        gpio::GPIOEvent::Unpress { button } => (button, false),
+        input::GPIOEvent::Press { button } => (button, true),
+        input::GPIOEvent::Unpress { button } => (button, false),
         _ => return,
     };
 
@@ -654,11 +654,11 @@ fn on_button_press(app: &mut appctx::ApplicationContext<'_>, input: gpio::GPIOEv
     }
 
     match btn {
-        gpio::PhysicalButton::LEFT => quick_redraw(app),
-        gpio::PhysicalButton::MIDDLE => full_redraw(app),
-        gpio::PhysicalButton::RIGHT => toggle_touch(app),
+        input::PhysicalButton::LEFT => quick_redraw(app),
+        input::PhysicalButton::MIDDLE => full_redraw(app),
+        input::PhysicalButton::RIGHT => toggle_touch(app),
 
-        gpio::PhysicalButton::POWER => {
+        input::PhysicalButton::POWER => {
             Command::new("systemctl")
                 .arg("start")
                 .arg("xochitl")
@@ -666,7 +666,7 @@ fn on_button_press(app: &mut appctx::ApplicationContext<'_>, input: gpio::GPIOEv
                 .unwrap();
             std::process::exit(0);
         }
-        gpio::PhysicalButton::WAKEUP => {
+        input::PhysicalButton::WAKEUP => {
             println!("WAKEUP button(?) pressed(?)");
         }
     };

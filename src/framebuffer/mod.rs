@@ -5,8 +5,10 @@ pub mod screeninfo;
 #[cfg(feature = "framebuffer-storage")]
 pub mod storage;
 
+#[cfg(feature = "framebuffer")]
 pub mod io;
 
+#[cfg(feature = "framebuffer")]
 pub mod swtfb_client;
 
 pub use cgmath;
@@ -117,6 +119,7 @@ pub trait FramebufferDraw {
     fn clear(&mut self);
 }
 
+#[cfg(feature = "framebuffer")]
 pub mod core;
 pub trait FramebufferBase {
     /// Toggles the EPD Controller (see https://wiki.mobileread.com/wiki/EPD_controller)
@@ -140,6 +143,13 @@ pub trait FramebufferBase {
     fn update_var_screeninfo(&mut self) -> bool;
 }
 
+pub enum PartialRefreshMode {
+    DryRun,
+    Async,
+    Wait,
+}
+
+#[cfg(feature = "framebuffer")]
 pub mod refresh;
 pub trait FramebufferRefresh {
     /// Refreshes the entire screen with the provided parameters. If `wait_completion` is
@@ -184,7 +194,7 @@ pub trait FramebufferRefresh {
     fn partial_refresh(
         &self,
         region: &common::mxcfb_rect,
-        mode: refresh::PartialRefreshMode,
+        mode: PartialRefreshMode,
         waveform_mode: common::waveform_mode,
         temperature: common::display_temp,
         dither_mode: common::dither_mode,

@@ -14,11 +14,11 @@ use log::warn;
 use crate::framebuffer::cgmath;
 use crate::framebuffer::common::*;
 use crate::framebuffer::core;
-use crate::framebuffer::refresh::PartialRefreshMode;
+use crate::framebuffer::PartialRefreshMode;
 use crate::framebuffer::FramebufferDraw;
 use crate::framebuffer::FramebufferRefresh;
 use crate::input::ev;
-use crate::input::multitouch::MultitouchEvent;
+use crate::input::MultitouchEvent;
 use crate::input::{InputDevice, InputEvent};
 use crate::ui_extensions::element::{
     ActiveRegionFunction, ActiveRegionHandler, UIConstraintRefresh, UIElementHandle,

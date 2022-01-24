@@ -2,7 +2,7 @@ use super::ecodes;
 use crate::device::rotate::CoordinatePart;
 use crate::device::CURRENT_DEVICE;
 use crate::input::scan::SCANNED;
-use crate::input::{InputDeviceState, InputEvent};
+use crate::input::{InputDeviceState, InputEvent, WacomEvent, WacomPen};
 use atomic::Atomic;
 use evdev::InputEvent as EvInputEvent;
 use log::debug;
@@ -37,49 +37,6 @@ impl ::std::default::Default for WacomState {
             last_tool: Atomic::new(None),
         }
     }
-}
-
-#[repr(u16)]
-#[derive(PartialEq, Copy, Clone, Debug)]
-pub enum WacomPen {
-    /// When the pen gets into the reach of the digitizer
-    /// a tool will be selected. This is useful for software
-    /// to know whether the user is hovering the backside (rubber)
-    /// or frontside (pen) of a stylus above the screen.
-    /// Both at once shouldn't be possible.
-    ToolPen = ecodes::BTN_TOOL_PEN,
-    ToolRubber = ecodes::BTN_TOOL_RUBBER,
-    /// This is the pen making contact with the display
-    Touch = ecodes::BTN_TOUCH,
-    Stylus = ecodes::BTN_STYLUS,
-    Stylus2 = ecodes::BTN_STYLUS2,
-}
-
-#[derive(PartialEq, Copy, Clone, Debug)]
-pub enum WacomEventType {
-    InstrumentChange,
-    Hover,
-    Draw,
-    Unknown,
-}
-
-#[derive(PartialEq, Copy, Clone, Debug)]
-pub enum WacomEvent {
-    InstrumentChange {
-        pen: WacomPen,
-        state: bool,
-    },
-    Hover {
-        position: cgmath::Point2<f32>,
-        distance: u16,
-        tilt: cgmath::Vector2<u16>,
-    },
-    Draw {
-        position: cgmath::Point2<f32>,
-        pressure: u16,
-        tilt: cgmath::Vector2<u16>,
-    },
-    Unknown,
 }
 
 pub fn decode(ev: &EvInputEvent, outer_state: &InputDeviceState) -> Option<InputEvent> {

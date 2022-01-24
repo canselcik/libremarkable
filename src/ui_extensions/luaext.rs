@@ -2,7 +2,7 @@ use crate::framebuffer::cgmath;
 use crate::framebuffer::common::*;
 use crate::framebuffer::core;
 
-use crate::framebuffer::refresh::PartialRefreshMode;
+use crate::framebuffer::PartialRefreshMode;
 
 use crate::framebuffer::FramebufferDraw;
 use crate::framebuffer::FramebufferIO;

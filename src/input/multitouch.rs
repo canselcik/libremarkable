@@ -1,47 +1,21 @@
 use super::ecodes;
-use crate::cgmath;
 use crate::device::rotate::CoordinatePart;
 use crate::device::CURRENT_DEVICE;
 use crate::dimensions::{DISPLAYHEIGHT, DISPLAYWIDTH, MTHEIGHT, MTWIDTH};
 use crate::input::scan::SCANNED;
-use crate::input::{InputDeviceState, InputEvent};
+use crate::input::{Finger, InputDeviceState, InputEvent, MultitouchEvent};
 use once_cell::sync::Lazy;
 
 use evdev::InputEvent as EvInputEvent;
 use fxhash::FxHashMap;
 use log::{debug, warn};
 use std::sync::{
-    atomic::{AtomicI32, Ordering},
-    Mutex,
+	atomic::{AtomicI32, Ordering},
+	Mutex,
 };
 
 static MT_HSCALAR: Lazy<f32> = Lazy::new(|| (DISPLAYWIDTH as f32) / (*MTWIDTH as f32));
 static MT_VSCALAR: Lazy<f32> = Lazy::new(|| (DISPLAYHEIGHT as f32) / (*MTHEIGHT as f32));
-
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub struct Finger {
-    pub tracking_id: i32,
-
-    pub pos: cgmath::Point2<u16>,
-    pos_updated: bool, // Report motion at SYN_REPORT?
-
-    last_pressed: bool,
-    pub pressed: bool,
-}
-impl Default for Finger {
-    fn default() -> Finger {
-        Finger {
-            tracking_id: -1, // -1 should never be seen by a InputEvent receiver
-            pos: cgmath::Point2 {
-                x: u16::max_value(),
-                y: u16::max_value(),
-            },
-            pos_updated: false,
-            last_pressed: false,
-            pressed: false,
-        }
-    }
-}
 
 pub struct MultitouchState {
     fingers: Mutex<FxHashMap<i32 /* slot */, Finger>>,
@@ -53,25 +27,6 @@ impl ::std::default::Default for MultitouchState {
         MultitouchState {
             fingers: Mutex::new(FxHashMap::default()),
             current_slot: AtomicI32::new(0),
-        }
-    }
-}
-
-#[derive(PartialEq, Copy, Clone, Debug)]
-pub enum MultitouchEvent {
-    Press { finger: Finger },
-    Release { finger: Finger },
-    Move { finger: Finger },
-    Unknown,
-}
-
-impl MultitouchEvent {
-    pub fn finger(&self) -> Option<&Finger> {
-        match self {
-            MultitouchEvent::Press { ref finger }
-            | MultitouchEvent::Release { ref finger }
-            | MultitouchEvent::Move { ref finger } => Some(finger),
-            _ => None,
         }
     }
 }
