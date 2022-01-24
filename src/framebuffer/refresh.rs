@@ -4,10 +4,10 @@ use std::sync::atomic::Ordering;
 use log::warn;
 
 use crate::framebuffer;
-use crate::framebuffer::{common, PartialRefreshMode};
 use crate::framebuffer::core;
 use crate::framebuffer::core::FramebufferUpdate;
 use crate::framebuffer::mxcfb::*;
+use crate::framebuffer::{common, PartialRefreshMode};
 
 impl framebuffer::FramebufferRefresh for core::Framebuffer {
     fn full_refresh(

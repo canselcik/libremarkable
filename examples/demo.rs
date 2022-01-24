@@ -1,11 +1,11 @@
 use libremarkable::framebuffer::cgmath;
 use libremarkable::framebuffer::cgmath::EuclideanSpace;
 use libremarkable::framebuffer::common::*;
-use libremarkable::framebuffer::PartialRefreshMode;
 use libremarkable::framebuffer::storage;
+use libremarkable::framebuffer::PartialRefreshMode;
 use libremarkable::framebuffer::{FramebufferDraw, FramebufferIO, FramebufferRefresh};
 use libremarkable::image::GenericImage;
-use libremarkable::input::{gpio, InputDevice, InputEvent, multitouch, wacom};
+use libremarkable::input::{gpio, multitouch, wacom, InputDevice, InputEvent};
 use libremarkable::ui_extensions::element::{
     UIConstraintRefresh, UIElement, UIElementHandle, UIElementWrapper,
 };
@@ -568,8 +568,7 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext<'_>, input: input::WacomE
 fn on_touch_handler(app: &mut appctx::ApplicationContext<'_>, input: input::MultitouchEvent) {
     let framebuffer = app.get_framebuffer_ref();
     match input {
-        input::MultitouchEvent::Press { finger }
-        | input::MultitouchEvent::Move { finger } => {
+        input::MultitouchEvent::Press { finger } | input::MultitouchEvent::Move { finger } => {
             if !CANVAS_REGION.contains_point(&finger.pos.cast().unwrap()) {
                 return;
             }

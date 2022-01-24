@@ -4,9 +4,9 @@ use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use crate::framebuffer::cgmath;
 use crate::framebuffer::common;
 use crate::framebuffer::common::{color, mxcfb_rect};
-use crate::framebuffer::PartialRefreshMode;
 use crate::framebuffer::FramebufferDraw;
 use crate::framebuffer::FramebufferRefresh;
+use crate::framebuffer::PartialRefreshMode;
 
 use crate::appctx;
 
