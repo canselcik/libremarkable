@@ -60,17 +60,17 @@ impl color {
     }
 
     pub fn to_rgb8(self) -> [u8; 3] {
-        // Components reversed because of the device
-        let components = self.as_native();
+        let rgb565 = u16::from_be_bytes(self.as_native());
 
-        let mut combined: u16 = u16::from(components[1]) << 8;
-        combined |= u16::from(components[0]);
+        let r5 = rgb565 >> 11 & 0b11111;
+        let g6 = rgb565 >> 5 & 0b111111;
+        let b5 = rgb565 & 0b11111;
 
-        let red = (((combined & 0b1111_1000_0000_0000) >> 11) << 3) as u8;
-        let green = (((combined & 0b0000_0111_1110_0000) >> 5) << 2) as u8;
-        let blue = ((combined & 0b0000_0000_0001_1111) << 3) as u8;
+        let r8 = (r5 * 255 / 0b11111) as u8;
+        let g8 = (g6 * 255 / 0b111111) as u8;
+        let b8 = (b5 * 255 / 0b11111) as u8;
 
-        [red, green, blue]
+        [r8, g8, b8]
     }
 
     #[inline]
@@ -97,14 +97,13 @@ impl color {
         //    green   : offset = 5,   length =6,      msb_right = 0
         //    blue    : offset = 0,   length =5,      msb_right = 0
         //
-        let r5 = (u16::from(r8) >> 3) as u8;
-        let g6 = (u16::from(g8) >> 2) as u8;
-        let b5 = (u16::from(b8) >> 3) as u8;
+        let r5 = (r8 as u16 + 1) * 0b11111 / 255;
+        let g6 = (g8 as u16 + 1) * 0b111111 / 255;
+        let b5 = (b8 as u16 + 1) * 0b11111 / 255;
 
-        [
-            (((g6 & 0b00_0111) << 5) | b5),
-            ((r5 << 3) | ((g6 & 0b11_1000) >> 3)),
-        ]
+        let rgb565 = r5 << 11 | g6 << 5 | b5;
+
+        rgb565.to_be_bytes()
     }
 }
 
