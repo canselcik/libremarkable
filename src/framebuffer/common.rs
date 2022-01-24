@@ -108,6 +108,23 @@ impl color {
     }
 }
 
+#[test]
+fn rgb565_conversions() {
+    // Ensure that min and max values are transformed faithfully
+    assert_eq!(color::RGB(0, 0, 0).to_rgb565(), [0x0, 0x0]);
+    assert_eq!(color::RGB(255, 255, 255).to_rgb565(), [0xFF, 0xFF]);
+    assert_eq!(color::GRAY(0).to_rgb565(), [0xFF, 0xFF]);
+    assert_eq!(color::GRAY(255).to_rgb565(), [0x0, 0x0]);
+
+    // Ensure that every single RGB565 value can be transformed to RGB8 and back losslessly
+    for native in 0..u16::MAX {
+        let [lo, hi] = native.to_be_bytes();
+        let [r, g, b] = color::NATIVE_COMPONENTS(lo, hi).to_rgb8();
+
+        assert_eq!(color::RGB(r, g, b).to_rgb565(), [lo, hi]);
+    }
+}
+
 impl ::std::default::Default for color {
     fn default() -> Self {
         color::WHITE
