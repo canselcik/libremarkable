@@ -111,10 +111,10 @@ impl color {
 fn rgb565_conversions() {
     // Ensure that min and max values are transformed faithfully
     assert_eq!(color::RGB(0, 0, 0).to_rgb565(), [0x0, 0x0]);
-    assert_eq!(color::RGB(255, 255, 255).to_rgb565(), [0xFF, 0xFF]);
+    assert_eq!(color::RGB(255, 255, 255).to_rgb565(), [255, 255]);
     assert_eq!(color::from_native([0, 0]).to_rgb8(), [0, 0, 0]);
-    assert_eq!(color::from_native([0xFF, 0xFF]).to_rgb8(), [0xFF, 0xFF, 0xFF]);
-    assert_eq!(color::GRAY(0).to_rgb565(), [0xFF, 0xFF]);
+    assert_eq!(color::from_native([255, 255]).to_rgb8(), [255, 255, 255]);
+    assert_eq!(color::GRAY(0).to_rgb565(), [255, 255]);
     assert_eq!(color::GRAY(255).to_rgb565(), [0x0, 0x0]);
 
     // Ensure that every single RGB565 value can be transformed to RGB8 and back losslessly
