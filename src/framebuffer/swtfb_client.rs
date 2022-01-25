@@ -9,9 +9,10 @@ use crate::device;
 use crate::framebuffer::screeninfo::{FixScreeninfo, VarScreeninfo};
 use memmap2::{MmapOptions, MmapRaw};
 use std::ffi::{c_void, CStr, CString};
-use std::fs::{File, OpenOptions};
+use std::fs::OpenOptions;
 use std::io::Error as IoError;
 use std::os::unix::prelude::AsRawFd;
+use std::path::{Path, PathBuf};
 use std::{env, mem, ptr};
 
 const SWTFB_MESSAGE_QUEUE_ID: i32 = 0x2257c;
@@ -76,11 +77,18 @@ pub union swtfb_update_data {
 
 pub struct SwtfbClient {
     msqid: i32,
+    path: PathBuf,
     do_wait_ioctl: bool,
 }
 
 impl Default for SwtfbClient {
     fn default() -> Self {
+        Self::new(device::Model::Gen2.framebuffer_path())
+    }
+}
+
+impl SwtfbClient {
+    pub fn new(path: impl AsRef<Path>) -> SwtfbClient {
         assert!(
             device::CURRENT_DEVICE.model == device::Model::Gen2,
             "SWTFB is not supported on devices other than rM 2"
@@ -96,23 +104,19 @@ impl Default for SwtfbClient {
 
         Self {
             msqid,
+            path: PathBuf::from(path.as_ref()),
             do_wait_ioctl: env::var("RM2FB_NO_WAIT_IOCTL").is_err(),
         }
     }
-}
 
-impl SwtfbClient {
-    pub fn open_buffer(&self) -> Result<(File, MmapRaw), IoError> {
-        let device = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .open(crate::device::Model::Gen2.framebuffer_path())?;
+    pub fn open_buffer(&self) -> Result<MmapRaw, IoError> {
+        let device = OpenOptions::new().read(true).write(true).open(&self.path)?;
         let ret = unsafe { libc::ftruncate(device.as_raw_fd(), BUF_SIZE as libc::off_t) };
         if ret < 0 {
             return Err(IoError::last_os_error());
         }
         let mem_map = MmapOptions::new().len(BUF_SIZE as usize).map_raw(&device)?;
-        Ok((device, mem_map))
+        Ok(mem_map)
     }
 
     pub fn send(&self, update: &swtfb_update) -> bool {

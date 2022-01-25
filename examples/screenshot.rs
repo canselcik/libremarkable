@@ -1,5 +1,5 @@
 use image::{DynamicImage, ImageOutputFormat};
-use libremarkable::device::CURRENT_DEVICE;
+
 use libremarkable::framebuffer::common::*;
 use libremarkable::framebuffer::core::*;
 use libremarkable::framebuffer::*;
@@ -7,7 +7,7 @@ use libremarkable::image::RgbImage;
 use std::fs::OpenOptions;
 
 fn main() {
-    let fb = Framebuffer::from_path(CURRENT_DEVICE.get_framebuffer_path());
+    let fb = Framebuffer::new();
     let width = DISPLAYWIDTH as u32;
     let height = DISPLAYHEIGHT as u32;
     let contents = fb
