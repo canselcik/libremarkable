@@ -60,7 +60,7 @@ impl color {
     }
 
     pub fn to_rgb8(self) -> [u8; 3] {
-        let rgb565 = u16::from_le_bytes(self.as_native());
+        let rgb565 = u16::from_be_bytes(self.as_native());
 
         let r5 = rgb565 & 0b11111;
         let g6 = rgb565 >> 5 & 0b111111;
@@ -77,8 +77,8 @@ impl color {
     pub fn as_native(self) -> [u8; 2] {
         match self {
             color::BLACK => [0x00, 0x00],
-            color::RED => [0x07, 0xE0],
-            color::GREEN => [0x00, 0x1F],
+            color::RED => [0x00, 0x1F],
+            color::GREEN => [0x07, 0xE0],
             color::BLUE => [0xF8, 0x00],
             color::WHITE => [0xFF, 0xFF],
             color::GRAY(level) => color::rgb_to_native(255 - level, 255 - level, 255 - level),
@@ -103,7 +103,7 @@ impl color {
 
         let rgb565 = b5 << 11 | g6 << 5 | r5;
 
-        rgb565.to_le_bytes()
+        rgb565.to_be_bytes()
     }
 }
 
@@ -112,10 +112,15 @@ fn rgb565_conversions() {
     // Ensure that min and max values are transformed faithfully
     assert_eq!(color::RGB(0, 0, 0).to_rgb565(), [0, 0]);
     assert_eq!(color::RGB(255, 255, 255).to_rgb565(), [255, 255]);
-    assert_eq!(color::from_native([0, 0]).to_rgb8(), [0, 0, 0]);
-    assert_eq!(color::from_native([255, 255]).to_rgb8(), [255, 255, 255]);
     assert_eq!(color::GRAY(0).to_rgb565(), [255, 255]);
     assert_eq!(color::GRAY(255).to_rgb565(), [0, 0]);
+
+    assert_eq!(color::from_native([0, 0]).to_rgb8(), [0, 0, 0]);
+    assert_eq!(color::from_native([255, 255]).to_rgb8(), [255, 255, 255]);
+    assert_eq!(color::BLUE.to_rgb8(), [0, 0, 255]);
+    assert_eq!(color::GREEN.to_rgb8(), [0, 255, 0]);
+    assert_eq!(color::RED.to_rgb8(), [255, 0, 0]);
+    assert_eq!(color::RGB(255, 127, 0).to_rgb8(), [255, 125, 0]);
 
     // Ensure that every single RGB565 value can be transformed to RGB8 and back losslessly
     for native in 0..u16::MAX {
