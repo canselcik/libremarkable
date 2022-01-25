@@ -1,4 +1,5 @@
 use image::{DynamicImage, ImageOutputFormat};
+
 use libremarkable::framebuffer::common::*;
 use libremarkable::framebuffer::core::*;
 use libremarkable::framebuffer::*;
