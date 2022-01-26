@@ -6,8 +6,7 @@ use libremarkable::framebuffer::*;
 use libremarkable::image::RgbImage;
 use std::fs::OpenOptions;
 
-mod rgb565_to_srgb;
-use rgb565_to_srgb::RGB565_TO_RGB888;
+use rgb565::Rgb565;
 
 fn main() {
     let fb = Framebuffer::new();
@@ -22,10 +21,7 @@ fn main() {
         })
         .expect("dumping image buffer with known dimensions should succeed")
         .chunks_exact(2)
-        .flat_map(|c| {
-            let [_, r, g, b] = RGB565_TO_RGB888[u16::from_le_bytes([c[0], c[1]]) as usize].to_be_bytes();
-            [r, g, b]
-        })
+        .flat_map(|c| Rgb565::from_rgb565_le([c[0], c[1]]).to_srgb888_components())
         .collect::<Vec<_>>();
 
     let image =

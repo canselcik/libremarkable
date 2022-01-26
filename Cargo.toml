@@ -77,3 +77,5 @@ libc = "0.2.69"
 chrono = "0.4.19"
 # For live
 tiny_http = "0.9.0"
+# For screenshot
+rgb565 = "0.1.3"
