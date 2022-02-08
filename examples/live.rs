@@ -7,6 +7,7 @@ use libremarkable::framebuffer::common::{DISPLAYHEIGHT, DISPLAYWIDTH};
 use libremarkable::framebuffer::core::Framebuffer;
 use libremarkable::framebuffer::FramebufferIO;
 use libremarkable::image;
+use rgb565::Rgb565;
 use std::io::Cursor;
 use tiny_http::{Header, Response, Server, StatusCode};
 
@@ -31,21 +32,23 @@ fn main() {
             continue;
         }
 
-        let rgb565 = fb
+        let width = DISPLAYWIDTH as u32;
+        let height = DISPLAYHEIGHT as u32;
+        let contents = fb
             .dump_region(framebuffer::common::mxcfb_rect {
                 top: 0,
                 left: 0,
-                width: DISPLAYWIDTH.into(),
-                height: DISPLAYHEIGHT.into(),
+                width,
+                height,
             })
-            .unwrap();
+            .expect("dumping image buffer with known dimensions should succeed")
+            .chunks_exact(2)
+            .flat_map(|c| Rgb565::from_rgb565_le([c[0], c[1]]).to_srgb888_components())
+            .collect::<Vec<_>>();
 
-        let rgb888 = framebuffer::storage::rgbimage_from_u8_slice(
-            DISPLAYWIDTH.into(),
-            DISPLAYHEIGHT.into(),
-            &rgb565,
-        )
-        .unwrap();
+        let rgb888 = image::RgbImage::from_raw(width, height, contents)
+            .expect("unable to construct the rgb image");
+
         let url_lc = request.url().to_lowercase();
         let (data, mime) = if url_lc.ends_with("jpg") || url_lc.ends_with("jpeg") {
             (encode(&*&rgb888, ImageFormat::Jpeg), "image/jpeg")
