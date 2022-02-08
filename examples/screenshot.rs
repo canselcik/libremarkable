@@ -6,6 +6,8 @@ use libremarkable::framebuffer::*;
 use libremarkable::image::RgbImage;
 use std::fs::OpenOptions;
 
+use rgb565::Rgb565;
+
 fn main() {
     let fb = Framebuffer::new();
     let width = DISPLAYWIDTH as u32;
@@ -19,7 +21,7 @@ fn main() {
         })
         .expect("dumping image buffer with known dimensions should succeed")
         .chunks_exact(2)
-        .flat_map(|c| color::NATIVE_COMPONENTS(c[0], c[1]).to_rgb8())
+        .flat_map(|c| Rgb565::from_rgb565_le([c[0], c[1]]).to_srgb888_components())
         .collect::<Vec<_>>();
 
     let image =
