@@ -74,3 +74,6 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+#.cargo config dir
+.cargo
