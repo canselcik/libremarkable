@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import os
 import re
@@ -24,7 +24,7 @@ def main():
     cc_path = cc[0:-4]
     re_parse_path = ":[^:]*{cc}:".format(cc=cc_path)
     extract_compiler_path = re.compile(re_parse_path)
-    toolchain_compiler_path = extract_compiler_path.search(os.environ["PATH"])[0][1:-1]
+    toolchain_compiler_path = extract_compiler_path.search(os.environ["PATH"]).group(0)[1:-1]
     #join path to get full compiler path
     cc = os.path.join(toolchain_compiler_path, cc)
     
@@ -33,6 +33,7 @@ def main():
         os.mkdir(".cargo")
     with open(".cargo/config","w") as f:
         f.write(cargo_config.format(gcc_path=cc, sysroot=sysroot))
+    print("Toolchain config written to \".cargo/config\" ✅")
 
 if __name__ == "__main__":
     main()
