@@ -27,6 +27,20 @@ In order for rust to leverage the toolchain a `.cargo/config` file is required. 
 sourced. It location is can be found within the toolchain installation directory. The correct path is also referenced in the toolchain [wiki](https://remarkablewiki.com/devel/toolchain).
 After the environment is loaded the script will read the environment variables to generate the correct `.cargo/config` file for your toolchain.
 
+The resulting config file will look something like this:
+```
+[target.armv7-unknown-linux-gnueabihf]
+linker = "<toolchain_install_path>/sysroots/x86_64-codexsdk-linux/usr/bin/arm-remarkable-linux-gnueabi/arm-remarkable-linux-gnueabi-gcc"
+rustflags = [
+  "-C", "link-arg=-march=armv7-a",
+  "-C", "link-arg=-marm",
+  "-C", "link-arg=-mfpu=neon",
+  "-C", "link-arg=-mfloat-abi=hard",
+  "-C", "link-arg=-mcpu=cortex-a9",
+  "-C", "link-arg=--sysroot=<toolchain_install_path>/sysroots/cortexa7hf-neon-remarkable-linux-gnueabi",
+]
+```
+
 You can also add this snippet to the above file in order to default to cross-compiling for this project:
 
 ```
