@@ -17,6 +17,15 @@ rustflags = [
 
 def main():
     #get sysroot from environment
+    if "SDKTARGETSYSROOT" not in os.environ:
+        print("No cross compilation environment found!")
+        print("Please set one up by sourcing a environment file for a chosen toolchain.")
+        print("Examples for well known toolchains in default locations:")
+        print("Codex-rm11x: $ source /opt/codex/rm11x/3.1.15/environment-setup-cortexa7hf-neon-remarkable-linux-gnueabi")
+        print("Codex-rm10x: $ source /opt/codex/rm10x/3.1.15/environment-setup-cortexa9hf-neon-remarkable-linux-gnueabi")
+        print("Oecore: $ source /usr/local/oecore-x86_64/environment-setup-cortexa9hf-neon-oe-linux-gnueabi")
+        #print("Poky: $ source /opt/poky/2.1.3/environment-setup-cortexa9hf-neon-poky-linux-gnueabi")
+        exit(1)
     sysroot = os.environ["SDKTARGETSYSROOT"]
     #get comiler name from environment
     cc_full = os.environ["CC"]
