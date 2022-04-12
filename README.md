@@ -23,8 +23,8 @@ In order to build `libremarkable` and the examples (`spy.so` and `demo`), you'll
 
 You can then set up your Rust toolchain for cross compilation with: `rustup target add armv7-unknown-linux-gnueabihf`.
 
-In order for rust to leverage the toolchain a `.cargo/config` file is required. This file can be generated using the `gen_cargo_config.py`. First the toolchain environment must be
-sourced. It location is can be found within the toolchain installation directory. The correct path is also referenced in the toolchain [wiki](https://remarkablewiki.com/devel/toolchain).
+In order for rust to leverage the toolchain a `.cargo/config` file is required. This file can be generated using `gen_cargo_config.py`. First the toolchain environment must be
+sourced. Its location is can be found within the toolchain installation directory. The correct path is also referenced in the toolchain [wiki](https://remarkablewiki.com/devel/toolchain).
 After the environment is loaded the script will read the environment variables to generate the correct `.cargo/config` file for your toolchain.
 
 The resulting config file will look something like this:
