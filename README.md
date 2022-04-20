@@ -8,10 +8,8 @@
 
 Everything from low latency partial updates to the eInk display to multitouch, physical button and Wacom Digitizer input is now understood and their minimal to complete implementations can be found in this repository.
 
-The focus of this repository is now going to be the Rust library for providing these features. Potentially a `piston` backend might be created for `Remarkable`, allowing the use of `conrod` to simplify UI creation.
-
-In cases where Rust implementation seems to contradict with the C implementation, the former can be taken as the source of truth as the `libremarkable` C implementation was the first-pass that came to being during the exploration stage.
-
+This repository implements a Rust library for providing these features.
+Potentially a `piston` backend might be created for `Remarkable`, allowing the use of `conrod` to simplify UI creation.
 For further documentation see the [wiki](https://github.com/canselcik/libremarkable/wiki) on this repository.
 
 `https://github.com/canselcik/RemarkableFramebuffer` redirects to this repository for historical purposes.
@@ -91,3 +89,8 @@ make TARGET=armv7-unknown-linux-gnueabihf deploy-x-demo
 1. Run the demo: `make deploy-x-demo`
 
 **Regarding apps for the rM2**: you will need the [display](https://github.com/ddvk/remarkable2-framebuffer) package from [Toltec](https://toltec-dev.org/). Only the server part though as the client is built into this lib.
+
+### Legacy C implementation
+
+The first draft of `libremarkable` was a C library, built while reverse engineering the tablet.
+It's no longer maintained, but can be found on the [`legacy-c-impl`](https://github.com/canselcik/libremarkable/tree/legacy-c-impl) branch.
