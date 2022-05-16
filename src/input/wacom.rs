@@ -22,7 +22,7 @@ pub struct WacomState {
     last_ytilt: AtomicU16,
     last_dist: AtomicU16,
     last_pressure: AtomicU16,
-    last_tool: Atomic<Option<WacomPen>>,
+    last_touch_state: Atomic<bool>,
 }
 
 impl ::std::default::Default for WacomState {
@@ -34,7 +34,7 @@ impl ::std::default::Default for WacomState {
             last_ytilt: AtomicU16::new(0),
             last_dist: AtomicU16::new(0),
             last_pressure: AtomicU16::new(0),
-            last_tool: Atomic::new(None),
+            last_touch_state: Atomic::new(false),
         }
     }
 }
@@ -45,8 +45,8 @@ pub fn decode(ev: &EvInputEvent, outer_state: &InputDeviceState) -> Option<Input
         _ => unreachable!(),
     };
     match ev.event_type().0 {
-        ecodes::EV_SYN => match state.last_tool.load(Ordering::Relaxed) {
-            Some(WacomPen::ToolPen) => Some(InputEvent::WacomEvent {
+        ecodes::EV_SYN => match state.last_touch_state.load(Ordering::Relaxed) {
+            false => Some(InputEvent::WacomEvent {
                 event: WacomEvent::Hover {
                     position: cgmath::Point2 {
                         x: (f32::from(state.last_x.load(Ordering::Relaxed)) * *WACOM_HSCALAR),
@@ -59,7 +59,7 @@ pub fn decode(ev: &EvInputEvent, outer_state: &InputDeviceState) -> Option<Input
                     },
                 },
             }),
-            Some(WacomPen::Touch) => Some(InputEvent::WacomEvent {
+            true => Some(InputEvent::WacomEvent {
                 event: WacomEvent::Draw {
                     position: cgmath::Point2 {
                         x: (f32::from(state.last_x.load(Ordering::Relaxed)) * *WACOM_HSCALAR),
@@ -72,7 +72,6 @@ pub fn decode(ev: &EvInputEvent, outer_state: &InputDeviceState) -> Option<Input
                     },
                 },
             }),
-            _ => None,
         },
         ecodes::EV_KEY => {
             /* key (device detected - device out of range etc.) */
@@ -81,12 +80,16 @@ pub fn decode(ev: &EvInputEvent, outer_state: &InputDeviceState) -> Option<Input
             }
 
             let pen: WacomPen = unsafe { std::mem::transmute_copy(&ev.code()) };
-            state.last_tool.store(Some(pen), Ordering::Relaxed);
+            let pen_state = ev.value() != 0;
+
+            if pen == WacomPen::Touch {
+                state.last_touch_state.store(pen_state, Ordering::Relaxed);
+            }
 
             Some(InputEvent::WacomEvent {
                 event: WacomEvent::InstrumentChange {
                     pen,
-                    state: ev.value() != 0,
+                    state: pen_state,
                 },
             })
         }
@@ -100,16 +103,12 @@ pub fn decode(ev: &EvInputEvent, outer_state: &InputDeviceState) -> Option<Input
                     // the last_dist supplants to that current max.
                     if state.last_pressure.load(Ordering::Relaxed) == 0 {
                         state.last_dist.store(ev.value() as u16, Ordering::Relaxed);
-                        state
-                            .last_tool
-                            .store(Some(WacomPen::ToolPen), Ordering::Relaxed);
+                        state.last_touch_state.store(false, Ordering::Relaxed);
                     } else {
                         state
                             .last_pressure
                             .fetch_add(ev.value() as u16, Ordering::Relaxed);
-                        state
-                            .last_tool
-                            .store(Some(WacomPen::Touch), Ordering::Relaxed);
+                        state.last_touch_state.store(true, Ordering::Relaxed);
                     }
                 }
                 ecodes::ABS_TILT_X => {

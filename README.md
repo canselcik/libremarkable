@@ -8,10 +8,8 @@
 
 Everything from low latency partial updates to the eInk display to multitouch, physical button and Wacom Digitizer input is now understood and their minimal to complete implementations can be found in this repository.
 
-The focus of this repository is now going to be the Rust library for providing these features. Potentially a `piston` backend might be created for `Remarkable`, allowing the use of `conrod` to simplify UI creation.
-
-In cases where Rust implementation seems to contradict with the C implementation, the former can be taken as the source of truth as the `libremarkable` C implementation was the first-pass that came to being during the exploration stage.
-
+This repository implements a Rust library for providing these features.
+Potentially a `piston` backend might be created for `Remarkable`, allowing the use of `conrod` to simplify UI creation.
 For further documentation see the [wiki](https://github.com/canselcik/libremarkable/wiki) on this repository.
 
 `https://github.com/canselcik/RemarkableFramebuffer` redirects to this repository for historical purposes.
@@ -23,23 +21,23 @@ In order to build `libremarkable` and the examples (`spy.so` and `demo`), you'll
 
 You can then set up your Rust toolchain for cross compilation with: `rustup target add armv7-unknown-linux-gnueabihf`.
 
-Once that's done, you should add the following to `.cargo/config` (replace `<path-to-installed-oecore-toochain>` with the directory you installed the Remarkable toolchain to):
+In order for rust to leverage the toolchain a `.cargo/config` file is required. This file can be generated using `gen_cargo_config.py`. First the toolchain environment must be
+sourced. Its location is can be found within the toolchain installation directory. The correct path is also referenced in the toolchain [wiki](https://remarkablewiki.com/devel/toolchain).
+After the environment is loaded the script will read the environment variables to generate the correct `.cargo/config` file for your toolchain.
+
+The resulting config file will look something like this:
 ```
 [target.armv7-unknown-linux-gnueabihf]
-linker = "<path-to-the-installed-oecore-toolchain>/sysroots/x86_64-oesdk-linux/usr/bin/arm-oe-linux-gnueabi/arm-oe-linux-gnueabi-gcc"
+linker = "<toolchain_install_path>/sysroots/x86_64-codexsdk-linux/usr/bin/arm-remarkable-linux-gnueabi/arm-remarkable-linux-gnueabi-gcc"
 rustflags = [
   "-C", "link-arg=-march=armv7-a",
   "-C", "link-arg=-marm",
   "-C", "link-arg=-mfpu=neon",
   "-C", "link-arg=-mfloat-abi=hard",
   "-C", "link-arg=-mcpu=cortex-a9",
-  "-C", "link-arg=--sysroot=<path-to-the-installed-oecore-toolchain>/sysroots/cortexa9hf-neon-oe-linux-gnueabi",
+  "-C", "link-arg=--sysroot=<toolchain_install_path>/sysroots/cortexa7hf-neon-remarkable-linux-gnueabi",
 ]
 ```
-
-(`<path-to-the-installed-oecore-toolchain` will likely be `/usr/local/oecore-x86_64/`, if you did the default install on Linux.)
-
-If you have further questions, feel free to ask in Issues.
 
 You can also add this snippet to the above file in order to default to cross-compiling for this project:
 
@@ -91,3 +89,8 @@ make TARGET=armv7-unknown-linux-gnueabihf deploy-x-demo
 1. Run the demo: `make deploy-x-demo`
 
 **Regarding apps for the rM2**: you will need the [display](https://github.com/ddvk/remarkable2-framebuffer) package from [Toltec](https://toltec-dev.org/). Only the server part though as the client is built into this lib.
+
+### Legacy C implementation
+
+The first draft of `libremarkable` was a C library, built while reverse engineering the tablet.
+It's no longer maintained, but can be found on the [`legacy-c-impl`](https://github.com/canselcik/libremarkable/tree/legacy-c-impl) branch.

@@ -1,3 +1,0 @@
-[submodule "legacy-c-impl/libfreetype"]
-	path = legacy-c-impl/libfreetype
-	url = git://github.com/ricardoquesada/libfreetype

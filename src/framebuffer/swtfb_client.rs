@@ -122,7 +122,7 @@ impl SwtfbClient {
     pub fn send(&self, update: &swtfb_update) -> bool {
         unsafe {
             let ptr = ptr::addr_of!(*update) as *const c_void;
-            libc::msgsnd(self.msqid, ptr, mem::size_of::<swtfb_update>(), 0) == 0
+            libc::msgsnd(self.msqid, ptr, mem::size_of::<swtfb_update_data>(), 0) == 0
         }
     }
 

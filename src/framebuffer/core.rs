@@ -32,7 +32,7 @@ pub struct Framebuffer {
     /// like it has been done in `Framebuffer::new(..)`.
     pub var_screen_info: VarScreeninfo,
     pub fix_screen_info: FixScreeninfo,
-    pub(crate) framebuffer_update: FramebufferUpdate,
+    pub framebuffer_update: FramebufferUpdate,
 }
 
 unsafe impl Send for Framebuffer {}
