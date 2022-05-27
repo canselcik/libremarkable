@@ -17,32 +17,44 @@ atomic = "0.5.1"
 cgmath = "0.18.0"
 libc = "0.2.69"
 
-# input
-evdev = "0.11.3"
-epoll = "4.3.1"
-fxhash = "0.2.1"
-
 
 # framebuffer
-rusttype = { version = "0.9.2", optional = true }
 memmap2 = { version = "0.5.2", optional = true }
-image = { version = "0.23.14", optional = true }
 ioctl-gen = { version = "0.1.1", optional = true }
+zstd = { version = "0.9.0", optional = true }
+
+# framebuffer-drawing
+rusttype = { version = "0.9.2", optional = true }
+image = { version = "0.23.14", optional = true }
 line_drawing = { version = "1.0.0", optional = true }
+
+# input
+evdev = { version = "0.11.3", optional = true }
+epoll = { version = "4.3.1", optional = true }
+fxhash = { version = "0.2.1", optional = true }
 
 # appctx
 aabb-quadtree = { version = "0.1.0", optional = true }
+
+# hlua
 hlua = { version = "0.4.1", optional = true }
-zstd = { version = "0.9.0", optional = true }
 
 # runtime benchmarking
 stopwatch = { version = "0.0.7", optional = true }
 
 [features]
-default = ["framebuffer", "appctx"]
+default = ["scan", "framebuffer-types", "framebuffer", "framebuffer-storage", "framebuffer-drawing", "image", "framebuffer-text-drawing", "input-types", "input", "battery", "appctx", "hlua"]
 
-framebuffer = ["rusttype", "memmap2", "image", "ioctl-gen", "line_drawing"]
-appctx = ["aabb-quadtree", "hlua", "zstd"]
+scan = ["evdev"]
+framebuffer-types = ["ioctl-gen"]
+framebuffer = ["scan", "framebuffer-types", "memmap2"]
+framebuffer-storage = ["framebuffer", "zstd"]
+framebuffer-drawing = ["framebuffer", "line_drawing"]
+framebuffer-text-drawing = ["framebuffer-drawing", "rusttype"]
+input-types = []
+input = ["scan", "input-types", "evdev", "epoll", "fxhash"]
+battery = []
+appctx = ["framebuffer-text-drawing", "image", "input", "aabb-quadtree"]
 
 enable-runtime-benchmarking = ["stopwatch"]
 

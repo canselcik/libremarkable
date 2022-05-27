@@ -1,24 +1,8 @@
 use super::ecodes;
-use crate::input::{InputDeviceState, InputEvent};
+use crate::input::{GPIOEvent, InputDeviceState, InputEvent, PhysicalButton};
 use evdev::InputEvent as EvInputEvent;
 use log::error;
 use std::sync::atomic::{AtomicBool, Ordering};
-
-#[derive(PartialEq, Copy, Clone, Debug)]
-pub enum PhysicalButton {
-    LEFT,
-    MIDDLE,
-    RIGHT,
-    POWER,
-    WAKEUP,
-}
-
-#[derive(PartialEq, Copy, Clone, Debug)]
-pub enum GPIOEvent {
-    Press { button: PhysicalButton },
-    Unpress { button: PhysicalButton },
-    Unknown,
-}
 
 pub struct GPIOState {
     states: [AtomicBool; 5],

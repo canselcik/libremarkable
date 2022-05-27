@@ -28,7 +28,22 @@ jobs:
       with:
         command: check
         use-cross: true
+        args: --target ${{ env.TARGET }} --no-default-features --features input
+    - uses: actions-rs/cargo@v1
+      with:
+        command: check
+        use-cross: true
         args: --target ${{ env.TARGET }} --no-default-features --features framebuffer
+    - uses: actions-rs/cargo@v1
+      with:
+        command: check
+        use-cross: true
+        args: --target ${{ env.TARGET }} --no-default-features --features framebuffer-text-drawing,input
+    - uses: actions-rs/cargo@v1
+      with:
+        command: check
+        use-cross: true
+        args: --target ${{ env.TARGET }} --no-default-features --features appctx
 
   test:
     name: Test Suite on gnueabihf

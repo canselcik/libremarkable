@@ -1,5 +1,9 @@
+#[cfg(feature = "image")]
 use image::RgbImage;
+
+#[cfg(feature = "framebuffer-text-drawing")]
 use once_cell::sync::Lazy;
+#[cfg(feature = "framebuffer-text-drawing")]
 use rusttype::{point, Font, Scale};
 
 use crate::framebuffer;
@@ -9,12 +13,14 @@ use crate::framebuffer::core;
 use crate::framebuffer::graphics;
 use crate::framebuffer::FramebufferIO;
 
+#[cfg(feature = "framebuffer-text-drawing")]
 pub static DEFAULT_FONT: Lazy<Font<'static>> = Lazy::new(|| {
     Font::try_from_bytes(include_bytes!("../../assets/Roboto-Regular.ttf").as_slice())
         .expect("corrupted font data")
 });
 
 impl framebuffer::FramebufferDraw for core::Framebuffer {
+    #[cfg(feature = "image")]
     fn draw_image(&mut self, img: &RgbImage, pos: Point2<i32>) -> mxcfb_rect {
         for (x, y, pixel) in img.enumerate_pixels() {
             let pixel_pos = pos + vec2(x as i32, y as i32);
@@ -135,6 +141,7 @@ impl framebuffer::FramebufferDraw for core::Framebuffer {
         )
     }
 
+    #[cfg(feature = "framebuffer-text-drawing")]
     fn draw_text(
         &mut self,
         pos: Point2<f32>,
