@@ -18,7 +18,7 @@ pub struct ActiveRegionHandler {
     pub element: UIElementHandle,
 }
 
-impl<'a> std::fmt::Debug for ActiveRegionHandler {
+impl std::fmt::Debug for ActiveRegionHandler {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{0:p}", self)
     }

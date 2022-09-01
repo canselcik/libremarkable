@@ -38,7 +38,7 @@ pub const FBIOPUTCMAP: NativeWidthType = 0x4605;
 pub const FBIOPAN_DISPLAY: NativeWidthType = 0x4606;
 pub const FBIO_CURSOR: NativeWidthType = 0x4608;
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum color {
     BLACK,
     RED,
@@ -167,7 +167,7 @@ pub const DRAWING_QUANT_BIT: i32 = 0x7614_3b24;
 pub const DRAWING_QUANT_BIT_2: i32 = 0x75e7_bb24;
 pub const DRAWING_QUANT_BIT_3: i32 = 0x5_3ed4;
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 #[repr(C)]
 pub struct mxcfb_rect {
     pub top: u32,
@@ -288,7 +288,7 @@ impl mxcfb_rect {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum mxcfb_ioctl {
     MXCFB_NONE = 0x00,
     MXCFB_SET_WAVEFORM_MODES = 0x2B,
@@ -313,7 +313,7 @@ pub enum mxcfb_ioctl {
     MXCFB_ENABLE_EPDC_ACCESS = 0x36,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum auto_update_mode {
     AUTO_UPDATE_MODE_REGION_MODE = 0,
     AUTO_UPDATE_MODE_AUTOMATIC_MODE = 1,
