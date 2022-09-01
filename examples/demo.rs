@@ -5,7 +5,7 @@ use libremarkable::framebuffer::storage;
 use libremarkable::framebuffer::PartialRefreshMode;
 use libremarkable::framebuffer::{FramebufferDraw, FramebufferIO, FramebufferRefresh};
 use libremarkable::image::GenericImage;
-use libremarkable::input::{gpio, multitouch, wacom, InputDevice, InputEvent};
+use libremarkable::input::{InputDevice, InputEvent};
 use libremarkable::ui_extensions::element::{
     UIConstraintRefresh, UIElement, UIElementHandle, UIElementWrapper,
 };
