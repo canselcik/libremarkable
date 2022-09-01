@@ -74,7 +74,7 @@ impl InputDeviceState {
 }
 
 #[repr(u16)]
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum WacomPen {
     /// When the pen gets into the reach of the digitizer
     /// a tool will be selected. This is useful for software
@@ -89,7 +89,7 @@ pub enum WacomPen {
     Stylus2 = ecodes::BTN_STYLUS2,
 }
 
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum WacomEventType {
     InstrumentChange,
     Hover,
@@ -116,7 +116,7 @@ pub enum WacomEvent {
     Unknown,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Finger {
     pub tracking_id: i32,
 
@@ -142,7 +142,7 @@ impl Default for Finger {
     }
 }
 
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum MultitouchEvent {
     Press { finger: Finger },
     Release { finger: Finger },
@@ -161,7 +161,7 @@ impl MultitouchEvent {
     }
 }
 
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum PhysicalButton {
     LEFT,
     MIDDLE,
@@ -170,7 +170,7 @@ pub enum PhysicalButton {
     WAKEUP,
 }
 
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum GPIOEvent {
     Press { button: PhysicalButton },
     Unpress { button: PhysicalButton },
