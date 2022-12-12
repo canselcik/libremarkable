@@ -64,6 +64,7 @@ impl Default for ApplicationContext<'static> {
         let xres = framebuffer.var_screen_info.xres;
 
         let (input_tx, input_rx) = std::sync::mpsc::channel();
+        #[allow(unused_mut)] // Some features require this to be mut, some not
         let mut res = ApplicationContext {
             wacom_ctx: RwLock::new(None),
             button_ctx: RwLock::new(None),
