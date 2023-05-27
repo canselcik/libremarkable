@@ -52,7 +52,7 @@ pub fn rgbimage_from_u8_slice(w: u32, h: u32, buff: &[u8]) -> Option<image::RgbI
         return None;
     }
     Some(image::ImageBuffer::from_fn(w, h, |x, y| {
-        let in_index: usize = ((y * input_line_len) + ((input_bytespp * x) as u32)) as usize;
+        let in_index: usize = ((y * input_line_len) + (input_bytespp * x)) as usize;
         let data = common::color::NATIVE_COMPONENTS(buff[in_index], buff[in_index + 1]).to_rgb8();
         image::Rgb(data)
     }))

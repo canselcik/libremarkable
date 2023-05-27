@@ -55,7 +55,7 @@ impl framebuffer::FramebufferDraw for core::Framebuffer {
                 v,
             ),
         };
-        let margin = ((width + 1) / 2) as u32;
+        let margin = (width + 1) / 2;
         graphics::stamp_along_line(stamp, start, end).expand(margin)
     }
 
@@ -79,10 +79,10 @@ impl framebuffer::FramebufferDraw for core::Framebuffer {
             self.write_pixel(Point2 { x, y }, v);
         }
         mxcfb_rect {
-            top: pos.y as u32 - rad as u32,
-            left: pos.x as u32 - rad as u32,
-            width: 2 * rad as u32,
-            height: 2 * rad as u32,
+            top: pos.y as u32 - rad,
+            left: pos.x as u32 - rad,
+            width: 2 * rad,
+            height: 2 * rad,
         }
     }
 
@@ -99,10 +99,10 @@ impl framebuffer::FramebufferDraw for core::Framebuffer {
             }
         }
         mxcfb_rect {
-            top: pos.y as u32 - rad as u32,
-            left: pos.x as u32 - rad as u32,
-            width: 2 * rad as u32,
-            height: 2 * rad as u32,
+            top: pos.y as u32 - rad,
+            left: pos.x as u32 - rad,
+            width: 2 * rad,
+            height: 2 * rad,
         }
     }
 
@@ -150,10 +150,7 @@ impl framebuffer::FramebufferDraw for core::Framebuffer {
         col: color,
         dryrun: bool,
     ) -> mxcfb_rect {
-        let scale = Scale {
-            x: size as f32,
-            y: size as f32,
-        };
+        let scale = Scale::uniform(size);
 
         // The starting positioning of the glyphs (top left corner)
         let start = point(pos.x, pos.y);
@@ -208,10 +205,10 @@ impl framebuffer::FramebufferDraw for core::Framebuffer {
 
         // return the height and width of the drawn text so that refresh can be called on it
         mxcfb_rect {
-            top: min_y as u32,
-            left: min_x as u32,
-            height: (max_y - min_y) as u32,
-            width: (max_x - min_x) as u32,
+            top: min_y,
+            left: min_x,
+            height: (max_y - min_y),
+            width: (max_x - min_x),
         }
     }
 
@@ -238,10 +235,7 @@ impl framebuffer::FramebufferDraw for core::Framebuffer {
         for ypos in pos.y..pos.y + size.y as i32 {
             for xpos in pos.x..pos.x + size.x as i32 {
                 self.write_pixel(
-                    Point2 {
-                        x: xpos as i32,
-                        y: ypos as i32,
-                    },
+                    Point2::new(xpos, ypos),
                     c,
                 );
             }

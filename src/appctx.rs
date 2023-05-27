@@ -208,7 +208,7 @@ impl<'a> ApplicationContext<'a> {
     ) -> mxcfb_rect {
         let framebuffer = self.get_framebuffer_ref();
 
-        framebuffer.draw_rect(position, size, border_px as u32, border_color);
+        framebuffer.draw_rect(position, size, border_px, border_color);
         let draw_area = mxcfb_rect::from(position.cast().unwrap(), size);
         let marker = match refresh {
             UIConstraintRefresh::Refresh | UIConstraintRefresh::RefreshAndWait => framebuffer
@@ -306,8 +306,8 @@ impl<'a> ApplicationContext<'a> {
         start_bench!(stopwatch, draw_elements);
         let mut elems: std::vec::Vec<UIElementHandle> = self
             .ui_elements
-            .iter()
-            .map(|(_key, value)| value.clone())
+            .values()
+            .cloned()
             .collect();
 
         for element in &mut elems {

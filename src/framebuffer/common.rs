@@ -38,12 +38,13 @@ pub const FBIOPUTCMAP: NativeWidthType = 0x4605;
 pub const FBIOPAN_DISPLAY: NativeWidthType = 0x4606;
 pub const FBIO_CURSOR: NativeWidthType = 0x4608;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub enum color {
     BLACK,
     RED,
     GREEN,
     BLUE,
+    #[default]
     WHITE,
     NATIVE_COMPONENTS(u8, u8),
     RGB(u8, u8, u8),
@@ -128,12 +129,6 @@ fn rgb565_conversions() {
         let [r, g, b] = color::NATIVE_COMPONENTS(lo, hi).to_rgb8();
 
         assert_eq!(color::RGB(r, g, b).to_rgb565(), [lo, hi]);
-    }
-}
-
-impl ::std::default::Default for color {
-    fn default() -> Self {
-        color::WHITE
     }
 }
 

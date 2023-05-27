@@ -24,17 +24,12 @@ impl std::fmt::Debug for ActiveRegionHandler {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub enum UIConstraintRefresh {
     NoRefresh,
+    #[default]
     Refresh,
     RefreshAndWait,
-}
-
-impl Default for UIConstraintRefresh {
-    fn default() -> UIConstraintRefresh {
-        UIConstraintRefresh::Refresh
-    }
 }
 
 #[derive(Clone)]
@@ -76,7 +71,7 @@ impl PartialEq for UIElementWrapper {
 
 impl Eq for UIElementWrapper {}
 
-#[derive(Clone)]
+#[derive(Clone, Default, Debug)]
 pub enum UIElement {
     Text {
         text: String,
@@ -92,6 +87,7 @@ pub enum UIElement {
         border_color: color,
         border_px: u32,
     },
+    #[default]
     Unspecified,
 }
 
@@ -157,7 +153,7 @@ impl UIElementWrapper {
                 self.position.cast().unwrap(),
                 foreground,
                 scale,
-                border_px as u32,
+                border_px,
                 8,
                 text,
                 refresh,
@@ -222,11 +218,5 @@ impl UIElementWrapper {
         // We need to wait until now because we don't know the size of the active region before we
         // actually go ahead and draw it.
         self.last_drawn_rect = Some(rect);
-    }
-}
-
-impl Default for UIElement {
-    fn default() -> UIElement {
-        UIElement::Unspecified
     }
 }
