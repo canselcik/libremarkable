@@ -40,7 +40,7 @@ fn main() {
         let mut writer = BufWriter::new(Vec::new());
         image::jpeg::JpegEncoder::new(&mut writer)
             .encode(
-                &*rgb888,
+                &rgb888,
                 DISPLAYWIDTH.into(),
                 DISPLAYHEIGHT.into(),
                 image::ColorType::Rgb8,

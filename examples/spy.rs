@@ -73,7 +73,7 @@ fn handle_send_update(event: ioctl_intercept_event) {
     println!("===QUANT DISTRIBUTION===");
     add_entry(&mut distquant, unsafe { (*update_data).quant_bit } as u32);
     println!("===FLAGS DISTRIBUTION===");
-    add_entry(&mut distflags, unsafe { (*update_data).flags } as u32);
+    add_entry(&mut distflags, unsafe { (*update_data).flags });
 
     unsafe {
         println!(
