@@ -27,7 +27,7 @@ impl framebuffer::FramebufferRefresh for core::Framebuffer {
         let marker = self.marker.fetch_add(1, Ordering::Relaxed);
         let whole = mxcfb_update_data {
             update_mode: common::update_mode::UPDATE_MODE_FULL as u32,
-            update_marker: marker as u32,
+            update_marker: marker,
             waveform_mode: waveform_mode as u32,
             temp: temperature as i32,
             flags: 0,
@@ -103,11 +103,11 @@ impl framebuffer::FramebufferRefresh for core::Framebuffer {
         let marker = self.marker.fetch_add(1, Ordering::Relaxed);
         let whole = mxcfb_update_data {
             update_mode,
-            update_marker: marker as u32,
+            update_marker: marker,
             waveform_mode: waveform_mode as u32,
             temp: temperature as i32,
             flags: match mode {
-                PartialRefreshMode::DryRun => common::EPDC_FLAG_TEST_COLLISION as u32,
+                PartialRefreshMode::DryRun => common::EPDC_FLAG_TEST_COLLISION,
                 _ => 0,
             },
             quant_bit,

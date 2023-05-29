@@ -52,7 +52,7 @@ pub fn decode(ev: &EvInputEvent, outer_state: &InputDeviceState) -> Option<Input
                         x: (f32::from(state.last_x.load(Ordering::Relaxed)) * *WACOM_HSCALAR),
                         y: (f32::from(state.last_y.load(Ordering::Relaxed)) * *WACOM_VSCALAR),
                     },
-                    distance: state.last_dist.load(Ordering::Relaxed) as u16,
+                    distance: state.last_dist.load(Ordering::Relaxed),
                     tilt: cgmath::Vector2 {
                         x: state.last_xtilt.load(Ordering::Relaxed),
                         y: state.last_ytilt.load(Ordering::Relaxed),

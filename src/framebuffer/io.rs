@@ -75,7 +75,7 @@ impl framebuffer::FramebufferIO for framebuffer::core::Framebuffer {
             return Err("Horizontally out of bounds");
         }
 
-        let line_length = self.fix_screen_info.line_length as u32;
+        let line_length = self.fix_screen_info.line_length;
         let bytespp = (self.var_screen_info.bits_per_pixel / 8) as usize;
         let inbuffer = self.frame.as_ptr();
         let mut outbuffer: Vec<u8> =
@@ -120,7 +120,7 @@ impl framebuffer::FramebufferIO for framebuffer::core::Framebuffer {
             return Err("Cannot restore region due to mismatched size");
         }
 
-        let line_length = self.fix_screen_info.line_length as u32;
+        let line_length = self.fix_screen_info.line_length;
         let chunk_size = bytespp * rect.width as usize;
         let outbuffer = self.frame.as_mut_ptr();
         let inbuffer = data.as_ptr();
