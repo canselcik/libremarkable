@@ -304,11 +304,8 @@ impl<'a> ApplicationContext<'a> {
 
     pub fn draw_elements(&mut self) {
         start_bench!(stopwatch, draw_elements);
-        let mut elems: std::vec::Vec<UIElementHandle> = self
-            .ui_elements
-            .values()
-            .cloned()
-            .collect();
+        let mut elems: std::vec::Vec<UIElementHandle> =
+            self.ui_elements.values().cloned().collect();
 
         for element in &mut elems {
             let handler = element.read().onclick.map(|handler| ActiveRegionHandler {

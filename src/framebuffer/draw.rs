@@ -234,10 +234,7 @@ impl framebuffer::FramebufferDraw for core::Framebuffer {
     fn fill_rect(&mut self, pos: Point2<i32>, size: Vector2<u32>, c: color) {
         for ypos in pos.y..pos.y + size.y as i32 {
             for xpos in pos.x..pos.x + size.x as i32 {
-                self.write_pixel(
-                    Point2::new(xpos, ypos),
-                    c,
-                );
+                self.write_pixel(Point2::new(xpos, ypos), c);
             }
         }
     }
