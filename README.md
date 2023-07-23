@@ -17,12 +17,12 @@ For further documentation see the [wiki](https://github.com/canselcik/libremarka
 ### Build Instructions
 
 #### Setting up the toolchain
-In order to build `libremarkable` and the examples (`spy.so` and `demo`), you'll need the toolchain from Remarkable. Download the [installation script](https://storage.googleapis.com/remarkable-codex-toolchain/codex-x86_64-cortexa9hf-neon-rm10x-toolchain-3.1.2.sh) ([rM2](https://storage.googleapis.com/remarkable-codex-toolchain/codex-x86_64-cortexa7hf-neon-rm11x-toolchain-3.1.2.sh)) and install the toolchain. You can find more information on the [wiki](https://remarkablewiki.com/devel/toolchain).
+In order to build `libremarkable` and the examples (`spy.so` and `demo`), you'll need the toolchain from Remarkable. Download the [installation script](https://storage.googleapis.com/remarkable-codex-toolchain/codex-x86_64-cortexa9hf-neon-rm10x-toolchain-3.1.2.sh) ([rM2](https://storage.googleapis.com/remarkable-codex-toolchain/codex-x86_64-cortexa7hf-neon-rm11x-toolchain-3.1.2.sh)) and install the toolchain. You can find more information on the [wiki](https://web.archive.org/web/20230616024159/https://remarkablewiki.com/devel/toolchain).
 
 You can then set up your Rust toolchain for cross compilation with: `rustup target add armv7-unknown-linux-gnueabihf`.
 
 In order for rust to leverage the toolchain a `.cargo/config` file is required. This file can be generated using `gen_cargo_config.py`. First the toolchain environment must be
-sourced. Its location is can be found within the toolchain installation directory. The correct path is also referenced in the toolchain [wiki](https://remarkablewiki.com/devel/toolchain).
+sourced. Its location is can be found within the toolchain installation directory. The correct path is also referenced in the toolchain [wiki](https://web.archive.org/web/20230616024159/https://remarkablewiki.com/devel/toolchain).
 After the environment is loaded the script will read the environment variables to generate the correct `.cargo/config` file for your toolchain.
 
 The resulting config file will look something like this:
