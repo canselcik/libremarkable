@@ -10,8 +10,8 @@ use rgb565::Rgb565;
 
 fn main() {
     let fb = Framebuffer::new();
-    let width = DISPLAYWIDTH as u32;
-    let height = DISPLAYHEIGHT as u32;
+    let width = u32::from(DISPLAYWIDTH);
+    let height = u32::from(DISPLAYHEIGHT);
     let contents = fb
         .dump_region(mxcfb_rect {
             top: 0,

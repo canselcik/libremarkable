@@ -487,7 +487,7 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext<'_>, input: input::WacomE
                 mult = 50; // Rough size of the rubber end
             }
 
-            wacom_stack.push_back((position.cast().unwrap(), pressure as i32));
+            wacom_stack.push_back((position.cast().unwrap(), i32::from(pressure)));
 
             while wacom_stack.len() >= 3 {
                 let framebuffer = app.get_framebuffer_ref();

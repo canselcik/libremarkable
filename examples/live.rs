@@ -26,8 +26,8 @@ fn main() {
             .dump_region(framebuffer::common::mxcfb_rect {
                 top: 0,
                 left: 0,
-                width: DISPLAYWIDTH as u32,
-                height: DISPLAYHEIGHT as u32,
+                width: DISPLAYWIDTH.into(),
+                height: DISPLAYHEIGHT.into(),
             })
             .unwrap();
 

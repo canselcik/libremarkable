@@ -98,9 +98,9 @@ impl color {
         //    green   : offset = 5,   length =6,      msb_right = 0
         //    blue    : offset = 0,   length =5,      msb_right = 0
         //
-        let r5 = (r8 as u16 + 1) * 0b11111 / 255;
-        let g6 = (g8 as u16 + 1) * 0b111111 / 255;
-        let b5 = (b8 as u16 + 1) * 0b11111 / 255;
+        let r5 = (u16::from(r8) + 1) * 0b11111 / 255;
+        let g6 = (u16::from(g8) + 1) * 0b111111 / 255;
+        let b5 = (u16::from(b8) + 1) * 0b11111 / 255;
 
         let rgb565 = r5 << 11 | g6 << 5 | b5;
 
