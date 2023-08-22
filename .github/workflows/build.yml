@@ -16,34 +16,32 @@ jobs:
         components: rustfmt
     - uses: actions-rs/cargo@v1
       with:
-        command: check
-        use-cross: true
-        args: --target ${{ env.TARGET }}
+        command: fetch
     - uses: actions-rs/cargo@v1
       with:
         command: check
         use-cross: true
-        args: --target ${{ env.TARGET }} --no-default-features
+        args: --target ${{ env.TARGET }} --locked --frozen --offline
     - uses: actions-rs/cargo@v1
       with:
         command: check
         use-cross: true
-        args: --target ${{ env.TARGET }} --no-default-features --features input
+        args: --target ${{ env.TARGET }} --locked --frozen --offline --no-default-features --features input
     - uses: actions-rs/cargo@v1
       with:
         command: check
         use-cross: true
-        args: --target ${{ env.TARGET }} --no-default-features --features framebuffer
+        args: --target ${{ env.TARGET }} --locked --frozen --offline --no-default-features --features framebuffer
     - uses: actions-rs/cargo@v1
       with:
         command: check
         use-cross: true
-        args: --target ${{ env.TARGET }} --no-default-features --features framebuffer-text-drawing,input
+        args: --target ${{ env.TARGET }} --locked --frozen --offline --no-default-features --features framebuffer-text-drawing,input
     - uses: actions-rs/cargo@v1
       with:
         command: check
         use-cross: true
-        args: --target ${{ env.TARGET }} --no-default-features --features appctx
+        args: --target ${{ env.TARGET }} --locked --frozen --offline --no-default-features --features appctx
 
   test:
     name: Test Suite on gnueabihf
@@ -61,9 +59,12 @@ jobs:
         components: rustfmt
     - uses: actions-rs/cargo@v1
       with:
+        command: fetch
+    - uses: actions-rs/cargo@v1
+      with:
         command: test
         use-cross: true
-        args: --target ${{ env.TARGET }}
+        args: --target ${{ env.TARGET }} --locked --frozen --offline
   test-local:
     name: Test Suite
     runs-on: ubuntu-latest
@@ -75,7 +76,11 @@ jobs:
         toolchain: stable
     - uses: actions-rs/cargo@v1
       with:
+        command: fetch
+    - uses: actions-rs/cargo@v1
+      with:
         command: test
+        args: --locked --frozen --offline
 
   fmt:
     name: Rustfmt
@@ -89,6 +94,9 @@ jobs:
         target: ${{ env.TARGET }}
         override: true
         components: rustfmt
+    - uses: actions-rs/cargo@v1
+      with:
+        command: fetch
     - uses: actions-rs/cargo@v1
       with:
         command: fmt
@@ -106,6 +114,9 @@ jobs:
         target: ${{ env.TARGET }}
         override: true
         components: rustfmt, clippy
+    - uses: actions-rs/cargo@v1
+      with:
+        command: fetch
     - uses: actions-rs/cargo@v1
       with:
         command: clippy
