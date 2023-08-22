@@ -1,5 +1,9 @@
 on: [push, pull_request]
 name: Continuous integration
+
+env:
+  TARGET: armv7-unknown-linux-musleabihf
+
 jobs:
 
   check:
@@ -121,7 +125,4 @@ jobs:
       with:
         command: clippy
         use-cross: true
-        args: --target ${{ env.TARGET }} -- -D warnings
-
-env:
-  TARGET: armv7-unknown-linux-musleabihf
+        args: --target ${{ env.TARGET }} --locked --frozen --offline -- -D warnings --no-deps -W clippy::cast_lossless -W clippy::redundant_closure_for_method_calls -W clippy::str_to_string
