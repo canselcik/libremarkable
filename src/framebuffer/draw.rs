@@ -207,8 +207,8 @@ impl framebuffer::FramebufferDraw for core::Framebuffer {
         mxcfb_rect {
             top: min_y,
             left: min_x,
-            height: (max_y - min_y),
-            width: (max_x - min_x),
+            height: max_y - min_y,
+            width: max_x - min_x,
         }
     }
 
