@@ -98,12 +98,14 @@ const CANVAS_REGION: mxcfb_rect = mxcfb_rect {
     width: 1404,
 };
 
+type PointAndPressure = (cgmath::Point2<f32>, i32);
+
 static G_TOUCH_MODE: Lazy<Atomic<TouchMode>> = Lazy::new(|| Atomic::new(TouchMode::OnlyUI));
 static G_DRAW_MODE: Lazy<Atomic<DrawMode>> = Lazy::new(|| Atomic::new(DrawMode::Draw(2)));
 static UNPRESS_OBSERVED: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 static WACOM_IN_RANGE: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 static WACOM_RUBBER_SIDE: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
-static WACOM_HISTORY: Lazy<Mutex<VecDeque<(cgmath::Point2<f32>, i32)>>> =
+static WACOM_HISTORY: Lazy<Mutex<VecDeque<PointAndPressure>>> =
     Lazy::new(|| Mutex::new(VecDeque::new()));
 static G_COUNTER: Lazy<Mutex<u32>> = Lazy::new(|| Mutex::new(0));
 static SAVED_CANVAS: Lazy<Mutex<Option<storage::CompressedCanvasState>>> =
@@ -371,7 +373,7 @@ fn toggle_touch(app: &mut appctx::ApplicationContext<'_>) {
             border_px: _,
         } = elem.write().inner
         {
-            *text = new_state.to_string();
+            *text = new_state.to_owned();
         }
     }
     app.draw_element("toggleTouch");
