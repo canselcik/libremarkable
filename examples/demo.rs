@@ -493,7 +493,7 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext<'_>, input: input::WacomE
 
             while wacom_stack.len() >= 3 {
                 let framebuffer = app.get_framebuffer_ref();
-                let points = vec![
+                let points = [
                     wacom_stack.pop_front().unwrap(),
                     *wacom_stack.get(0).unwrap(),
                     *wacom_stack.get(1).unwrap(),
@@ -577,7 +577,7 @@ fn on_touch_handler(app: &mut appctx::ApplicationContext<'_>, input: input::Mult
             let rect = match G_TOUCH_MODE.load(Ordering::Relaxed) {
                 TouchMode::Bezier => {
                     let position_float = finger.pos.cast().unwrap();
-                    let points = vec![
+                    let points = [
                         (cgmath::vec2(-40.0, 0.0), 2.5),
                         (cgmath::vec2(40.0, -60.0), 5.5),
                         (cgmath::vec2(0.0, 0.0), 3.5),
