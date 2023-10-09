@@ -14,8 +14,8 @@ use std::sync::{
     Mutex,
 };
 
-static MT_HSCALAR: Lazy<f32> = Lazy::new(|| (DISPLAYWIDTH as f32) / (*MTWIDTH as f32));
-static MT_VSCALAR: Lazy<f32> = Lazy::new(|| (DISPLAYHEIGHT as f32) / (*MTHEIGHT as f32));
+static MT_HSCALAR: Lazy<f32> = Lazy::new(|| f32::from(DISPLAYWIDTH) / f32::from(*MTWIDTH));
+static MT_VSCALAR: Lazy<f32> = Lazy::new(|| f32::from(DISPLAYHEIGHT) / f32::from(*MTHEIGHT));
 
 pub struct MultitouchState {
     fingers: Mutex<FxHashMap<i32 /* slot */, Finger>>,
@@ -43,11 +43,10 @@ pub fn decode(ev: &EvInputEvent, outer_state: &InputDeviceState) -> Vec<InputEve
             match ev.code() {
                 ecodes::SYN_REPORT => {
                     let mut events: Vec<InputEvent> = vec![];
-                    for (_slot, mut finger) in fingers.iter_mut() {
+                    for (_slot, finger) in fingers.iter_mut() {
                         if !finger.last_pressed && finger.pressed {
                             // Pressed
                             finger.last_pressed = finger.pressed;
-
                             events.push(InputEvent::MultitouchEvent {
                                 event: MultitouchEvent::Press { finger: *finger },
                             });

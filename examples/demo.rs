@@ -98,12 +98,14 @@ const CANVAS_REGION: mxcfb_rect = mxcfb_rect {
     width: 1404,
 };
 
+type PointAndPressure = (cgmath::Point2<f32>, i32);
+
 static G_TOUCH_MODE: Lazy<Atomic<TouchMode>> = Lazy::new(|| Atomic::new(TouchMode::OnlyUI));
 static G_DRAW_MODE: Lazy<Atomic<DrawMode>> = Lazy::new(|| Atomic::new(DrawMode::Draw(2)));
 static UNPRESS_OBSERVED: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 static WACOM_IN_RANGE: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 static WACOM_RUBBER_SIDE: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
-static WACOM_HISTORY: Lazy<Mutex<VecDeque<(cgmath::Point2<f32>, i32)>>> =
+static WACOM_HISTORY: Lazy<Mutex<VecDeque<PointAndPressure>>> =
     Lazy::new(|| Mutex::new(VecDeque::new()));
 static G_COUNTER: Lazy<Mutex<u32>> = Lazy::new(|| Mutex::new(0));
 static SAVED_CANVAS: Lazy<Mutex<Option<storage::CompressedCanvasState>>> =
@@ -371,7 +373,7 @@ fn toggle_touch(app: &mut appctx::ApplicationContext<'_>) {
             border_px: _,
         } = elem.write().inner
         {
-            *text = new_state.to_string();
+            *text = new_state.to_owned();
         }
     }
     app.draw_element("toggleTouch");
@@ -487,11 +489,11 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext<'_>, input: input::WacomE
                 mult = 50; // Rough size of the rubber end
             }
 
-            wacom_stack.push_back((position.cast().unwrap(), pressure as i32));
+            wacom_stack.push_back((position.cast().unwrap(), i32::from(pressure)));
 
             while wacom_stack.len() >= 3 {
                 let framebuffer = app.get_framebuffer_ref();
-                let points = vec![
+                let points = [
                     wacom_stack.pop_front().unwrap(),
                     *wacom_stack.get(0).unwrap(),
                     *wacom_stack.get(1).unwrap(),
@@ -575,7 +577,7 @@ fn on_touch_handler(app: &mut appctx::ApplicationContext<'_>, input: input::Mult
             let rect = match G_TOUCH_MODE.load(Ordering::Relaxed) {
                 TouchMode::Bezier => {
                     let position_float = finger.pos.cast().unwrap();
-                    let points = vec![
+                    let points = [
                         (cgmath::vec2(-40.0, 0.0), 2.5),
                         (cgmath::vec2(40.0, -60.0), 5.5),
                         (cgmath::vec2(0.0, 0.0), 3.5),

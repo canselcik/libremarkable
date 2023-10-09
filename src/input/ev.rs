@@ -59,7 +59,7 @@ impl EvDevContext {
         match SCANNED.get_device(self.device) {
             Err(e) => error!("Error while reading events from epoll fd: {0}", e),
             Ok(mut dev) => {
-                let mut v = vec![epoll::Event {
+                let mut v = [epoll::Event {
                     events: (epoll::Events::EPOLLET
                         | epoll::Events::EPOLLIN
                         | epoll::Events::EPOLLPRI)

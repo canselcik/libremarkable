@@ -28,7 +28,7 @@ hook! {
                 eprintln!("Spy: msgsnd: Message: {{ swt_update.mtype: {:?}, data: ... }}", msg.mtype);
                 let data_str_formatted = match msg.mtype {
                     swtfb_client::MSG_TYPE::INIT_t => {
-                        String::from("...")
+                        "...".to_owned()
                     },
                     swtfb_client::MSG_TYPE::UPDATE_t => {
                         format!("{:?}", msg.data.update)
