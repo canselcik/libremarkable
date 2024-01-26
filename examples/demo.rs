@@ -548,7 +548,7 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext<'_>, input: input::WacomE
                         wacom_stack.clear();
                     }
                 }
-                _ => unreachable!(),
+                _ => {},
             }
         }
         input::WacomEvent::Hover {
