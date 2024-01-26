@@ -56,9 +56,12 @@ impl Framebuffer {
                     let env_answer = env_answer.to_lowercase();
                     if env_answer == "1" || env_answer == "true" || env_answer == "yes" {
                         Framebuffer::device(device.get_framebuffer_path())
+                    } else {
+                        Framebuffer::rm2fb(device.get_framebuffer_path())
                     }
+                } else {
+                    Framebuffer::rm2fb(device.get_framebuffer_path())
                 }
-                Framebuffer::rm2fb(device.get_framebuffer_path())
             }
         }
     }
