@@ -230,6 +230,7 @@ impl<'a> ApplicationContext<'a> {
         draw_area
     }
 
+    #[cfg(feature = "image")]
     pub fn display_image(
         &mut self,
         img: &image::DynamicImage,

@@ -79,9 +79,8 @@ pub enum UIElement {
         foreground: color,
         border_px: u32,
     },
-    Image {
-        img: image::DynamicImage,
-    },
+    #[cfg(feature = "image")]
+    Image { img: image::DynamicImage },
     Region {
         size: cgmath::Vector2<u32>,
         border_color: color,
@@ -158,6 +157,7 @@ impl UIElementWrapper {
                 text,
                 refresh,
             ),
+            #[cfg(feature = "image")]
             UIElement::Image { ref img } => {
                 app.display_image(img, self.position.cast().unwrap(), refresh)
             }
