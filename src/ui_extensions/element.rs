@@ -80,9 +80,7 @@ pub enum UIElement {
         border_px: u32,
     },
     #[cfg(feature = "image")]
-    Image {
-        img: image::DynamicImage,
-    },
+    Image { img: image::DynamicImage },
     Region {
         size: cgmath::Vector2<u32>,
         border_color: color,
