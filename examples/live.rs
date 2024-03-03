@@ -32,8 +32,8 @@ fn main() {
             continue;
         }
 
-        let width = DISPLAYWIDTH as u32;
-        let height = DISPLAYHEIGHT as u32;
+        let width = u32::from(DISPLAYWIDTH);
+        let height = u32::from(DISPLAYHEIGHT);
         let contents = fb
             .dump_region(framebuffer::common::mxcfb_rect {
                 top: 0,
@@ -51,15 +51,15 @@ fn main() {
 
         let url_lc = request.url().to_lowercase();
         let (data, mime) = if url_lc.ends_with("jpg") || url_lc.ends_with("jpeg") {
-            (encode(&*&rgb888, ImageFormat::Jpeg), "image/jpeg")
+            (encode(&rgb888, ImageFormat::Jpeg), "image/jpeg")
         } else if url_lc.ends_with("gif") {
-            (encode(&*&rgb888, ImageFormat::Gif), "image/gif")
+            (encode(&rgb888, ImageFormat::Gif), "image/gif")
         } else if url_lc.ends_with("bmp") {
-            (encode(&*&rgb888, ImageFormat::Bmp), "image/bmp")
+            (encode(&rgb888, ImageFormat::Bmp), "image/bmp")
         } else if url_lc.ends_with("tga") {
-            (encode(&*&rgb888, ImageFormat::Tga), "image/x-tga")
+            (encode(&rgb888, ImageFormat::Tga), "image/x-tga")
         } else {
-            (encode(&*&rgb888, ImageFormat::Png), "image/png")
+            (encode(&rgb888, ImageFormat::Png), "image/png")
         };
         let response = Response::new_empty(StatusCode(200))
             .with_data(&*data, Some(data.len()))
