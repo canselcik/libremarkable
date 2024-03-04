@@ -495,7 +495,7 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext<'_>, input: input::WacomE
                 let framebuffer = app.get_framebuffer_ref();
                 let points = [
                     wacom_stack.pop_front().unwrap(),
-                    *wacom_stack.get(0).unwrap(),
+                    *wacom_stack.front().unwrap(),
                     *wacom_stack.get(1).unwrap(),
                 ];
                 let radii: Vec<f32> = points
