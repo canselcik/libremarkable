@@ -161,6 +161,10 @@ impl framebuffer::FramebufferDraw for core::Framebuffer {
         let mut max_x = pos.x.ceil().max(0.0) as u32;
 
         let components = col.to_rgb8();
+        // FOR TEXT BACKGROUND
+        //let c1 = f32::from(255 - components[0]);
+        //let c2 = f32::from(255 - components[1]);
+        //let c3 = f32::from(255 - components[2]);
         let c1 = f32::from(255 - components[0]);
         let c2 = f32::from(255 - components[1]);
         let c3 = f32::from(255 - components[2]);
@@ -191,13 +195,16 @@ impl framebuffer::FramebufferDraw for core::Framebuffer {
                 }
 
                 glyph.draw(|x, y, v| {
-                    let mult = (1.0 - v).min(1.0);
+                    // FOR TEXT BACKGROUND
+                    //let mult = (1.0 - v).min(1.0);
                     self.write_pixel(
                         Point2 {
                             x: (x + bounding_box.min.x as u32) as i32,
                             y: (y + bounding_box.min.y as u32) as i32,
                         },
-                        color::RGB((c1 * mult) as u8, (c2 * mult) as u8, (c3 * mult) as u8),
+                        // FOR TEXT BACKGROUND
+                        //color::RGB((c1 * mult) as u8, (c2 * mult) as u8, (c3 * mult) as u8),
+                        color::RGB((255.0+(c1-255.0)*v ) as u8, (255.0+(c2-255.0)*v  ) as u8, (255.0+(c3-255.0)*v  ) as u8),
                     )
                 });
             }
