@@ -245,7 +245,7 @@ impl framebuffer::FramebufferDraw for core::Framebuffer {
         unsafe {
             libc::memset(
                 self.frame.as_mut_ptr() as *mut libc::c_void,
-                std::i32::MAX,
+                i32::MAX,
                 line_length * h,
             );
         }

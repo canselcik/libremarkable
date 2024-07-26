@@ -402,13 +402,7 @@ fn change_brush_width(app: &mut appctx::ApplicationContext<'_>, delta: i32) {
     let current = G_DRAW_MODE.load(Ordering::Relaxed);
     let current_size = current.get_size() as i32;
     let proposed_size = current_size + delta;
-    let new_size = if proposed_size < 1 {
-        1
-    } else if proposed_size > 99 {
-        99
-    } else {
-        proposed_size
-    };
+    let new_size = proposed_size.clamp(1, 99);
     if new_size == current_size {
         return;
     }

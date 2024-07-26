@@ -132,8 +132,8 @@ impl Default for Finger {
         Finger {
             tracking_id: -1, // -1 should never be seen by a InputEvent receiver
             pos: cgmath::Point2 {
-                x: u16::max_value(),
-                y: u16::max_value(),
+                x: u16::MAX,
+                y: u16::MAX,
             },
             pos_updated: false,
             last_pressed: false,

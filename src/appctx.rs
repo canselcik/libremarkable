@@ -490,22 +490,21 @@ impl<'a> ApplicationContext<'a> {
         while self.running.load(Ordering::Relaxed) {
             let event = self.input_rx.recv();
             match event {
-                Err(e) => println!("Error in input event consumer: {0}", e),
+                Err(e) => eprintln!("Error in input event consumer: {e}"),
                 Ok(event) => {
-                    if let InputEvent::MultitouchEvent { event } = event {
+                    if let InputEvent::MultitouchEvent {
+                        event: MultitouchEvent::Press { finger } | MultitouchEvent::Move { finger },
+                    } = event
+                    {
                         // Check for and notify clickable active regions for multitouch events
-                        if let MultitouchEvent::Press { finger }
-                        | MultitouchEvent::Move { finger } = event
-                        {
-                            let gseq = finger.tracking_id;
-                            if last_active_region_gesture_id != gseq {
-                                if let Some((h, _)) =
-                                    self.find_active_region(finger.pos.y, finger.pos.x)
-                                {
-                                    (h.handler)(appref, h.element.clone());
-                                }
-                                last_active_region_gesture_id = gseq;
+                        let gseq = finger.tracking_id;
+                        if last_active_region_gesture_id != gseq {
+                            if let Some((h, _)) =
+                                self.find_active_region(finger.pos.y, finger.pos.x)
+                            {
+                                (h.handler)(appref, h.element.clone());
                             }
+                            last_active_region_gesture_id = gseq;
                         }
                     }
 
@@ -522,13 +521,13 @@ impl<'a> ApplicationContext<'a> {
         self.running.store(true, Ordering::Relaxed);
 
         if self.running.load(Ordering::Relaxed) {
-            if let InputEvent::MultitouchEvent { event } = event {
+            if let InputEvent::MultitouchEvent {
+                event: MultitouchEvent::Press { finger } | MultitouchEvent::Move { finger },
+            } = event
+            {
                 // Check for and notify clickable active regions for multitouch events
-                if let MultitouchEvent::Press { finger } | MultitouchEvent::Move { finger } = event
-                {
-                    if let Some((h, _)) = self.find_active_region(finger.pos.y, finger.pos.x) {
-                        (h.handler)(appref, h.element.clone());
-                    }
+                if let Some((h, _)) = self.find_active_region(finger.pos.y, finger.pos.x) {
+                    (h.handler)(appref, h.element.clone());
                 }
             }
         }
