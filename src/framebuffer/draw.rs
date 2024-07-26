@@ -204,7 +204,11 @@ impl framebuffer::FramebufferDraw for core::Framebuffer {
                         },
                         // FOR TEXT BACKGROUND
                         //color::RGB((c1 * mult) as u8, (c2 * mult) as u8, (c3 * mult) as u8),
-                        color::RGB((255.0+(c1-255.0)*v ) as u8, (255.0+(c2-255.0)*v  ) as u8, (255.0+(c3-255.0)*v  ) as u8),
+                        color::RGB(
+                            (255.0 + (c1 - 255.0) * v) as u8,
+                            (255.0 + (c2 - 255.0) * v) as u8,
+                            (255.0 + (c3 - 255.0) * v) as u8,
+                        ),
                     )
                 });
             }
