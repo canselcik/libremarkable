@@ -174,12 +174,12 @@ where
     let (min_xy, max_xy) = points.iter().fold(
         (
             Point2 {
-                y: std::i32::MAX,
-                x: std::i32::MAX,
+                y: i32::MAX,
+                x: i32::MAX,
             },
             Point2 {
-                y: std::i32::MIN,
-                x: std::i32::MIN,
+                y: i32::MIN,
+                x: i32::MIN,
             },
         ),
         |acc, p| {
@@ -239,12 +239,12 @@ where
     let mut left_edge = Vec::<Point2<i32>>::new();
     let mut right_edge = Vec::<Point2<i32>>::new();
     let mut prev_left_pt = Point2 {
-        x: std::i32::MIN,
-        y: std::i32::MIN,
+        x: i32::MIN,
+        y: i32::MIN,
     };
     let mut prev_right_pt = Point2 {
-        x: std::i32::MIN,
-        y: std::i32::MIN,
+        x: i32::MIN,
+        y: i32::MIN,
     };
     for (t, pt) in sample_bezier(startpt.0, ctrlpt.0, endpt.0, samples) {
         // interpolate width
