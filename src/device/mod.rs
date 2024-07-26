@@ -1,5 +1,5 @@
-use once_cell::sync::Lazy;
 use rotate::InputDeviceRotation;
+use std::sync::LazyLock;
 
 /// Utility for rotating
 pub mod rotate;
@@ -52,7 +52,7 @@ impl Model {
     }
 }
 
-pub static CURRENT_DEVICE: Lazy<Device> = Lazy::new(Device::new);
+pub static CURRENT_DEVICE: LazyLock<Device> = LazyLock::new(Device::new);
 
 /// Differentiate between the reasons why the determination of the current device model can fail.
 #[derive(Debug)]
