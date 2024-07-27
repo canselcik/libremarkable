@@ -3,30 +3,30 @@ use std::sync::Mutex;
 
 use libc::c_int;
 use libc::intptr_t;
-use once_cell::sync::Lazy;
 use redhook::{hook, real};
+use std::sync::LazyLock;
 
 use libremarkable::framebuffer::common::*;
 use libremarkable::framebuffer::mxcfb::*;
 use libremarkable::framebuffer::screeninfo::VarScreeninfo;
 
-static DIST_DITHER: Lazy<Mutex<HashMap<u32, u32>>> = Lazy::new(|| {
+static DIST_DITHER: LazyLock<Mutex<HashMap<u32, u32>>> = LazyLock::new(|| {
     let m = HashMap::new();
     Mutex::new(m)
 });
-static DIST_WAVEFORM: Lazy<Mutex<HashMap<u32, u32>>> = Lazy::new(|| {
+static DIST_WAVEFORM: LazyLock<Mutex<HashMap<u32, u32>>> = LazyLock::new(|| {
     let m = HashMap::new();
     Mutex::new(m)
 });
-static DIST_QUANT: Lazy<Mutex<HashMap<u32, u32>>> = Lazy::new(|| {
+static DIST_QUANT: LazyLock<Mutex<HashMap<u32, u32>>> = LazyLock::new(|| {
     let m = HashMap::new();
     Mutex::new(m)
 });
-static DIST_FLAGS: Lazy<Mutex<HashMap<u32, u32>>> = Lazy::new(|| {
+static DIST_FLAGS: LazyLock<Mutex<HashMap<u32, u32>>> = LazyLock::new(|| {
     let m = HashMap::new();
     Mutex::new(m)
 });
-static DIST_TEMP: Lazy<Mutex<HashMap<u32, u32>>> = Lazy::new(|| {
+static DIST_TEMP: LazyLock<Mutex<HashMap<u32, u32>>> = LazyLock::new(|| {
     let m = HashMap::new();
     Mutex::new(m)
 });

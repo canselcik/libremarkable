@@ -2,9 +2,9 @@
 use image::RgbImage;
 
 #[cfg(feature = "framebuffer-text-drawing")]
-use once_cell::sync::Lazy;
-#[cfg(feature = "framebuffer-text-drawing")]
 use rusttype::{point, Font, Scale};
+#[cfg(feature = "framebuffer-text-drawing")]
+use std::sync::LazyLock;
 
 use crate::framebuffer;
 use crate::framebuffer::cgmath::*;
@@ -14,7 +14,7 @@ use crate::framebuffer::graphics;
 use crate::framebuffer::FramebufferIO;
 
 #[cfg(feature = "framebuffer-text-drawing")]
-pub static DEFAULT_FONT: Lazy<Font<'static>> = Lazy::new(|| {
+pub static DEFAULT_FONT: LazyLock<Font<'static>> = LazyLock::new(|| {
     Font::try_from_bytes(include_bytes!("../../assets/Roboto-Regular.ttf").as_slice())
         .expect("corrupted font data")
 });

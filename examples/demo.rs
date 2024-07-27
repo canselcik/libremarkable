@@ -18,7 +18,7 @@ use libremarkable::stopwatch;
 use atomic::Atomic;
 use chrono::{DateTime, Local};
 use log::info;
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 
 use std::collections::VecDeque;
 use std::fmt;
@@ -100,16 +100,16 @@ const CANVAS_REGION: mxcfb_rect = mxcfb_rect {
 
 type PointAndPressure = (cgmath::Point2<f32>, i32);
 
-static G_TOUCH_MODE: Lazy<Atomic<TouchMode>> = Lazy::new(|| Atomic::new(TouchMode::OnlyUI));
-static G_DRAW_MODE: Lazy<Atomic<DrawMode>> = Lazy::new(|| Atomic::new(DrawMode::Draw(2)));
-static UNPRESS_OBSERVED: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
-static WACOM_IN_RANGE: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
-static WACOM_RUBBER_SIDE: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
-static WACOM_HISTORY: Lazy<Mutex<VecDeque<PointAndPressure>>> =
-    Lazy::new(|| Mutex::new(VecDeque::new()));
-static G_COUNTER: Lazy<Mutex<u32>> = Lazy::new(|| Mutex::new(0));
-static SAVED_CANVAS: Lazy<Mutex<Option<storage::CompressedCanvasState>>> =
-    Lazy::new(|| Mutex::new(None));
+static G_TOUCH_MODE: LazyLock<Atomic<TouchMode>> = LazyLock::new(|| Atomic::new(TouchMode::OnlyUI));
+static G_DRAW_MODE: LazyLock<Atomic<DrawMode>> = LazyLock::new(|| Atomic::new(DrawMode::Draw(2)));
+static UNPRESS_OBSERVED: LazyLock<AtomicBool> = LazyLock::new(|| AtomicBool::new(false));
+static WACOM_IN_RANGE: LazyLock<AtomicBool> = LazyLock::new(|| AtomicBool::new(false));
+static WACOM_RUBBER_SIDE: LazyLock<AtomicBool> = LazyLock::new(|| AtomicBool::new(false));
+static WACOM_HISTORY: LazyLock<Mutex<VecDeque<PointAndPressure>>> =
+    LazyLock::new(|| Mutex::new(VecDeque::new()));
+static G_COUNTER: LazyLock<Mutex<u32>> = LazyLock::new(|| Mutex::new(0));
+static SAVED_CANVAS: LazyLock<Mutex<Option<storage::CompressedCanvasState>>> =
+    LazyLock::new(|| Mutex::new(None));
 
 // ####################
 // ## Button Handlers
