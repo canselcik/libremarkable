@@ -1,15 +1,13 @@
 #[cfg(feature = "hlua")]
 use std::cell::UnsafeCell;
 use std::collections::HashMap;
-#[cfg(not(feature = "hlua"))]
-use std::marker::PhantomData;
 use std::ops::DerefMut;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::RwLock;
 
-use aabb_quadtree::{geom, ItemId, QuadTree};
-#[cfg(feature = "hlua")]
-use log::warn;
+use aabb_quadtree::{ItemId, QuadTree};
+use euclid::{Rect, TypedPoint2D, TypedRect, UnknownUnit};
+use smallvec::Array;
 
 use crate::framebuffer::cgmath;
 use crate::framebuffer::common::*;
@@ -44,7 +42,7 @@ pub struct ApplicationContext<'a> {
     #[cfg(feature = "hlua")]
     lua: UnsafeCell<Lua<'a>>,
     #[cfg(not(feature = "hlua"))]
-    lua: PhantomData<&'a ()>,
+    lua: std::marker::PhantomData<&'a ()>,
 
     input_tx: std::sync::mpsc::Sender<InputEvent>,
     input_rx: std::sync::mpsc::Receiver<InputEvent>,
@@ -53,7 +51,7 @@ pub struct ApplicationContext<'a> {
     wacom_ctx: RwLock<Option<ev::EvDevContext>>,
     touch_ctx: RwLock<Option<ev::EvDevContext>>,
 
-    active_regions: QuadTree<ActiveRegionHandler>,
+    active_regions: QuadTree<ActiveRegionHandler, f32, Array<Item = (ItemId, TypedRect<f32>)>>,
     ui_elements: HashMap<String, UIElementHandle>,
 }
 
@@ -80,13 +78,13 @@ impl Default for ApplicationContext<'static> {
             input_rx,
             input_tx,
             ui_elements: HashMap::new(),
-            active_regions: QuadTree::default(geom::Rect::from_points(
-                &geom::Point { x: 0.0, y: 0.0 },
-                &geom::Point {
-                    x: xres as f32,
-                    y: yres as f32,
-                },
-            )),
+            active_regions: QuadTree::default(
+                TypedRect::from_points([
+                    TypedPoint2D::new(0.0, 0.0),
+                    TypedPoint2D::new(xres as f32, yres as f32),
+                ]),
+                10, // size hint for underlying HashMap::with_capacity_and_hasher
+            ),
         };
 
         // Enable all std lib
@@ -149,7 +147,7 @@ impl<'a> ApplicationContext<'a> {
     pub fn execute_lua(&mut self, code: &str) {
         let lua = self.get_lua_ref();
         if let Err(e) = lua.execute::<hlua::AnyLuaValue>(code) {
-            warn!("Error in Lua Context: {:?}", e);
+            log::warn!("Error in Lua Context: {:?}", e);
         }
     }
 
@@ -534,14 +532,14 @@ impl<'a> ApplicationContext<'a> {
     }
 
     pub fn find_active_region(&self, y: u16, x: u16) -> Option<(&ActiveRegionHandler, ItemId)> {
-        let matches = self.active_regions.query(geom::Rect::centered_with_radius(
-            &geom::Point {
-                y: f32::from(y),
-                x: f32::from(x),
-            },
-            2.0,
-        ));
-        matches.first().map(|res| (res.0, res.2))
+        let matches = self.active_regions.query({
+            let radius = 2.0;
+            let v = euclid::TypedVector2D::new(radius, radius);
+            let p = euclid::TypedPoint2D::new(f32::from(x), f32::from(y));
+            // A rect centered on (x,y) with radius 2
+            TypedRect::from_points([(p - v), (p + v)])
+        });
+        matches.first().map(|(region, _, item)| (region, item))
     }
 
     pub fn remove_active_region_at_point(&mut self, y: u16, x: u16) -> bool {
@@ -562,16 +560,10 @@ impl<'a> ApplicationContext<'a> {
     ) {
         self.active_regions.insert_with_box(
             ActiveRegionHandler { handler, element },
-            geom::Rect::from_points(
-                &geom::Point {
-                    x: f32::from(x),
-                    y: f32::from(y),
-                },
-                &geom::Point {
-                    x: f32::from(x + width),
-                    y: f32::from(y + height),
-                },
-            ),
+            TypedRect::from_points([
+                TypedPoint2D::new(f32::from(x), f32::from(y)),
+                TypedPoint2D::new(f32::from(x + width), f32::from(y + height)),
+            ]),
         );
     }
 }
