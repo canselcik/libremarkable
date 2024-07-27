@@ -15,7 +15,6 @@ use libremarkable::{end_bench, start_bench};
 #[cfg(feature = "enable-runtime-benchmarking")]
 use libremarkable::stopwatch;
 
-use atomic::Atomic;
 use chrono::{DateTime, Local};
 use log::info;
 use once_cell::sync::Lazy;
@@ -23,14 +22,12 @@ use once_cell::sync::Lazy;
 use std::collections::VecDeque;
 use std::fmt;
 use std::process::Command;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::sync::Mutex;
 use std::thread::sleep;
 use std::time::Duration;
 
-use bytemuck::NoUninit;
-
-#[derive(Copy, Clone, PartialEq, NoUninit)]
+#[derive(Copy, Clone, PartialEq)]
 #[repr(i64)]
 enum DrawMode {
     Draw(u32),
@@ -91,6 +88,30 @@ impl fmt::Display for TouchMode {
     }
 }
 
+impl Into<u8> for TouchMode {
+    fn into(self) -> u8 {
+        match self {
+            Self::OnlyUI => 1,
+            Self::Bezier => 2,
+            Self::Circles => 3,
+            Self::Diamonds => 4,
+            Self::FillDiamonds => 5,
+        }
+    }
+}
+impl From<u8> for TouchMode {
+    fn from(mode: u8) -> Self {
+        match mode {
+            1 => Self::OnlyUI,
+            2 => Self::Bezier,
+            3 => Self::Circles,
+            4 => Self::Diamonds,
+            5 => Self::FillDiamonds,
+            _ => panic!("Unmapped mode value: {mode}"),
+        }
+    }
+}
+
 // This region will have the following size at rest:
 //   raw: 5896 kB
 //   zstd: 10 kB
@@ -103,8 +124,9 @@ const CANVAS_REGION: mxcfb_rect = mxcfb_rect {
 
 type PointAndPressure = (cgmath::Point2<f32>, i32);
 
-static G_TOUCH_MODE: Lazy<Atomic<TouchMode>> = Lazy::new(|| Atomic::new(TouchMode::OnlyUI));
-static G_DRAW_MODE: Lazy<Atomic<DrawMode>> = Lazy::new(|| Atomic::new(DrawMode::Draw(2)));
+static G_TOUCH_MODE: Lazy<AtomicU8> = Lazy::new(|| AtomicU8::new(TouchMode::OnlyUI.into()));
+static G_DRAW_MODE: Lazy<atomic::Atomic<DrawMode>> =
+    Lazy::new(|| atomic::Atomic::new(DrawMode::Draw(2)));
 static UNPRESS_OBSERVED: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 static WACOM_IN_RANGE: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 static WACOM_RUBBER_SIDE: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
@@ -327,8 +349,8 @@ fn on_toggle_eraser(app: &mut appctx::ApplicationContext<'_>, _: UIElementHandle
 }
 
 fn on_change_touchdraw_mode(app: &mut appctx::ApplicationContext<'_>, _: UIElementHandle) {
-    let new_val = G_TOUCH_MODE.load(Ordering::Relaxed).toggle();
-    G_TOUCH_MODE.store(new_val, Ordering::Relaxed);
+    let new_val = TouchMode::from(G_TOUCH_MODE.load(Ordering::Relaxed)).toggle();
+    G_TOUCH_MODE.store(new_val.into(), Ordering::Relaxed);
 
     let indicator = app.get_element_by_name("touchModeIndicator");
     if let UIElement::Text { ref mut text, .. } = indicator.unwrap().write().inner {
@@ -571,7 +593,7 @@ fn on_touch_handler(app: &mut appctx::ApplicationContext<'_>, input: input::Mult
             if !CANVAS_REGION.contains_point(&finger.pos.cast().unwrap()) {
                 return;
             }
-            let rect = match G_TOUCH_MODE.load(Ordering::Relaxed) {
+            let rect = match TouchMode::from(G_TOUCH_MODE.load(Ordering::Relaxed)) {
                 TouchMode::Bezier => {
                     let position_float = finger.pos.cast().unwrap();
                     let points = [
