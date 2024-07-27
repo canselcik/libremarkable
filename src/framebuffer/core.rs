@@ -52,8 +52,8 @@ impl Framebuffer {
             Model::Gen1 => Framebuffer::device(device.get_framebuffer_path()),
             Model::Gen2 => {
                 // Auto-select old method still if env LIBREMARKABLE_FB_DISFAVOR_INTERNAL_RM2FB is set affirmatively
-                match std::env::var("LIBREMARKABLE_FB_DISFAVOR_INTERNAL_RM2FB").ok() {
-                    Some("1") => Framebuffer::device(device.get_framebuffer_path()),
+                match std::env::var("LIBREMARKABLE_FB_DISFAVOR_INTERNAL_RM2FB").as_deref() {
+                    Ok("1") => Framebuffer::device(device.get_framebuffer_path()),
                     _ => Framebuffer::rm2fb(device.get_framebuffer_path()),
                 }
             }
