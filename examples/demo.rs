@@ -28,7 +28,10 @@ use std::sync::Mutex;
 use std::thread::sleep;
 use std::time::Duration;
 
-#[derive(Copy, Clone, PartialEq)]
+use bytemuck::NoUninit;
+
+#[derive(Copy, Clone, PartialEq, NoUninit)]
+#[repr(i64)]
 enum DrawMode {
     Draw(u32),
     Erase(u32),
