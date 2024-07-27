@@ -1,7 +1,8 @@
-use image::{
+use image::codecs::{
     bmp::BmpEncoder, gif::GifEncoder, jpeg::JpegEncoder, png::PngEncoder, tga::TgaEncoder,
-    ColorType::Rgb8, ImageFormat,
 };
+use image::ImageEncoder;
+use image::{ExtendedColorType::Rgb8, ImageFormat};
 use libremarkable::framebuffer;
 use libremarkable::framebuffer::common::{DISPLAYHEIGHT, DISPLAYWIDTH};
 use libremarkable::framebuffer::core::Framebuffer;
@@ -76,7 +77,7 @@ fn encode(img_buf: &[u8], format: ImageFormat) -> Vec<u8> {
         ImageFormat::Bmp => BmpEncoder::new(&mut writer).encode(img_buf, width, height, Rgb8),
         ImageFormat::Gif => GifEncoder::new(&mut writer).encode(img_buf, width, height, Rgb8),
         ImageFormat::Jpeg => JpegEncoder::new(&mut writer).encode(img_buf, width, height, Rgb8),
-        ImageFormat::Png => PngEncoder::new(&mut writer).encode(img_buf, width, height, Rgb8),
+        ImageFormat::Png => PngEncoder::new(&mut writer).write_image(img_buf, width, height, Rgb8),
         ImageFormat::Tga => TgaEncoder::new(&mut writer).encode(img_buf, width, height, Rgb8),
         _ => unimplemented!(),
     }
