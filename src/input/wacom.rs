@@ -3,11 +3,10 @@ use crate::device::rotate::CoordinatePart;
 use crate::device::CURRENT_DEVICE;
 use crate::input::scan::SCANNED;
 use crate::input::{InputDeviceState, InputEvent, WacomEvent, WacomPen};
-use atomic::Atomic;
 use evdev::InputEvent as EvInputEvent;
 use log::debug;
 use once_cell::sync::Lazy;
-use std::sync::atomic::{AtomicU16, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 
 use crate::cgmath;
 use crate::dimensions::{DISPLAYHEIGHT, DISPLAYWIDTH, WACOMHEIGHT, WACOMWIDTH};
@@ -22,7 +21,7 @@ pub struct WacomState {
     last_ytilt: AtomicU16,
     last_dist: AtomicU16,
     last_pressure: AtomicU16,
-    last_touch_state: Atomic<bool>,
+    last_touch_state: AtomicBool,
 }
 
 impl ::std::default::Default for WacomState {
@@ -34,7 +33,7 @@ impl ::std::default::Default for WacomState {
             last_ytilt: AtomicU16::new(0),
             last_dist: AtomicU16::new(0),
             last_pressure: AtomicU16::new(0),
-            last_touch_state: Atomic::new(false),
+            last_touch_state: AtomicBool::new(false),
         }
     }
 }
