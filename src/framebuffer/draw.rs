@@ -191,16 +191,13 @@ impl framebuffer::FramebufferDraw for core::Framebuffer {
                 }
 
                 glyph.draw(|x, y, v| {
+                    let mult = (1.0 - v).min(1.0);
                     self.write_pixel(
                         Point2 {
                             x: (x + bounding_box.min.x as u32) as i32,
                             y: (y + bounding_box.min.y as u32) as i32,
                         },
-                        color::RGB(
-                            (255.0 + (c1 - 255.0) * v) as u8,
-                            (255.0 + (c2 - 255.0) * v) as u8,
-                            (255.0 + (c3 - 255.0) * v) as u8,
-                        ),
+                        color::RGB((c1 * mult) as u8, (c2 * mult) as u8, (c3 * mult) as u8),
                     )
                 });
             }
