@@ -55,7 +55,7 @@ impl framebuffer::FramebufferDraw for core::Framebuffer {
                 v,
             ),
         };
-        let margin = (width + 1) / 2;
+        let margin = width.div_ceil(2);
         graphics::stamp_along_line(stamp, start, end).expand(margin)
     }
 
