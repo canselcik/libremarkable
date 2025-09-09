@@ -15,7 +15,6 @@ use libremarkable::{end_bench, start_bench};
 #[cfg(feature = "enable-runtime-benchmarking")]
 use libremarkable::stopwatch;
 
-use atomic::Atomic;
 use chrono::{DateTime, Local};
 use log::info;
 use once_cell::sync::Lazy;
@@ -23,7 +22,7 @@ use once_cell::sync::Lazy;
 use std::collections::VecDeque;
 use std::fmt;
 use std::process::Command;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU8, Ordering};
 use std::sync::Mutex;
 use std::thread::sleep;
 use std::time::Duration;
@@ -51,6 +50,24 @@ impl DrawMode {
         match self {
             DrawMode::Draw(s) => s,
             DrawMode::Erase(s) => s,
+        }
+    }
+}
+
+impl From<DrawMode> for i32 {
+    fn from(mode: DrawMode) -> Self {
+        match mode {
+            DrawMode::Draw(s) => s as i32,
+            DrawMode::Erase(s) => -(s as i32),
+        }
+    }
+}
+impl From<i32> for DrawMode {
+    fn from(mode: i32) -> Self {
+        if mode >= 0 {
+            Self::Draw(mode as u32)
+        } else {
+            Self::Erase((-mode) as u32)
         }
     }
 }
@@ -88,6 +105,30 @@ impl fmt::Display for TouchMode {
     }
 }
 
+impl From<TouchMode> for u8 {
+    fn from(mode: TouchMode) -> Self {
+        match mode {
+            TouchMode::OnlyUI => 1,
+            TouchMode::Bezier => 2,
+            TouchMode::Circles => 3,
+            TouchMode::Diamonds => 4,
+            TouchMode::FillDiamonds => 5,
+        }
+    }
+}
+impl From<u8> for TouchMode {
+    fn from(mode: u8) -> Self {
+        match mode {
+            1 => Self::OnlyUI,
+            2 => Self::Bezier,
+            3 => Self::Circles,
+            4 => Self::Diamonds,
+            5 => Self::FillDiamonds,
+            _ => panic!("Unmapped mode value: {mode}"),
+        }
+    }
+}
+
 // This region will have the following size at rest:
 //   raw: 5896 kB
 //   zstd: 10 kB
@@ -100,8 +141,8 @@ const CANVAS_REGION: mxcfb_rect = mxcfb_rect {
 
 type PointAndPressure = (cgmath::Point2<f32>, i32);
 
-static G_TOUCH_MODE: Lazy<Atomic<TouchMode>> = Lazy::new(|| Atomic::new(TouchMode::OnlyUI));
-static G_DRAW_MODE: Lazy<Atomic<DrawMode>> = Lazy::new(|| Atomic::new(DrawMode::Draw(2)));
+static G_TOUCH_MODE: Lazy<AtomicU8> = Lazy::new(|| AtomicU8::new(TouchMode::OnlyUI.into()));
+static G_DRAW_MODE: Lazy<AtomicI32> = Lazy::new(|| AtomicI32::new(DrawMode::Draw(2).into()));
 static UNPRESS_OBSERVED: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 static WACOM_IN_RANGE: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 static WACOM_RUBBER_SIDE: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
@@ -310,11 +351,11 @@ fn on_touch_rustlogo(app: &mut appctx::ApplicationContext<'_>, _element: UIEleme
 }
 
 fn on_toggle_eraser(app: &mut appctx::ApplicationContext<'_>, _: UIElementHandle) {
-    let (new_mode, name) = match G_DRAW_MODE.load(Ordering::Relaxed) {
+    let (new_mode, name) = match G_DRAW_MODE.load(Ordering::Relaxed).into() {
         DrawMode::Erase(s) => (DrawMode::Draw(s), "Black".to_owned()),
         DrawMode::Draw(s) => (DrawMode::Erase(s), "White".to_owned()),
     };
-    G_DRAW_MODE.store(new_mode, Ordering::Relaxed);
+    G_DRAW_MODE.store(new_mode.into(), Ordering::Relaxed);
 
     let indicator = app.get_element_by_name("colorIndicator");
     if let UIElement::Text { ref mut text, .. } = indicator.unwrap().write().inner {
@@ -324,8 +365,8 @@ fn on_toggle_eraser(app: &mut appctx::ApplicationContext<'_>, _: UIElementHandle
 }
 
 fn on_change_touchdraw_mode(app: &mut appctx::ApplicationContext<'_>, _: UIElementHandle) {
-    let new_val = G_TOUCH_MODE.load(Ordering::Relaxed).toggle();
-    G_TOUCH_MODE.store(new_val, Ordering::Relaxed);
+    let new_val = TouchMode::from(G_TOUCH_MODE.load(Ordering::Relaxed)).toggle();
+    G_TOUCH_MODE.store(new_val.into(), Ordering::Relaxed);
 
     let indicator = app.get_element_by_name("touchModeIndicator");
     if let UIElement::Text { ref mut text, .. } = indicator.unwrap().write().inner {
@@ -399,7 +440,7 @@ fn draw_color_test_rgb(app: &mut appctx::ApplicationContext<'_>, _element: UIEle
 }
 
 fn change_brush_width(app: &mut appctx::ApplicationContext<'_>, delta: i32) {
-    let current = G_DRAW_MODE.load(Ordering::Relaxed);
+    let current = DrawMode::from(G_DRAW_MODE.load(Ordering::Relaxed));
     let current_size = current.get_size() as i32;
     let proposed_size = current_size + delta;
     let new_size = proposed_size.clamp(1, 99);
@@ -407,7 +448,7 @@ fn change_brush_width(app: &mut appctx::ApplicationContext<'_>, delta: i32) {
         return;
     }
 
-    G_DRAW_MODE.store(current.set_size(new_size as u32), Ordering::Relaxed);
+    G_DRAW_MODE.store(current.set_size(new_size as u32).into(), Ordering::Relaxed);
 
     let element = app.get_element_by_name("displaySize").unwrap();
     if let UIElement::Text { ref mut text, .. } = element.write().inner {
@@ -471,7 +512,7 @@ fn on_wacom_input(app: &mut appctx::ApplicationContext<'_>, input: input::WacomE
                 return;
             }
 
-            let (mut col, mut mult) = match G_DRAW_MODE.load(Ordering::Relaxed) {
+            let (mut col, mut mult) = match G_DRAW_MODE.load(Ordering::Relaxed).into() {
                 DrawMode::Draw(s) => (color::BLACK, s),
                 DrawMode::Erase(s) => (color::WHITE, s * 3),
             };
@@ -568,7 +609,7 @@ fn on_touch_handler(app: &mut appctx::ApplicationContext<'_>, input: input::Mult
             if !CANVAS_REGION.contains_point(&finger.pos.cast().unwrap()) {
                 return;
             }
-            let rect = match G_TOUCH_MODE.load(Ordering::Relaxed) {
+            let rect = match TouchMode::from(G_TOUCH_MODE.load(Ordering::Relaxed)) {
                 TouchMode::Bezier => {
                     let position_float = finger.pos.cast().unwrap();
                     let points = [
@@ -877,7 +918,7 @@ fn main() {
             onclick: None,
             inner: UIElement::Text {
                 foreground: color::BLACK,
-                text: G_DRAW_MODE.load(Ordering::Relaxed).color_as_string(),
+                text: DrawMode::from(G_DRAW_MODE.load(Ordering::Relaxed)).color_as_string(),
                 scale: 40.0,
                 border_px: 0,
             },
@@ -927,7 +968,10 @@ fn main() {
             refresh: UIConstraintRefresh::Refresh,
             inner: UIElement::Text {
                 foreground: color::BLACK,
-                text: format!("size: {0}", G_DRAW_MODE.load(Ordering::Relaxed).get_size()),
+                text: format!(
+                    "size: {0}",
+                    DrawMode::from(G_DRAW_MODE.load(Ordering::Relaxed)).get_size()
+                ),
                 scale: 45.0,
                 border_px: 0,
             },
