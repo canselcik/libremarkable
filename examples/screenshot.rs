@@ -1,4 +1,4 @@
-use image::{DynamicImage, ImageOutputFormat};
+use image::{DynamicImage, ImageFormat};
 
 use libremarkable::framebuffer::common::*;
 use libremarkable::framebuffer::core::*;
@@ -27,25 +27,17 @@ fn main() {
     let image =
         RgbImage::from_raw(width, height, contents).expect("unable to construct the rgb image");
 
-    let args = std::env::args().collect::<Vec<_>>();
+    let Some(path) = std::env::args().nth(1) else {
+        panic!("First argument must be the path to the PNG we will be writing")
+    };
 
-    match args.get(1) {
-        Some(path) => {
-            let mut output_file = OpenOptions::new()
-                .write(true)
-                .create(true)
-                .truncate(false)
-                .open(path)
-                .expect("Invalid path provided as argument!");
-            DynamicImage::ImageRgb8(image)
-                .write_to(&mut output_file, ImageOutputFormat::Png)
-                .expect("failed while writing to output file");
-        }
-        None => {
-            let mut stdout = std::io::stdout();
-            DynamicImage::ImageRgb8(image)
-                .write_to(&mut stdout, ImageOutputFormat::Png)
-                .expect("failed while writing to stdout");
-        }
-    }
+    let mut output_file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(path)
+        .expect("Invalid path provided as argument!");
+    DynamicImage::ImageRgb8(image)
+        .write_to(&mut output_file, ImageFormat::Png)
+        .expect("failed while writing to output file");
 }

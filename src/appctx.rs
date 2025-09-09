@@ -13,11 +13,11 @@ use log::warn;
 
 use crate::framebuffer::cgmath;
 use crate::framebuffer::common::*;
-use crate::framebuffer::core;
+use crate::framebuffer::core::Framebuffer;
 use crate::framebuffer::FramebufferDraw;
 use crate::framebuffer::FramebufferRefresh;
 use crate::framebuffer::PartialRefreshMode;
-use crate::input::ev;
+use crate::input::ev::EvDevContext;
 use crate::input::MultitouchEvent;
 use crate::input::{InputDevice, InputEvent};
 use crate::ui_extensions::element::{
@@ -35,7 +35,7 @@ unsafe impl<'a> Send for ApplicationContext<'a> {}
 unsafe impl<'a> Sync for ApplicationContext<'a> {}
 
 pub struct ApplicationContext<'a> {
-    framebuffer: Box<core::Framebuffer>,
+    framebuffer: Box<Framebuffer>,
     yres: u32,
     xres: u32,
 
@@ -49,9 +49,9 @@ pub struct ApplicationContext<'a> {
     input_tx: std::sync::mpsc::Sender<InputEvent>,
     input_rx: std::sync::mpsc::Receiver<InputEvent>,
 
-    button_ctx: RwLock<Option<ev::EvDevContext>>,
-    wacom_ctx: RwLock<Option<ev::EvDevContext>>,
-    touch_ctx: RwLock<Option<ev::EvDevContext>>,
+    button_ctx: RwLock<Option<EvDevContext>>,
+    wacom_ctx: RwLock<Option<EvDevContext>>,
+    touch_ctx: RwLock<Option<EvDevContext>>,
 
     active_regions: QuadTree<ActiveRegionHandler>,
     ui_elements: HashMap<String, UIElementHandle>,
@@ -59,7 +59,7 @@ pub struct ApplicationContext<'a> {
 
 impl Default for ApplicationContext<'static> {
     fn default() -> ApplicationContext<'static> {
-        let framebuffer = Box::new(core::Framebuffer::new());
+        let framebuffer = Box::new(Framebuffer::new());
         let yres = framebuffer.var_screen_info.yres;
         let xres = framebuffer.var_screen_info.xres;
 
@@ -98,7 +98,7 @@ impl Default for ApplicationContext<'static> {
 
             // Reluctantly resort to using a static global to associate the lua context with the
             // one and only framebuffer that's going to be used
-            unsafe { luaext::G_FB = res.framebuffer.deref_mut() as *mut core::Framebuffer };
+            unsafe { luaext::G_FB = res.framebuffer.deref_mut() as *mut Framebuffer };
 
             let mut nms = lua.empty_array("fb");
             // Clears and refreshes the entire screen
@@ -120,10 +120,8 @@ impl Default for ApplicationContext<'static> {
 }
 
 impl<'a> ApplicationContext<'a> {
-    pub fn get_framebuffer_ref(&mut self) -> &'static mut core::Framebuffer {
-        unsafe {
-            std::mem::transmute::<_, &'static mut core::Framebuffer>(self.framebuffer.deref_mut())
-        }
+    pub fn get_framebuffer_ref(&mut self) -> &'static mut Framebuffer {
+        unsafe { std::mem::transmute::<_, &'static mut Framebuffer>(self.framebuffer.deref_mut()) }
     }
 
     /// Perhaps this is bad practice but we know that the ApplicationContext,
@@ -434,7 +432,7 @@ impl<'a> ApplicationContext<'a> {
             _ => return false,
         };
 
-        *dev = Some(ev::EvDevContext::new(t, self.input_tx.clone()));
+        *dev = Some(EvDevContext::new(t, self.input_tx.clone()));
         match dev.as_mut() {
             Some(ref mut device) => {
                 device.start();
