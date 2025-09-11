@@ -17,13 +17,12 @@ use libremarkable::stopwatch;
 
 use chrono::{DateTime, Local};
 use log::info;
-use once_cell::sync::Lazy;
 
 use std::collections::VecDeque;
 use std::fmt;
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU8, Ordering};
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -141,16 +140,17 @@ const CANVAS_REGION: mxcfb_rect = mxcfb_rect {
 
 type PointAndPressure = (cgmath::Point2<f32>, i32);
 
-static G_TOUCH_MODE: Lazy<AtomicU8> = Lazy::new(|| AtomicU8::new(TouchMode::OnlyUI.into()));
-static G_DRAW_MODE: Lazy<AtomicI32> = Lazy::new(|| AtomicI32::new(DrawMode::Draw(2).into()));
-static UNPRESS_OBSERVED: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
-static WACOM_IN_RANGE: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
-static WACOM_RUBBER_SIDE: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
-static WACOM_HISTORY: Lazy<Mutex<VecDeque<PointAndPressure>>> =
-    Lazy::new(|| Mutex::new(VecDeque::new()));
-static G_COUNTER: Lazy<Mutex<u32>> = Lazy::new(|| Mutex::new(0));
-static SAVED_CANVAS: Lazy<Mutex<Option<storage::CompressedCanvasState>>> =
-    Lazy::new(|| Mutex::new(None));
+static G_TOUCH_MODE: LazyLock<AtomicU8> = LazyLock::new(|| AtomicU8::new(TouchMode::OnlyUI.into()));
+static G_DRAW_MODE: LazyLock<AtomicI32> =
+    LazyLock::new(|| AtomicI32::new(DrawMode::Draw(2).into()));
+static UNPRESS_OBSERVED: LazyLock<AtomicBool> = LazyLock::new(|| AtomicBool::new(false));
+static WACOM_IN_RANGE: LazyLock<AtomicBool> = LazyLock::new(|| AtomicBool::new(false));
+static WACOM_RUBBER_SIDE: LazyLock<AtomicBool> = LazyLock::new(|| AtomicBool::new(false));
+static WACOM_HISTORY: LazyLock<Mutex<VecDeque<PointAndPressure>>> =
+    LazyLock::new(|| Mutex::new(VecDeque::new()));
+static G_COUNTER: LazyLock<Mutex<u32>> = LazyLock::new(|| Mutex::new(0));
+static SAVED_CANVAS: LazyLock<Mutex<Option<storage::CompressedCanvasState>>> =
+    LazyLock::new(|| Mutex::new(None));
 
 // ####################
 // ## Button Handlers

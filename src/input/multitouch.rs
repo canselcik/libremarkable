@@ -4,7 +4,7 @@ use crate::device::CURRENT_DEVICE;
 use crate::dimensions::{DISPLAYHEIGHT, DISPLAYWIDTH, MTHEIGHT, MTWIDTH};
 use crate::input::scan::SCANNED;
 use crate::input::{Finger, InputDeviceState, InputEvent, MultitouchEvent};
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 
 use evdev::InputEvent as EvInputEvent;
 use fxhash::FxHashMap;
@@ -14,8 +14,9 @@ use std::sync::{
     Mutex,
 };
 
-static MT_HSCALAR: Lazy<f32> = Lazy::new(|| f32::from(DISPLAYWIDTH) / f32::from(*MTWIDTH));
-static MT_VSCALAR: Lazy<f32> = Lazy::new(|| f32::from(DISPLAYHEIGHT) / f32::from(*MTHEIGHT));
+static MT_HSCALAR: LazyLock<f32> = LazyLock::new(|| f32::from(DISPLAYWIDTH) / f32::from(*MTWIDTH));
+static MT_VSCALAR: LazyLock<f32> =
+    LazyLock::new(|| f32::from(DISPLAYHEIGHT) / f32::from(*MTHEIGHT));
 
 pub struct MultitouchState {
     fingers: Mutex<FxHashMap<i32 /* slot */, Finger>>,

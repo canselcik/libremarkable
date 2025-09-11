@@ -5,14 +5,16 @@ use crate::input::scan::SCANNED;
 use crate::input::{InputDeviceState, InputEvent, WacomEvent, WacomPen};
 use evdev::InputEvent as EvInputEvent;
 use log::debug;
-use once_cell::sync::Lazy;
 use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
+use std::sync::LazyLock;
 
 use crate::cgmath;
 use crate::dimensions::{DISPLAYHEIGHT, DISPLAYWIDTH, WACOMHEIGHT, WACOMWIDTH};
 
-static WACOM_HSCALAR: Lazy<f32> = Lazy::new(|| f32::from(DISPLAYWIDTH) / f32::from(*WACOMWIDTH));
-static WACOM_VSCALAR: Lazy<f32> = Lazy::new(|| f32::from(DISPLAYHEIGHT) / f32::from(*WACOMHEIGHT));
+static WACOM_HSCALAR: LazyLock<f32> =
+    LazyLock::new(|| f32::from(DISPLAYWIDTH) / f32::from(*WACOMWIDTH));
+static WACOM_VSCALAR: LazyLock<f32> =
+    LazyLock::new(|| f32::from(DISPLAYHEIGHT) / f32::from(*WACOMHEIGHT));
 
 pub struct WacomState {
     last_x: AtomicU16,
