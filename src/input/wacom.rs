@@ -5,7 +5,7 @@ use crate::input::scan::SCANNED;
 use crate::input::{InputDeviceState, InputEvent, WacomEvent, WacomPen};
 use evdev::InputEvent as EvInputEvent;
 use log::debug;
-use std::sync::atomic::{AtomicU16, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 use std::sync::LazyLock;
 
 use crate::cgmath;
