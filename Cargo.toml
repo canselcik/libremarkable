@@ -22,7 +22,7 @@ zstd = { version = "0.13.2", optional = true }
 
 # framebuffer-drawing
 rusttype = { version = "0.9.3", optional = true }
-image = { version = "0.25.2", optional = true, default-features = false, features = [ "default-formats" ] } # No need for rayon
+image = { version = "0.25.2", optional = true, default-features = false, features = [ "bmp", "gif", "jpeg", "png", "tga", "webp" ] } # No need for rayon or more nieche image formats here
 line_drawing = { version = "1.0.0", optional = true }
 
 # input
