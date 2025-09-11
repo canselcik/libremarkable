@@ -267,16 +267,8 @@ impl mxcfb_rect {
 
     pub fn expand(&self, margin: u32) -> mxcfb_rect {
         mxcfb_rect {
-            left: if self.left > margin {
-                self.left - margin
-            } else {
-                0
-            },
-            top: if self.top > margin {
-                self.top - margin
-            } else {
-                0
-            },
+            left: self.left.saturating_sub(margin),
+            top: self.top.saturating_sub(margin),
             width: self.width + (2 * margin),
             height: self.height + (2 * margin),
         }
