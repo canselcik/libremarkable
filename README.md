@@ -47,6 +47,10 @@ You can also add this snippet to the above file in order to default to cross-com
 target = "armv7-unknown-linux-gnueabihf"
 ```
 
+### MSRV
+
+Since libremarkable 0.7.0, the minimum supported rust version (MSRV) is [**1.80**](https://releases.rs/docs/1.80.0/).
+
 #### Building libremarkable and the examples
 A simple Makefile wrapper is created for convenience. It exposes the following verbs:
   - `examples`: Builds examples
