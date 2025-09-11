@@ -1,5 +1,6 @@
 use image::codecs::{
-    bmp::BmpEncoder, gif::GifEncoder, jpeg::JpegEncoder, png::PngEncoder, tga::TgaEncoder, webp::WebPEncoder,
+    bmp::BmpEncoder, gif::GifEncoder, jpeg::JpegEncoder, png::PngEncoder, tga::TgaEncoder,
+    webp::WebPEncoder,
 };
 use image::ImageEncoder;
 use image::{ExtendedColorType::Rgb8, ImageFormat};
@@ -63,12 +64,19 @@ fn main() {
             (encode(&rgb888, ImageFormat::Png), "image/png")
         } else if url_lc.ends_with("webp") {
             (encode(&rgb888, ImageFormat::WebP), "image/webp")
-        }else {
+        } else {
             // 404
             let response_text = "404 Not found\nEither go to / or specify any path ending in a supported file extension: webp, png, jp(e)g, gif, tga or bmp)";
             let response = Response::new_empty(StatusCode(404))
-                .with_data(response_text.as_bytes(), Some(response_text.as_bytes().len()))
-                .with_header(format!("Content-Type: text/plain").parse::<Header>().unwrap());
+                .with_data(
+                    response_text.as_bytes(),
+                    Some(response_text.as_bytes().len()),
+                )
+                .with_header(
+                    format!("Content-Type: text/plain")
+                        .parse::<Header>()
+                        .unwrap(),
+                );
             request.respond(response).unwrap();
             continue;
         };
@@ -89,7 +97,9 @@ fn encode(img_buf: &[u8], format: ImageFormat) -> Vec<u8> {
         ImageFormat::Jpeg => JpegEncoder::new(&mut writer).encode(img_buf, width, height, Rgb8),
         ImageFormat::Png => PngEncoder::new(&mut writer).write_image(img_buf, width, height, Rgb8),
         ImageFormat::Tga => TgaEncoder::new(&mut writer).encode(img_buf, width, height, Rgb8),
-        ImageFormat::WebP => WebPEncoder::new_lossless(&mut writer).encode(img_buf, width, height, Rgb8),
+        ImageFormat::WebP => {
+            WebPEncoder::new_lossless(&mut writer).encode(img_buf, width, height, Rgb8)
+        }
         _ => unimplemented!(),
     }
     .unwrap();
