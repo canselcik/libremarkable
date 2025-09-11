@@ -1,5 +1,5 @@
 use image::codecs::{
-    bmp::BmpEncoder, gif::GifEncoder, jpeg::JpegEncoder, png::PngEncoder, tga::TgaEncoder,
+    bmp::BmpEncoder, gif::GifEncoder, jpeg::JpegEncoder, png::PngEncoder, tga::TgaEncoder, webp::WebPEncoder,
 };
 use image::ImageEncoder;
 use image::{ExtendedColorType::Rgb8, ImageFormat};
@@ -59,8 +59,18 @@ fn main() {
             (encode(&rgb888, ImageFormat::Bmp), "image/bmp")
         } else if url_lc.ends_with("tga") {
             (encode(&rgb888, ImageFormat::Tga), "image/x-tga")
-        } else {
+        } else if url_lc.ends_with("png") {
             (encode(&rgb888, ImageFormat::Png), "image/png")
+        } else if url_lc.ends_with("webp") {
+            (encode(&rgb888, ImageFormat::WebP), "image/webp")
+        }else {
+            // 404
+            let response_text = "404 Not found\nEither go to / or specify any path ending in a supported file extension: webp, png, jp(e)g, gif, tga or bmp)";
+            let response = Response::new_empty(StatusCode(404))
+                .with_data(response_text.as_bytes(), Some(response_text.as_bytes().len()))
+                .with_header(format!("Content-Type: text/plain").parse::<Header>().unwrap());
+            request.respond(response).unwrap();
+            continue;
         };
         let response = Response::new_empty(StatusCode(200))
             .with_data(&*data, Some(data.len()))
@@ -79,6 +89,7 @@ fn encode(img_buf: &[u8], format: ImageFormat) -> Vec<u8> {
         ImageFormat::Jpeg => JpegEncoder::new(&mut writer).encode(img_buf, width, height, Rgb8),
         ImageFormat::Png => PngEncoder::new(&mut writer).write_image(img_buf, width, height, Rgb8),
         ImageFormat::Tga => TgaEncoder::new(&mut writer).encode(img_buf, width, height, Rgb8),
+        ImageFormat::WebP => WebPEncoder::new_lossless(&mut writer).encode(img_buf, width, height, Rgb8),
         _ => unimplemented!(),
     }
     .unwrap();
@@ -126,11 +137,11 @@ const INDEX_PAGE: &str = r#"<!DOCTYPE html>
         </style>
     </head>
         <p><b>Create screenshot as</b></p>
-        <a href="/png">PNG<br><small>Lossless, fast and small when few realistic graphics included.</small></a>
-        <a href="/jpg">JPG<br><small>Lossy, slower and usually smaller, can add noise in UIs.</small></a>
-        <a href="/gif">GIF<br><small>Lossless, very small and slow. Reduced colour pallete.</small></a>
-        <a href="/tga">TGA<br><small>Lossless, huge and fast. Usually slowest due to speed, but raw.</small></a>
-        <small>You can save the image by right clicking or holding the image and selecting <i>Save image</i></small>
+        <a href="/my-cool-screenshot.tga">WEBP<br><small>Lossless mode, twice as fast and half as big as png.</small></a>
+        <a href="/my-cool-screenshot.png">PNG<br><small>Lossless, old and trusty. Can get big with realistic graphics.</small></a>
+        <a href="/my-cool-screenshot.jpg">JPG<br><small>Lossy, slower but very small. Can add noise in UIs.</small></a>
+        <p><small>You can save the image by right clicking or holding the image and selecting <i>Save image</i></small></p>
+        <p><small>Any path works that ends in a supported extension (webp, png, jpg, gif, tga or bmp)</small><p>
     </body>
 </html>
 "#;
