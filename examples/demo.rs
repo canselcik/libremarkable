@@ -21,7 +21,7 @@ use log::info;
 use std::collections::VecDeque;
 use std::fmt;
 use std::process::Command;
-use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU8, Ordering};
+use std::sync::atomic::{Atomic, AtomicBool, AtomicI32, AtomicU8, Ordering};
 use std::sync::{LazyLock, Mutex};
 use std::thread::sleep;
 use std::time::Duration;
