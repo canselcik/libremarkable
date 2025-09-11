@@ -21,7 +21,7 @@ use log::info;
 use std::collections::VecDeque;
 use std::fmt;
 use std::process::Command;
-use std::sync::atomic::{Atomic, AtomicBool, AtomicI32, AtomicU8, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU8, Ordering};
 use std::sync::{LazyLock, Mutex};
 use std::thread::sleep;
 use std::time::Duration;
@@ -140,8 +140,8 @@ const CANVAS_REGION: mxcfb_rect = mxcfb_rect {
 
 type PointAndPressure = (cgmath::Point2<f32>, i32);
 
-static G_TOUCH_MODE: LazyLock<Atomic<TouchMode>> = LazyLock::new(|| Atomic::new(TouchMode::OnlyUI));
-static G_DRAW_MODE: LazyLock<Atomic<DrawMode>> = LazyLock::new(|| Atomic::new(DrawMode::Draw(2)));
+static G_TOUCH_MODE: LazyLock<AtomicU8> = LazyLock::new(|| AtomicU8::new(TouchMode::OnlyUI.into()));
+static G_DRAW_MODE: LazyLock<AtomicI32> = LazyLock::new(|| AtomicI32::new(DrawMode::Draw(2).into()));
 static UNPRESS_OBSERVED: LazyLock<AtomicBool> = LazyLock::new(|| AtomicBool::new(false));
 static WACOM_IN_RANGE: LazyLock<AtomicBool> = LazyLock::new(|| AtomicBool::new(false));
 static WACOM_RUBBER_SIDE: LazyLock<AtomicBool> = LazyLock::new(|| AtomicBool::new(false));
