@@ -11,6 +11,7 @@ use crate::framebuffer::cgmath::*;
 use crate::framebuffer::common::*;
 use crate::framebuffer::core;
 use crate::framebuffer::graphics;
+use crate::framebuffer::mxcfb::mxcfb_rect;
 use crate::framebuffer::FramebufferIO;
 
 #[cfg(feature = "framebuffer-text-drawing")]

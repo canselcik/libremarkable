@@ -1,8 +1,7 @@
 use log::error;
 
 use crate::framebuffer;
-use crate::framebuffer::cgmath;
-use crate::framebuffer::common;
+use crate::framebuffer::{cgmath, mxcfb};
 
 impl framebuffer::FramebufferIO for framebuffer::core::Framebuffer {
     fn write_frame(&mut self, frame: &[u8]) {
@@ -64,7 +63,7 @@ impl framebuffer::FramebufferIO for framebuffer::core::Framebuffer {
         }
     }
 
-    fn dump_region(&self, rect: common::mxcfb_rect) -> Result<Vec<u8>, &'static str> {
+    fn dump_region(&self, rect: mxcfb::mxcfb_rect) -> Result<Vec<u8>, &'static str> {
         if rect.width == 0 || rect.height == 0 {
             return Err("Unable to dump a region with zero height/width");
         }
@@ -102,7 +101,7 @@ impl framebuffer::FramebufferIO for framebuffer::core::Framebuffer {
 
     fn restore_region(
         &mut self,
-        rect: common::mxcfb_rect,
+        rect: mxcfb::mxcfb_rect,
         data: &[u8],
     ) -> Result<u32, &'static str> {
         if rect.width == 0 || rect.height == 0 {

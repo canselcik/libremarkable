@@ -37,7 +37,7 @@ fn main() {
         let width = u32::from(DISPLAYWIDTH);
         let height = u32::from(DISPLAYHEIGHT);
         let contents = fb
-            .dump_region(framebuffer::common::mxcfb_rect {
+            .dump_region(framebuffer::mxcfb::mxcfb_rect {
                 top: 0,
                 left: 0,
                 width,

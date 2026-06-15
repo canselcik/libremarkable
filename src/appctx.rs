@@ -25,11 +25,11 @@ use crate::ui_extensions::element::{
     UIElementWrapper,
 };
 
-#[cfg(feature = "hlua")]
-use hlua::Lua;
-
+use crate::framebuffer::mxcfb::mxcfb_rect;
 #[cfg(feature = "hlua")]
 use crate::ui_extensions::luaext;
+#[cfg(feature = "hlua")]
+use hlua::Lua;
 
 unsafe impl<'a> Send for ApplicationContext<'a> {}
 unsafe impl<'a> Sync for ApplicationContext<'a> {}

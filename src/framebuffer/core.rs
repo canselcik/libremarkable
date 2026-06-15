@@ -10,10 +10,13 @@ use crate::device;
 use crate::device::Model;
 use crate::framebuffer;
 use crate::framebuffer::common::{
-    FBIOGET_FSCREENINFO, FBIOGET_VSCREENINFO, FBIOPUT_VSCREENINFO, MXCFB_DISABLE_EPDC_ACCESS,
-    MXCFB_ENABLE_EPDC_ACCESS, MXCFB_SET_AUTO_UPDATE_MODE, MXCFB_SET_UPDATE_SCHEME,
+    MXCFB_DISABLE_EPDC_ACCESS, MXCFB_ENABLE_EPDC_ACCESS, MXCFB_SET_AUTO_UPDATE_MODE,
+    MXCFB_SET_UPDATE_SCHEME,
 };
-use crate::framebuffer::screeninfo::{FixScreeninfo, VarScreeninfo};
+use crate::framebuffer::mxcfb::{
+    fb_fix_screeninfo, fb_var_screeninfo, FBIOGET_FSCREENINFO, FBIOGET_VSCREENINFO,
+    FBIOPUT_VSCREENINFO,
+};
 use crate::framebuffer::swtfb_client::SwtfbClient;
 use crate::framebuffer::FramebufferBase;
 
@@ -30,8 +33,8 @@ pub struct Framebuffer {
     /// Not updated as a result of calling `Framebuffer::put_var_screeninfo(..)`.
     /// It is your responsibility to update this when you call into that function
     /// like it has been done in `Framebuffer::new(..)`.
-    pub var_screen_info: VarScreeninfo,
-    pub fix_screen_info: FixScreeninfo,
+    pub var_screen_info: fb_var_screeninfo,
+    pub fix_screen_info: fb_fix_screeninfo,
     pub framebuffer_update: FramebufferUpdate,
 }
 
@@ -193,21 +196,21 @@ impl framebuffer::FramebufferBase for Framebuffer {
         }
     }
 
-    fn get_fix_screeninfo(device: &File) -> FixScreeninfo {
-        let mut info: FixScreeninfo = Default::default();
+    fn get_fix_screeninfo(device: &File) -> fb_fix_screeninfo {
+        let mut info: fb_fix_screeninfo = Default::default();
         let result = unsafe { ioctl(device.as_raw_fd(), FBIOGET_FSCREENINFO, &mut info) };
         assert!(result == 0, "FBIOGET_FSCREENINFO failed");
         info
     }
 
-    fn get_var_screeninfo(device: &File) -> VarScreeninfo {
-        let mut info: VarScreeninfo = Default::default();
+    fn get_var_screeninfo(device: &File) -> fb_var_screeninfo {
+        let mut info: fb_var_screeninfo = Default::default();
         let result = unsafe { ioctl(device.as_raw_fd(), FBIOGET_VSCREENINFO, &mut info) };
         assert!(result == 0, "FBIOGET_VSCREENINFO failed");
         info
     }
 
-    fn put_var_screeninfo(device: &std::fs::File, var_screen_info: &mut VarScreeninfo) -> bool {
+    fn put_var_screeninfo(device: &std::fs::File, var_screen_info: &mut fb_var_screeninfo) -> bool {
         let result = unsafe { ioctl(device.as_raw_fd(), FBIOPUT_VSCREENINFO, var_screen_info) };
         result == 0
     }

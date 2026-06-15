@@ -2,6 +2,7 @@ use image::{DynamicImage, ImageFormat};
 
 use libremarkable::framebuffer::common::*;
 use libremarkable::framebuffer::core::*;
+use libremarkable::framebuffer::mxcfb::*;
 use libremarkable::framebuffer::*;
 use libremarkable::image::RgbImage;
 use std::fs::OpenOptions;
