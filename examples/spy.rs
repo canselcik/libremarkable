@@ -3,12 +3,10 @@ use std::sync::Mutex;
 
 use libc::c_int;
 use libc::intptr_t;
+use libremarkable::framebuffer::mxcfb::*;
+use libremarkable::framebuffer::{common, mxcfb};
 use redhook::{hook, real};
 use std::sync::LazyLock;
-
-use libremarkable::framebuffer::common::*;
-use libremarkable::framebuffer::mxcfb::*;
-use libremarkable::framebuffer::screeninfo::VarScreeninfo;
 
 static DIST_DITHER: LazyLock<Mutex<HashMap<u32, u32>>> = LazyLock::new(|| {
     let m = HashMap::new();
@@ -35,7 +33,7 @@ static DIST_TEMP: LazyLock<Mutex<HashMap<u32, u32>>> = LazyLock::new(|| {
 #[repr(C)]
 struct ioctl_intercept_event {
     fd: libc::c_int,
-    request: NativeWidthType,
+    request: libc::Ioctl,
     p1: intptr_t,
     p2: intptr_t,
     p3: intptr_t,
@@ -94,9 +92,9 @@ fn handle_wait_update_complete(event: ioctl_intercept_event) {
 }
 
 hook! {
-  unsafe fn ioctl(fd: c_int, request: NativeWidthType, p1: intptr_t, p2: intptr_t, p3: intptr_t, p4: intptr_t) -> c_int => ioctl_hook {
+  unsafe fn ioctl(fd: c_int, request: libc::Ioctl, p1: intptr_t, p2: intptr_t, p3: intptr_t, p4: intptr_t) -> c_int => ioctl_hook {
     if request == FBIOPUT_VSCREENINFO {
-        let info = p1 as *mut VarScreeninfo;
+        let info = p1 as *mut fb_var_screeninfo;
         println!("fb_var_screeninfo before FBIOPUT_VSCREENINFO is called: {0:#?}", *info);
     }
 
@@ -117,15 +115,15 @@ hook! {
     }
 
     match request {
-        FBIOGETCMAP => println!("FBIOGETCMAP({0:#?})", event),
-        FBIOPUTCMAP => println!("FBIOPUTCMAP({0:#?})", event),
-        FBIO_CURSOR => println!("FBIO_CURSOR({0:#?})", event),
-        FBIOPAN_DISPLAY => println!("FBIOPAN_DISPLAY({0:#?})", event),
-        FBIOPUT_VSCREENINFO => println!("FBIOPUT_VSCREENINFO(after: {0:#?}) = {1}", *(p1 as *mut VarScreeninfo), res),
-        FBIOGET_VSCREENINFO => println!("FBIOGET_VSCREENINFO(out: {0:#?})", p1 as *mut VarScreeninfo),
-        FBIOGET_FSCREENINFO => println!("FBIOGET_FSCREENINFO(out: {0:#?})", event),
-        MXCFB_WAIT_FOR_UPDATE_COMPLETE => handle_wait_update_complete(event),
-        MXCFB_SEND_UPDATE => handle_send_update(event),
+        mxcfb::FBIOGETCMAP => println!("FBIOGETCMAP({0:#?})", event),
+        mxcfb::FBIOPUTCMAP => println!("FBIOPUTCMAP({0:#?})", event),
+        common::FBIO_CURSOR => println!("FBIO_CURSOR({0:#?})", event),
+        mxcfb::FBIOPAN_DISPLAY => println!("FBIOPAN_DISPLAY({0:#?})", event),
+        mxcfb::FBIOPUT_VSCREENINFO => println!("FBIOPUT_VSCREENINFO(after: {0:#?}) = {1}", *(p1 as *mut fb_var_screeninfo), res),
+        mxcfb::FBIOGET_VSCREENINFO => println!("FBIOGET_VSCREENINFO(out: {0:#?})", p1 as *mut fb_var_screeninfo),
+        mxcfb::FBIOGET_FSCREENINFO => println!("FBIOGET_FSCREENINFO(out: {0:#?})", event),
+        common::MXCFB_WAIT_FOR_UPDATE_COMPLETE => handle_wait_update_complete(event),
+        common::MXCFB_SEND_UPDATE => handle_send_update(event),
         _ => println!("unknown_ioctl({0:#?})", event),
     }
     res

@@ -1,5 +1,5 @@
 use crate::framebuffer::cgmath::*;
-use crate::framebuffer::common::*;
+use crate::framebuffer::mxcfb::mxcfb_rect;
 
 macro_rules! min {
         ($x: expr) => ($x);

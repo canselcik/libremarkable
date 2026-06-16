@@ -1,14 +1,15 @@
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use crate::framebuffer::cgmath;
 use crate::framebuffer::common;
-use crate::framebuffer::common::{color, mxcfb_rect};
+use crate::framebuffer::common::color;
 use crate::framebuffer::FramebufferDraw;
 use crate::framebuffer::FramebufferRefresh;
 use crate::framebuffer::PartialRefreshMode;
+use crate::framebuffer::{cgmath, mxcfb};
 
 use crate::appctx;
+use crate::framebuffer::mxcfb::mxcfb_rect;
 
 pub type ActiveRegionFunction = fn(&mut appctx::ApplicationContext<'_>, UIElementHandle);
 
@@ -39,7 +40,7 @@ pub struct UIElementHandle(Arc<RwLock<UIElementWrapper>>);
 pub struct UIElementWrapper {
     pub position: cgmath::Point2<i32>,
     pub refresh: UIConstraintRefresh,
-    pub last_drawn_rect: Option<common::mxcfb_rect>,
+    pub last_drawn_rect: Option<mxcfb::mxcfb_rect>,
     pub onclick: Option<ActiveRegionFunction>,
     pub inner: UIElement,
 }

@@ -6,7 +6,7 @@ repository = "https://github.com/canselcik/libremarkable"
 license = "MIT"
 description = "The only publicly available Framework for developing applications for the Remarkable Paper Tablet w/ Low Latency Partial Refresh Support"
 readme = "README.md"
-exclude = [ "reference-material/*", "legacy-c-impl/*", "private/*" ]
+exclude = ["reference-material/*", "legacy-c-impl/*", "private/*"]
 edition = "2021"
 
 [dependencies]
@@ -77,6 +77,9 @@ crate-type = ["bin"]
 name = "live"
 path = "examples/live.rs"
 crate-type = ["bin"]
+
+[build-dependencies]
+bindgen = "0.72.1"
 
 [dev-dependencies]
 env_logger = "0.11.5"

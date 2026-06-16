@@ -4,6 +4,7 @@ use crate::framebuffer::core;
 
 use crate::framebuffer::PartialRefreshMode;
 
+use crate::framebuffer::mxcfb::mxcfb_rect;
 use crate::framebuffer::FramebufferDraw;
 use crate::framebuffer::FramebufferIO;
 use crate::framebuffer::FramebufferRefresh;

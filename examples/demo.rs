@@ -18,6 +18,7 @@ use libremarkable::stopwatch;
 use chrono::{DateTime, Local};
 use log::info;
 
+use libremarkable::framebuffer::mxcfb::mxcfb_rect;
 use std::collections::VecDeque;
 use std::fmt;
 use std::process::Command;

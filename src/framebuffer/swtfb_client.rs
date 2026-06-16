@@ -4,9 +4,8 @@
 //! The client is developed according to the spec here:
 //! https://github.com/ddvk/remarkable2-framebuffer/issues/11
 
-use super::mxcfb::mxcfb_update_data;
+use super::mxcfb::{fb_fix_screeninfo, fb_var_screeninfo, mxcfb_update_data};
 use crate::device;
-use crate::framebuffer::screeninfo::{FixScreeninfo, VarScreeninfo};
 use memmap2::{MmapOptions, MmapRaw};
 use std::ffi::{c_void, CStr, CString};
 use std::fs::OpenOptions;
@@ -194,9 +193,9 @@ impl SwtfbClient {
         })
     }
 
-    pub fn get_fix_screeninfo(&self) -> FixScreeninfo {
+    pub fn get_fix_screeninfo(&self) -> fb_fix_screeninfo {
         // https://github.com/ddvk/remarkable2-framebuffer/blob/1e288aa9/src/client/main.cpp#L217
-        let mut screeninfo: FixScreeninfo = unsafe { std::mem::zeroed() };
+        let mut screeninfo: fb_fix_screeninfo = unsafe { std::mem::zeroed() };
         //screeninfo.smem_start = mem_map.as_ptr() as u32; // Not used anyway. TODO: Consider adding properly
         screeninfo.smem_len = super::swtfb_client::BUF_SIZE as u32;
         screeninfo.line_length =
@@ -204,9 +203,9 @@ impl SwtfbClient {
         screeninfo
     }
 
-    pub fn get_var_screeninfo(&self) -> VarScreeninfo {
+    pub fn get_var_screeninfo(&self) -> fb_var_screeninfo {
         // https://github.com/ddvk/remarkable2-framebuffer/blob/1e288aa9/src/client/main.cpp#L194
-        let mut screeninfo: VarScreeninfo = unsafe { std::mem::zeroed() };
+        let mut screeninfo: fb_var_screeninfo = unsafe { std::mem::zeroed() };
         screeninfo.xres = super::swtfb_client::WIDTH as u32;
         screeninfo.yres = super::swtfb_client::HEIGHT as u32;
         screeninfo.grayscale = 0;

@@ -1,6 +1,5 @@
 pub mod common;
 pub mod mxcfb;
-pub mod screeninfo;
 
 #[cfg(feature = "framebuffer-storage")]
 pub mod storage;
@@ -11,6 +10,7 @@ pub mod io;
 #[cfg(feature = "framebuffer")]
 pub mod swtfb_client;
 
+use crate::framebuffer::mxcfb::{fb_fix_screeninfo, fb_var_screeninfo};
 pub use cgmath;
 
 pub trait FramebufferIO {
@@ -25,13 +25,10 @@ pub trait FramebufferIO {
     /// Dumps the contents of the specified rectangle into a `Vec<u8>` from which
     /// you can later create a CompressedCanvasState or pass to restore_region().
     /// The pixel format is rgb565_le.
-    fn dump_region(&self, rect: common::mxcfb_rect) -> Result<Vec<u8>, &'static str>;
+    fn dump_region(&self, rect: mxcfb::mxcfb_rect) -> Result<Vec<u8>, &'static str>;
     /// Restores into the framebuffer the contents of the specified rectangle from a u8 slice
-    fn restore_region(
-        &mut self,
-        rect: common::mxcfb_rect,
-        data: &[u8],
-    ) -> Result<u32, &'static str>;
+    fn restore_region(&mut self, rect: mxcfb::mxcfb_rect, data: &[u8])
+        -> Result<u32, &'static str>;
 }
 
 #[cfg(feature = "framebuffer-drawing")]
@@ -44,8 +41,7 @@ pub mod draw;
 pub trait FramebufferDraw {
     #[cfg(feature = "image")]
     /// Draws `img` at `pos` with 1:1 scaling
-    fn draw_image(&mut self, img: &image::RgbImage, pos: cgmath::Point2<i32>)
-        -> common::mxcfb_rect;
+    fn draw_image(&mut self, img: &image::RgbImage, pos: cgmath::Point2<i32>) -> mxcfb::mxcfb_rect;
     /// Draws a straight line
     fn draw_line(
         &mut self,
@@ -53,28 +49,28 @@ pub trait FramebufferDraw {
         end: cgmath::Point2<i32>,
         width: u32,
         v: common::color,
-    ) -> common::mxcfb_rect;
+    ) -> mxcfb::mxcfb_rect;
     /// Draws a circle using Bresenham circle algorithm
     fn draw_circle(
         &mut self,
         pos: cgmath::Point2<i32>,
         rad: u32,
         c: common::color,
-    ) -> common::mxcfb_rect;
+    ) -> mxcfb::mxcfb_rect;
     /// Fills a circle
     fn fill_circle(
         &mut self,
         pos: cgmath::Point2<i32>,
         rad: u32,
         c: common::color,
-    ) -> common::mxcfb_rect;
+    ) -> mxcfb::mxcfb_rect;
     /// Draws a polygon
     fn draw_polygon(
         &mut self,
         _: &[cgmath::Point2<i32>],
         fill: bool,
         c: common::color,
-    ) -> common::mxcfb_rect;
+    ) -> mxcfb::mxcfb_rect;
     /// Draws a bezier curve begining at `startpt`, with control point `ctrlpt`, ending at `endpt` with `color`
     fn draw_bezier(
         &mut self,
@@ -84,7 +80,7 @@ pub trait FramebufferDraw {
         width: f32,
         samples: i32,
         v: common::color,
-    ) -> common::mxcfb_rect;
+    ) -> mxcfb::mxcfb_rect;
     /// Draws a bezier curve begining at `startpt`, with control point `ctrlpt`, ending at `endpt`
     /// with a width at each point and color `color`
     fn draw_dynamic_bezier(
@@ -94,7 +90,7 @@ pub trait FramebufferDraw {
         endpt: (cgmath::Point2<f32>, f32),
         samples: i32,
         v: common::color,
-    ) -> common::mxcfb_rect;
+    ) -> mxcfb::mxcfb_rect;
     /// Draws `text` at `pos` with `color` using scale `size`
     #[cfg(feature = "framebuffer-text-drawing")]
     fn draw_text(
@@ -104,7 +100,7 @@ pub trait FramebufferDraw {
         size: f32,
         col: common::color,
         dryrun: bool,
-    ) -> common::mxcfb_rect;
+    ) -> mxcfb::mxcfb_rect;
     /// Draws a 1px border rectangle of size `size` at `pos` with `border_px` border thickness
     fn draw_rect(
         &mut self,
@@ -129,16 +125,13 @@ pub trait FramebufferBase {
     /// Toggles update scheme
     fn set_update_scheme(&mut self, scheme: u32);
     /// Creates a FixScreeninfo struct and fills it using ioctl
-    fn get_fix_screeninfo(device: &std::fs::File) -> screeninfo::FixScreeninfo;
+    fn get_fix_screeninfo(device: &std::fs::File) -> fb_fix_screeninfo;
     /// Creates a VarScreeninfo struct and fills it using ioctl
-    fn get_var_screeninfo(device: &std::fs::File) -> screeninfo::VarScreeninfo;
+    fn get_var_screeninfo(device: &std::fs::File) -> fb_var_screeninfo;
     /// Makes the proper ioctl call to set the VarScreenInfo.
     /// You must first update the contents of self.var_screen_info
     /// and then call this function.
-    fn put_var_screeninfo(
-        device: &std::fs::File,
-        var_screen_info: &mut screeninfo::VarScreeninfo,
-    ) -> bool;
+    fn put_var_screeninfo(device: &std::fs::File, var_screen_info: &mut fb_var_screeninfo) -> bool;
 
     fn update_var_screeninfo(&mut self) -> bool;
 }
@@ -193,7 +186,7 @@ pub trait FramebufferRefresh {
     #[allow(clippy::too_many_arguments)]
     fn partial_refresh(
         &self,
-        region: &common::mxcfb_rect,
+        region: &mxcfb::mxcfb_rect,
         mode: PartialRefreshMode,
         waveform_mode: common::waveform_mode,
         temperature: common::display_temp,

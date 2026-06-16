@@ -7,7 +7,7 @@ use crate::framebuffer;
 use crate::framebuffer::core;
 use crate::framebuffer::core::FramebufferUpdate;
 use crate::framebuffer::mxcfb::*;
-use crate::framebuffer::{common, PartialRefreshMode};
+use crate::framebuffer::{common, mxcfb, PartialRefreshMode};
 
 impl framebuffer::FramebufferRefresh for core::Framebuffer {
     fn full_refresh(
@@ -18,7 +18,7 @@ impl framebuffer::FramebufferRefresh for core::Framebuffer {
         quant_bit: i32,
         wait_completion: bool,
     ) -> u32 {
-        let screen = common::mxcfb_rect {
+        let screen = mxcfb::mxcfb_rect {
             top: 0,
             left: 0,
             height: self.var_screen_info.yres,
@@ -26,7 +26,7 @@ impl framebuffer::FramebufferRefresh for core::Framebuffer {
         };
         let marker = self.marker.fetch_add(1, Ordering::Relaxed);
         let whole = mxcfb_update_data {
-            update_mode: common::update_mode::UPDATE_MODE_FULL as u32,
+            update_mode: mxcfb::UPDATE_MODE_FULL as u32,
             update_marker: marker,
             waveform_mode: waveform_mode as u32,
             temp: temperature as i32,
@@ -58,7 +58,7 @@ impl framebuffer::FramebufferRefresh for core::Framebuffer {
 
     fn partial_refresh(
         &self,
-        region: &common::mxcfb_rect,
+        region: &mxcfb::mxcfb_rect,
         mode: PartialRefreshMode,
         waveform_mode: common::waveform_mode,
         temperature: common::display_temp,

@@ -1,42 +1,27 @@
 #![allow(non_camel_case_types)]
-use crate::framebuffer::cgmath;
+
 use crate::framebuffer::mxcfb::*;
+use libc::Ioctl;
 
 // Compatibility re-exports
 pub use crate::dimensions::{DISPLAYHEIGHT, DISPLAYWIDTH};
 #[cfg(feature = "input")]
 pub use crate::dimensions::{MTHEIGHT, MTWIDTH, WACOMHEIGHT, WACOMWIDTH};
 
-/// This is to allow tests to run on systems with 64bit pointer types.
-/// It doesn't make a difference since we will be mocking the ioctl calls.
-#[cfg(target_pointer_width = "64")]
-pub type NativeWidthType = u64;
-#[cfg(all(target_pointer_width = "32", target_env = "musl"))]
-pub type NativeWidthType = i32;
-#[cfg(all(target_pointer_width = "32", target_env = "gnu"))]
-pub type NativeWidthType = u32;
-
-pub const MXCFB_SET_AUTO_UPDATE_MODE: NativeWidthType =
-    iow!(b'F', 0x2D, std::mem::size_of::<u32>()) as NativeWidthType;
-pub const MXCFB_SET_UPDATE_SCHEME: NativeWidthType =
-    iow!(b'F', 0x32, std::mem::size_of::<u32>()) as NativeWidthType;
+pub const MXCFB_SET_AUTO_UPDATE_MODE: Ioctl = iow!(b'F', 0x2D, std::mem::size_of::<u32>()) as Ioctl;
+pub const MXCFB_SET_UPDATE_SCHEME: Ioctl = iow!(b'F', 0x32, std::mem::size_of::<u32>()) as Ioctl;
 /// Should be 0x4048462e. This is not the ordinary value which is
 /// used in most software. Even the official toolchain(s).
 /// See: https://github.com/canselcik/libremarkable/wiki/Framebuffer-Overview
-pub const MXCFB_SEND_UPDATE: NativeWidthType =
-    iow!(b'F', 0x2E, std::mem::size_of::<mxcfb_update_data>()) as NativeWidthType;
-pub const MXCFB_WAIT_FOR_UPDATE_COMPLETE: NativeWidthType =
-    iowr!(b'F', 0x2F, std::mem::size_of::<mxcfb_update_marker_data>()) as NativeWidthType;
-pub const MXCFB_DISABLE_EPDC_ACCESS: NativeWidthType = io!(b'F', 0x35) as NativeWidthType;
-pub const MXCFB_ENABLE_EPDC_ACCESS: NativeWidthType = io!(b'F', 0x36) as NativeWidthType;
+pub const MXCFB_SEND_UPDATE: Ioctl =
+    iow!(b'F', 0x2E, std::mem::size_of::<mxcfb_update_data>()) as Ioctl;
+pub const MXCFB_WAIT_FOR_UPDATE_COMPLETE: Ioctl =
+    iowr!(b'F', 0x2F, std::mem::size_of::<mxcfb_update_marker_data>()) as Ioctl;
+pub const MXCFB_DISABLE_EPDC_ACCESS: Ioctl = io!(b'F', 0x35) as Ioctl;
+pub const MXCFB_ENABLE_EPDC_ACCESS: Ioctl = io!(b'F', 0x36) as Ioctl;
 
-pub const FBIOPUT_VSCREENINFO: NativeWidthType = 0x4601;
-pub const FBIOGET_VSCREENINFO: NativeWidthType = 0x4600;
-pub const FBIOGET_FSCREENINFO: NativeWidthType = 0x4602;
-pub const FBIOGETCMAP: NativeWidthType = 0x4604;
-pub const FBIOPUTCMAP: NativeWidthType = 0x4605;
-pub const FBIOPAN_DISPLAY: NativeWidthType = 0x4606;
-pub const FBIO_CURSOR: NativeWidthType = 0x4608;
+pub const FBIOPAN_DISPLAY: ::std::os::raw::c_ulong = 0x4606;
+pub const FBIO_CURSOR: ::std::os::raw::c_ulong = 0x4608;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub enum color {
@@ -161,119 +146,6 @@ pub const EPDC_FLAG_GROUP_UPDATE: u32 = 0x0400;
 pub const DRAWING_QUANT_BIT: i32 = 0x7614_3b24;
 pub const DRAWING_QUANT_BIT_2: i32 = 0x75e7_bb24;
 pub const DRAWING_QUANT_BIT_3: i32 = 0x5_3ed4;
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-#[repr(C)]
-pub struct mxcfb_rect {
-    pub top: u32,
-    pub left: u32,
-    pub width: u32,
-    pub height: u32,
-}
-
-impl ::std::default::Default for mxcfb_rect {
-    fn default() -> Self {
-        unsafe { ::std::mem::zeroed() }
-    }
-}
-
-impl mxcfb_rect {
-    pub fn top_left(&self) -> cgmath::Point2<u32> {
-        cgmath::Point2 {
-            x: self.left,
-            y: self.top,
-        }
-    }
-    pub fn size(&self) -> cgmath::Vector2<u32> {
-        cgmath::Vector2 {
-            x: self.width,
-            y: self.height,
-        }
-    }
-    pub fn from(pos: cgmath::Point2<u32>, size: cgmath::Vector2<u32>) -> mxcfb_rect {
-        mxcfb_rect {
-            top: pos.y,
-            left: pos.x,
-            height: size.y,
-            width: size.x,
-        }
-    }
-}
-
-impl mxcfb_rect {
-    pub fn invalid() -> Self {
-        mxcfb_rect {
-            top: 9999,
-            left: 9999,
-            height: 0,
-            width: 0,
-        }
-    }
-}
-
-impl mxcfb_rect {
-    pub fn contains_point(&self, p: &cgmath::Point2<u32>) -> bool {
-        !(p.x < self.left
-            || p.x > (self.left + self.width)
-            || p.y < self.top
-            || p.y > (self.top + self.height))
-    }
-
-    pub fn contains_rect(&self, rect: &mxcfb_rect) -> bool {
-        self.contains_point(&cgmath::Point2 {
-            x: rect.left,
-            y: rect.top,
-        }) && self.contains_point(&cgmath::Point2 {
-            x: rect.left + rect.width,
-            y: rect.top + rect.height,
-        })
-    }
-
-    pub fn merge_pixel(&self, p: &cgmath::Point2<u32>) -> mxcfb_rect {
-        let top = std::cmp::min(self.top, p.y);
-        let left = std::cmp::min(self.left, p.x);
-        let bottom = std::cmp::max(self.top + self.height, p.y);
-        let right = std::cmp::max(self.left + self.width, p.x);
-        mxcfb_rect {
-            left,
-            top,
-            width: right - left,
-            height: bottom - top,
-        }
-    }
-
-    pub fn merge_rect(&self, rect: &mxcfb_rect) -> mxcfb_rect {
-        let self_is_empty = self.height == 0 || self.width == 0;
-        let rect_is_empty = rect.height == 0 || rect.width == 0;
-        if self_is_empty && rect_is_empty {
-            mxcfb_rect::invalid()
-        } else if self_is_empty {
-            *rect
-        } else if rect_is_empty {
-            *self
-        } else {
-            let top = std::cmp::min(self.top, rect.top);
-            let left = std::cmp::min(self.left, rect.left);
-            let bottom = std::cmp::max(self.top + self.height, rect.top + rect.height);
-            let right = std::cmp::max(self.left + self.width, rect.left + rect.width);
-            mxcfb_rect {
-                left,
-                top,
-                width: right - left,
-                height: bottom - top,
-            }
-        }
-    }
-
-    pub fn expand(&self, margin: u32) -> mxcfb_rect {
-        mxcfb_rect {
-            left: self.left.saturating_sub(margin),
-            top: self.top.saturating_sub(margin),
-            width: self.width + (2 * margin),
-            height: self.height + (2 * margin),
-        }
-    }
-}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum mxcfb_ioctl {
