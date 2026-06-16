@@ -1,0 +1,6 @@
+[target.armv7-unknown-linux-gnueabihf]
+pre-build = [
+    "dpkg --add-architecture $CROSS_DEB_ARCH",
+    "apt-get update",
+    "apt-get install --assume-yes libclang-dev:$CROSS_DEB_ARCH"
+]
