@@ -1,6 +1,10 @@
 [target.armv7-unknown-linux-gnueabihf]
-pre-build = [
-    "dpkg --add-architecture $CROSS_DEB_ARCH",
-    "apt-get update",
-    "apt-get install --assume-yes libclang-dev:$CROSS_DEB_ARCH"
+image = "ghcr.io/toltec-dev/rust:v4.0"
+pre-build = ["apt-get update", "apt-get --assume-yes install libclang-15-dev"]
+
+[target.armv7-unknown-linux-gnueabihf.env]
+passthrough = [
+    "BINDGEN_EXTRA_CLANG_ARGS='--sysroot=/opt/x-tools/arm-remarkable-linux-gnueabihf/arm-remarkable-linux-gnueabihf/sysroot/'",
+    "CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER=/opt/x-tools/arm-remarkable-linux-gnueabihf/bin/arm-remarkable-linux-gnueabihf-gcc",
+    "CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_RUSTFLAGS=-C link-arg=-march=armv7-a -C link-arg=-marm -C link-arg=-mfpu=neon -C link-arg=-mfloat-abi=hard -C link-arg=-mcpu=cortex-a9 -C link-arg=--sysroot=/opt/x-tools/arm-remarkable-linux-gnueabihf/arm-remarkable-linux-gnueabihf/sysroot/",
 ]
