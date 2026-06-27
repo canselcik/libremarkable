@@ -182,7 +182,7 @@ impl EvDevs {
             InputDevice::Wacom => &self.wacom_path,
             InputDevice::Multitouch => &self.multitouch_path,
             InputDevice::GPIO => &self.gpio_path,
-            InputDevice::Unknown => panic!("\"InputDevice::Unkown\" is no device!"),
+            InputDevice::Unknown => panic!("\"InputDevice::Unknown\" is no device!"),
         }
     }
 
@@ -193,7 +193,7 @@ impl EvDevs {
             InputDevice::Wacom => self.wacom_initial_dev.clone(),
             InputDevice::Multitouch => self.multitouch_initial_dev.clone(),
             InputDevice::GPIO => self.gpio_initial_dev.clone(),
-            InputDevice::Unknown => panic!("\"InputDevice::Unkown\" is no device!"),
+            InputDevice::Unknown => panic!("\"InputDevice::Unknown\" is no device!"),
         };
 
         let mut resuable_device = dev_arc.lock().unwrap();
